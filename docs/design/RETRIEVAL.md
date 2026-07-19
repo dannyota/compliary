@@ -48,13 +48,39 @@ language- or jurisdiction-specific; compliary is English-only with citation-keye
 
 ## Baselines
 
-50-query golden set (citation-keyed, no licensed text), 10 citation schemes.
+### Golden v2 baseline (105 cases — 2026-07-20)
 
-### Tuned baseline (v2 — 2026-07-20)
+105 adversarially-verified cases (63 v2 + 42 v1 survivors), 11 frameworks, 10+ citation
+schemes. 2 withdrawn-control cases (`SC-19`, `ID.GV`) marked `expect_fail` — retriever
+`status='active'` filter excludes them; they record honest unreachability, not a retrieval
+bug. Numbers are **not comparable** to the 50-case v1 baseline (different set composition).
 
-Accepted after eval-driven sweep: withdrawn-status filter on both arms, fusion constants
-tuned (`rrf_k=20`, `lex_weight=0.5`, `vector_k=50`, `bm25_k=50`). Ancestor-title content
-enrichment was tried and reverted (net-negative: diluted NIST signal).
+| Metric | Value | Floor |
+|--------|-------|-------|
+| recall@8 | 63.3% | 61% |
+| MRR@8 | 43.2% | 41% |
+| current-version | 100% | 98% |
+| abstention | 95.1% | 93% |
+
+Per-framework recall@8:
+
+| Framework | Cases | Recall | MRR@8 |
+|-----------|-------|--------|-------|
+| nist80053 | 17 | 71% | 49% |
+| nistcsf | 13 | 69% | 50% |
+| ciscontrols | 11 | 82% | 70% |
+| csaccm | 10 | 90% | 60% |
+| pcidss | 9 | 44% | 20% |
+| iso27001 | 7 | 43% | 33% |
+| iso27002 | 7 | 43% | 32% |
+| iso27017 | 6 | 67% | 38% |
+| iso27018 | 6 | 0% | - |
+| soc2tsc | 8 | 75% | 35% |
+| cobit | 4 | 75% | 56% |
+
+### Prior baseline (50 cases — 2026-07-20)
+
+Superseded by golden v2. Kept for reference; not comparable (different set size/composition).
 
 | Metric | Value | Floor |
 |--------|-------|-------|
@@ -63,19 +89,16 @@ enrichment was tried and reverted (net-negative: diluted NIST signal).
 | current-version | 100% | 98% |
 | abstention | 90% | 88% |
 
-### First baseline (v1 — 2026-07-20)
-
-| Metric | Value | Floor |
-|--------|-------|-------|
-| recall@8 | 57.8% | 55% |
-| MRR@8 | 32.3% | 30% |
-| current-version | 100% | 98% |
-| abstention | 90% | 88% |
-
 ## Known gaps
 
 - **No score-floor abstention** — 5/5 OOS queries return hits instead of abstaining
   (no score threshold; M3 follow-up).
+- **Withdrawn controls unreachable** — `status='active'` filter on both retrieval arms and
+  citation lookup excludes all 273 withdrawn controls. Version-pin queries about withdrawn
+  controls (SC-19, ID.GV) fail; marked `expect_fail` in golden set. Future: optional
+  `include_withdrawn` search flag.
+- **ISO 27018 recall 0%** — all 6 cases target short annex controls (A.x.x) with minimal
+  textual signal; dense and sparse arms both miss. Same root cause as short-chunk weakness.
 - **Short-chunk framework recall weak** — ISO/SOC2/PCI one-liner controls lack signal for both
   dense and sparse arms. Ancestor-title enrichment attempted but net-negative; column-separation
   (PCI body noise) and structured-title expansion remain as potential next steps.

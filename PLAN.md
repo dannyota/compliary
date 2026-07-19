@@ -104,7 +104,8 @@ milestone history.
    `workbook-rows-json`) — ~~PDF extract~~ done (9 PDFs captured as `pdf-pages-json` via go-fitz
    purego) — ~~all 8 v0.1.0 parsers~~ done (11 documents / 3402 controls / 3068 edges / 1870
    resolved) — ~~Index + LexIndex~~ done (3402 chunks embedded + BM25 sparse) — ~~hybrid
-   retriever~~ done (baseline: recall 57.8%, MRR 32.3%, current 100%). All acquired frameworks
+   retriever~~ done (golden v2 baseline: recall 63.3%, MRR 43.2%, current 100%, abstain 95.1%,
+   105 cases). All acquired frameworks
    parse and retrieve. Deferred: amendments (27001+22301 amd1-2024) role-guarded; CAIQ; 27001
    Annex A bodies table-shallow; column-separation (PCI body noise); retrieval tuning.
    **Next:** MCP service (M3).
@@ -220,8 +221,15 @@ patch — new documents always cut v0.2.0+.
   `citation_norm` lookup with pinned hits), non-current version pass, status='active' filter on
   both arms (excludes 273 withdrawn controls). Tuned constants (v2): top_k=8, vector_k=50,
   bm25_k=50, rrf_k=20, lex_weight=0.5, doc_cap=0. Dropped from banhmi: VN diacritics, rollup,
-  section-aggregate, HNSW, abbreviation expansion, identifier scope. Tuned baseline v2
-  (hybrid, ONNX Qwen3 query-time, 50 queries): **recall@8 57.8%, MRR@8 34.1%, current-version
-  100%, abstention 90%**. Eval floors: recall 0.55, MRR 0.32, current 0.98, abstain 0.88. Known
-  gaps: no score-floor abstention (5 OOS cases return hits), short-chunk frameworks (ISO/SOC2/PCI)
-  weak in both arms. Ancestor-title content enrichment tried and reverted (net-negative).
+  section-aggregate, HNSW, abbreviation expansion, identifier scope. Ancestor-title content
+  enrichment tried and reverted (net-negative).
+- **2026-07-20** — **Golden set v2: 105 adversarially-verified cases; baseline re-measured.**
+  63 new cases (semantic, citation-shaped, version-pin, hard-paraphrase, cross-framework traps,
+  hierarchy, withdrawn-control) merged with 42 v1 survivors (8 dropped: 1 defective, 7 dups).
+  2 withdrawn-control cases (SC-19, ID.GV) marked expect_fail — retriever status=active filter
+  excludes them (honest unreachability record). Corpus-citations snapshot extended to include
+  withdrawn controls (273 rows added, citations-only metadata). **Golden v2 baseline** (hybrid,
+  ONNX Qwen3, 105 queries / 98 scored): **recall@8 63.3%, MRR@8 43.2%, current-version 100%,
+  abstention 95.1%**. Eval floors: recall 0.61, MRR 0.41, current 0.98, abstain 0.93. Numbers
+  not comparable to 50-case baseline (different set size/composition). Known gaps: ISO 27018
+  recall 0% (short annex controls), no score-floor abstention, short-chunk frameworks weak.
