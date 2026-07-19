@@ -66,6 +66,20 @@ files) — one scope, built together. All **planned** — nothing ingested yet.
 - **AICPA TSC** — personal non-commercial use only; explicit objection to LLM/AI knowledge-base
   inclusion — most conservative source.
 
+**Acquisition status (2026-07-19): 12 of 15 frameworks have documents in `data/`.**
+Remaining acquisitions are **phase 2** — M2 starts on what's in hand; add these as they arrive:
+
+- **ISO 22301:2019 base** — purchase (Amd 1:2024 already in `data/iso/`, ISO-produced, parseable).
+- **ISO/IEC 27018:2025** — purchase (interim :2019 in `data/iso/`, ingest flagged superseded).
+- **ISO/IEC 27701:2025** — purchase.
+- **ISO/IEC 42001:2023** — purchase.
+- **SWIFT CSCF v2026** — reported free on swift.com (site in maintenance 2026-07-19); verify the
+  gate when live, update the registry row, then drop into `data/swift/`.
+
+Known data debts: none blocking. `data/iso/iso-iec-27002-2022.pdf` provenance noted in its data
+commit (operator-accepted); 22301 has no parseable base text until the phase-2 purchase (no OCR —
+normative text is never OCR-reconstructed).
+
 **Later candidates (demand-driven):** NIST SP 800-171 r3 + CMMC 2.0, HITRUST CSF, OWASP ASVS 5.0 /
 SAMM, CIS Benchmarks (per-technology hardening — a much larger corpus), NIST AI RMF 1.0,
 ACSC Essential Eight, UK Cyber Essentials, SOC 1 / SOC 3, FedRAMP Rev 5 baselines.
@@ -124,6 +138,11 @@ mappings, Secure Controls Framework (license check needed before use).
 
 ## Milestone history
 
+- **2026-07-19 (later)** — Corpus acquisition: 12/15 frameworks landed in `data/` (NIST, PCI DSS,
+  CIS auto-fetched; AICPA TSC, CSA CCM v4.1, ISO 27001+Amd/27002/27017/27018:2019, 22301 Amd 1,
+  COBIT 2019 dropped in). Filenames normalized to kebab-case (fetchers aligned, validated live).
+  Version corrections verified: 27018 → :2025, 22301 + Amd 1:2024, CCM → v4.1. Remaining 5
+  acquisitions deferred to phase 2.
 - **2026-07-19** — Project bootstrapped: canonical guide, plan, git repo with signed commits.
   License gates verified against live publisher sources (PCI SSC click-through, CIS CC licenses,
   ISO copyright, AICPA T&C incl. anti-LLM clause, NIST §105). Distribution model settled:
