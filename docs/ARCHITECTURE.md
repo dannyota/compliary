@@ -128,6 +128,12 @@ Same as banhmi except where noted: Go (module `danny.vn/compliary`), PostgreSQL 
 all**), Qwen3-Embedding-0.6B ONNX (Kaggle bulk / in-process queries), official Go MCP SDK,
 Apache 2.0 (code only — corpus stays operator-local).
 
+**Embedder strategy (settled):** the maintainer's deployed instance **shares banhmi's
+embedder** (same Qwen3 model + infra, one embedding service for both products — wiring decided
+at M4). **Self-deployers stay self-contained:** the embed/lexindex/retrieve code is **copied
+from banhmi into this repo** when the Index stage lands (same author for both; copy, not a
+module dependency — the ported-patterns doctrine unchanged).
+
 ## Settled decisions
 
 1. **No crawler** — the ingest layer is a file manifest over `data/`; re-runs diff by sha256.

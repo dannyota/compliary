@@ -138,6 +138,7 @@ patch — new documents always cut v0.2.0+.
 | Corpus language | English (publication language); VN focus selects frameworks, never translates |
 | Stack | Go + PostgreSQL/pgvector + sqlc + hybrid retrieval + MCP (banhmi-proven) |
 | Sources | official publisher sources only; license provenance per document |
+| Embedder | maintainer deploy **shares banhmi's embedder** (wiring at M4); self-deploy ships embed/lexindex/retrieve code **copied from banhmi** (same author) at the Index stage |
 
 ## Milestone history
 
