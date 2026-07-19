@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"testing"
 
 	dbbronze "danny.vn/compliary/pkg/store/bronze"
@@ -513,4 +514,43 @@ func TestWriteTree_QualifierInDocKey(t *testing.T) {
 
 func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+}
+
+// TestNormalizer_TermsNoteWarning verifies the data-driven restricted-terms
+// warning fires for frameworks whose registry row carries a terms_note.
+func TestNormalizer_TermsNoteWarning(t *testing.T) {
+	configQ := newFakeConfigQuerier()
+	configQ.frameworks["soc2tsc"] = dbconfig.ConfigFramework{
+		Code:           "soc2tsc",
+		CitationScheme: "unimplemented-for-this-test",
+		ServePolicy:    "auth-text-only",
+		TermsNote:      "publisher restricts knowledge-base use",
+	}
+
+	var buf strings.Builder
+	log := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	files := []dbingest.IngestManifestFile{
+		{
+			ID:            40,
+			RelPath:       "aicpa/tsc.pdf",
+			Sha256:        "sha-tn",
+			FrameworkCode: strPtr("soc2tsc"),
+			VersionLabel:  strPtr("2017"),
+			DocRole:       strPtr("main"),
+		},
+	}
+
+	norm := &Normalizer{Log: log}
+	sum, err := norm.Run(context.Background(), files, newFakeIngestQuerier(), newFakeBronzeQuerier(), newFakeSilverQuerier(), configQ)
+	if err != nil {
+		t.Fatalf("normalize: %v", err)
+	}
+	if sum.Skipped != 1 {
+		t.Errorf("skipped=%d, want 1 (unimplemented scheme)", sum.Skipped)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "framework terms restriction") || !strings.Contains(out, "soc2tsc") {
+		t.Errorf("terms_note warning not logged; log output: %s", out)
+	}
 }

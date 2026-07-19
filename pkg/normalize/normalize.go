@@ -96,6 +96,11 @@ func (n *Normalizer) Run(
 
 		// Look up the framework's citation_scheme.
 		fw, err := cfgQ.GetFramework(ctx, fwCode)
+		if err == nil && fw.TermsNote != "" {
+			// Data-driven restricted-terms warning (e.g. AICPA's knowledge-base
+			// clause): the registry carries the note; the operator owns the choice.
+			n.Log.Warn("framework terms restriction", "code", fwCode, "terms_note", fw.TermsNote)
+		}
 		if err != nil {
 			n.Log.Error("cannot load framework", "code", fwCode, "err", err)
 			_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{
