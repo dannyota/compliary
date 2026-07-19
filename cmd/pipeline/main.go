@@ -28,6 +28,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"danny.vn/compliary/pkg/base/config"
 	"danny.vn/compliary/pkg/base/db"
 	clog "danny.vn/compliary/pkg/base/log"
@@ -75,10 +77,10 @@ func run(cfgPath, stage string, log *slog.Logger) error {
 	stages := []string{"manifest", "extract", "normalize"}
 	if stage != "" {
 		switch stage {
-		case "manifest", "extract", "normalize", "index", "lexindex":
+		case "manifest", "extract", "normalize", "mapedges", "index", "lexindex":
 			stages = []string{stage}
 		default:
-			return fmt.Errorf("unknown stage %q (want manifest, extract, normalize, index, or lexindex)", stage)
+			return fmt.Errorf("unknown stage %q (want manifest, extract, normalize, mapedges, index, or lexindex)", stage)
 		}
 	}
 
@@ -98,6 +100,11 @@ func run(cfgPath, stage string, log *slog.Logger) error {
 		case "normalize":
 			if err := runNormalize(ctx, pool, log); err != nil {
 				log.Error("normalize stage failed", "err", err)
+				hasError = true
+			}
+		case "mapedges":
+			if err := runMapEdges(ctx, pool, log); err != nil {
+				log.Error("mapedges stage failed", "err", err)
 				hasError = true
 			}
 		case "index":
@@ -246,6 +253,21 @@ func runNormalize(ctx context.Context, pool poolWrapper, log *slog.Logger) error
 	if sum.Failed > 0 {
 		return fmt.Errorf("normalize: %d files failed", sum.Failed)
 	}
+	return nil
+}
+
+func runMapEdges(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) error {
+	silverQ := dbsilver.New(pool)
+
+	sum, err := normalize.EmitISOStructuralEdges(ctx, pool, silverQ, log)
+	if err != nil {
+		return fmt.Errorf("mapedges: %w", err)
+	}
+
+	log.Info("mapedges complete",
+		"emitted", sum.Emitted,
+		"resolved", sum.Resolved,
+	)
 	return nil
 }
 
