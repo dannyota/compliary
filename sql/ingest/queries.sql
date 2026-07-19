@@ -64,7 +64,9 @@ ORDER BY rel_path;
 UPDATE ingest.manifest_file SET extracted_at = now(), stage_error = '', updated_at = now() WHERE id = $1;
 
 -- name: MarkNormalized :exec
-UPDATE ingest.manifest_file SET normalized_at = now(), stage_error = '', updated_at = now() WHERE id = $1;
+-- A rebuilt control tree invalidates existing chunks, so NULL indexed_at to
+-- force re-indexing on the next pipeline run.
+UPDATE ingest.manifest_file SET normalized_at = now(), indexed_at = NULL, stage_error = '', updated_at = now() WHERE id = $1;
 
 -- name: MarkIndexed :exec
 UPDATE ingest.manifest_file SET indexed_at = now(), stage_error = '', updated_at = now() WHERE id = $1;

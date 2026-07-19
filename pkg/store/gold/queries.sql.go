@@ -34,6 +34,22 @@ func (q *Queries) DeleteChunksForControls(ctx context.Context, dollar_1 []int64)
 	return result.RowsAffected(), nil
 }
 
+const deleteOrphanChunks = `-- name: DeleteOrphanChunks :execrows
+DELETE FROM gold.chunk c
+WHERE NOT EXISTS (SELECT 1 FROM silver.control sc WHERE sc.id = c.control_id)
+`
+
+// Reap chunks whose control_id no longer exists in silver.control. Run at the
+// start of each index stage to clean up after re-normalize (which deletes and
+// rebuilds controls, potentially changing IDs).
+func (q *Queries) DeleteOrphanChunks(ctx context.Context) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteOrphanChunks)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const insertChunk = `-- name: InsertChunk :one
 INSERT INTO gold.chunk (control_id, citation, context_prefix, content, ordinal, token_count)
 VALUES ($1, $2, $3, $4, $5, $6)

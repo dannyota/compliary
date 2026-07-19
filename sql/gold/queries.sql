@@ -1,3 +1,10 @@
+-- name: DeleteOrphanChunks :execrows
+-- Reap chunks whose control_id no longer exists in silver.control. Run at the
+-- start of each index stage to clean up after re-normalize (which deletes and
+-- rebuilds controls, potentially changing IDs).
+DELETE FROM gold.chunk c
+WHERE NOT EXISTS (SELECT 1 FROM silver.control sc WHERE sc.id = c.control_id);
+
 -- name: DeleteChunksForControls :execrows
 DELETE FROM gold.chunk WHERE control_id = ANY($1::bigint[]);
 

@@ -3,14 +3,18 @@ module danny.vn/compliary
 go 1.26.5
 
 require (
+	github.com/daulet/tokenizers v1.27.0
 	github.com/gen2brain/go-fitz v1.28.2
 	github.com/jackc/pgx/v5 v5.10.0
+	github.com/microsoft/onnxruntime/go v1.28.2
 	github.com/pgvector/pgvector-go v0.4.0
 	github.com/pgvector/pgvector-go/pgx v0.4.0
 	github.com/pressly/goose/v3 v3.27.2
 	github.com/xuri/excelize/v2 v2.11.0
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+replace github.com/microsoft/onnxruntime/go => github.com/dannyota/onnxruntime/go v1.28.3
 
 require (
 	github.com/ebitengine/purego v0.10.1 // indirect

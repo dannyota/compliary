@@ -5,6 +5,8 @@
 package dbgold
 
 import (
+	"time"
+
 	pgvector "github.com/pgvector/pgvector-go"
 )
 
@@ -25,4 +27,69 @@ type GoldChunkEmbedding struct {
 	Model     string
 	Dims      int32
 	Embedding pgvector.Vector
+}
+
+type SilverControl struct {
+	ID                 int64
+	DocumentID         int64
+	ParentControlID    *int64
+	Citation           string
+	CitationNorm       string
+	Kind               string
+	Status             string
+	Title              string
+	TitleOriginal      *string
+	Body               *string
+	AmendsCitationNorm *string
+	AmendAction        *string
+	Ordinal            int32
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+}
+
+type SilverControlMapping struct {
+	ID                int64
+	FromControlID     int64
+	ToFrameworkCode   string
+	ToVersionLabel    *string
+	ToCitationNorm    string
+	ToControlID       *int64
+	MappingSourceCode string
+	Relationship      string
+	ProvenanceDetail  string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+type SilverControlTopic struct {
+	ID        int64
+	ControlID int64
+	Topic     string
+	CreatedAt time.Time
+}
+
+type SilverDocument struct {
+	ID               int64
+	DocKey           string
+	FrameworkCode    string
+	VersionLabel     string
+	DocRole          string
+	Qualifier        string
+	Title            string
+	SourceFileSha256 string
+	ServeGate        string
+	Markdown         *string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+type SilverVersionRelation struct {
+	ID                int64
+	FromFrameworkCode string
+	FromVersionLabel  string
+	ToFrameworkCode   string
+	ToVersionLabel    string
+	RelationType      string
+	Note              string
+	CreatedAt         time.Time
 }

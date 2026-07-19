@@ -11,6 +11,10 @@ import (
 type Querier interface {
 	CountChunks(ctx context.Context) (int64, error)
 	DeleteChunksForControls(ctx context.Context, dollar_1 []int64) (int64, error)
+	// Reap chunks whose control_id no longer exists in silver.control. Run at the
+	// start of each index stage to clean up after re-normalize (which deletes and
+	// rebuilds controls, potentially changing IDs).
+	DeleteOrphanChunks(ctx context.Context) (int64, error)
 	InsertChunk(ctx context.Context, arg InsertChunkParams) (int64, error)
 	ListChunksForControl(ctx context.Context, controlID int64) ([]GoldChunk, error)
 	ListChunksMissingEmbedding(ctx context.Context, model string) ([]ListChunksMissingEmbeddingRow, error)

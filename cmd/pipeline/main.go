@@ -6,10 +6,17 @@
 //	pipeline -stage manifest              # run manifest stage only
 //	pipeline -stage extract               # run extract stage only
 //	pipeline -stage normalize             # run normalize stage only
+//	pipeline -stage index                 # run index stage only
 //	pipeline -config config/config.yaml   # custom config path
 //
 // Each stage iterates eligible rows, records per-row errors, continues on
 // error, and exits non-zero with an N-succeeded/M-failed/K-skipped summary.
+//
+// Index stage environment variables:
+//
+//	COMPLIARY_ONNX_MODEL      path to model_fp16.onnx (default ~/.cache/banhmi/qwen3-embedding/model_fp16.onnx)
+//	COMPLIARY_ONNX_TOKENIZER  path to tokenizer.json  (default ~/.cache/banhmi/qwen3-embedding/tokenizer.json)
+//	COMPLIARY_ONNX_LIB        path to libonnxruntime.so (optional; empty = default search)
 package main
 
 import (
@@ -18,6 +25,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"danny.vn/compliary/pkg/base/config"
 	"danny.vn/compliary/pkg/base/db"
@@ -25,15 +33,18 @@ import (
 	"danny.vn/compliary/pkg/extract"
 	"danny.vn/compliary/pkg/manifest"
 	"danny.vn/compliary/pkg/normalize"
+	"danny.vn/compliary/pkg/rag/embed/onnxembed"
+	ragindex "danny.vn/compliary/pkg/rag/index"
 	dbbronze "danny.vn/compliary/pkg/store/bronze"
 	dbconfig "danny.vn/compliary/pkg/store/config"
+	dbgold "danny.vn/compliary/pkg/store/gold"
 	dbingest "danny.vn/compliary/pkg/store/ingest"
 	dbsilver "danny.vn/compliary/pkg/store/silver"
 )
 
 func main() {
 	cfgPath := flag.String("config", "config/config.yaml", "path to config file")
-	stage := flag.String("stage", "", "run a single stage: manifest, extract, normalize (default: run all)")
+	stage := flag.String("stage", "", "run a single stage: manifest, extract, normalize, index (default: run manifest+extract+normalize)")
 	flag.Parse()
 
 	log := clog.New(os.Getenv("COMPLIARY_LOG_LEVEL"))
@@ -61,10 +72,10 @@ func run(cfgPath, stage string, log *slog.Logger) error {
 	stages := []string{"manifest", "extract", "normalize"}
 	if stage != "" {
 		switch stage {
-		case "manifest", "extract", "normalize":
+		case "manifest", "extract", "normalize", "index":
 			stages = []string{stage}
 		default:
-			return fmt.Errorf("unknown stage %q (want manifest, extract, or normalize)", stage)
+			return fmt.Errorf("unknown stage %q (want manifest, extract, normalize, or index)", stage)
 		}
 	}
 
@@ -86,6 +97,11 @@ func run(cfgPath, stage string, log *slog.Logger) error {
 				log.Error("normalize stage failed", "err", err)
 				hasError = true
 			}
+		case "index":
+			if err := runIndex(ctx, pool, log); err != nil {
+				log.Error("index stage failed", "err", err)
+				hasError = true
+			}
 		}
 	}
 
@@ -98,6 +114,7 @@ func run(cfgPath, stage string, log *slog.Logger) error {
 type poolWrapper interface {
 	dbbronze.DBTX
 	dbconfig.DBTX
+	dbgold.DBTX
 	dbingest.DBTX
 	dbsilver.DBTX
 }
@@ -220,6 +237,174 @@ func runNormalize(ctx context.Context, pool poolWrapper, log *slog.Logger) error
 
 	if sum.Failed > 0 {
 		return fmt.Errorf("normalize: %d files failed", sum.Failed)
+	}
+	return nil
+}
+
+// defaultONNXModelDir returns ~/.cache/banhmi/qwen3-embedding — the shared
+// default model directory (same model assets as banhmi). Returns an error if
+// the user home directory cannot be determined.
+func defaultONNXModelDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("cannot determine home directory: %w", err)
+	}
+	return filepath.Join(home, ".cache", "banhmi", "qwen3-embedding"), nil
+}
+
+// initONNXEmbedder lazily creates the ONNX embedder. Called only when
+// embeddings are actually needed (after chunk building), so chunk building
+// works without -tags onnx.
+func initONNXEmbedder(log *slog.Logger) (ragindex.Embedder, error) {
+	modelDir, err := defaultONNXModelDir()
+	if err != nil {
+		return nil, err
+	}
+	modelPath := os.Getenv("COMPLIARY_ONNX_MODEL")
+	if modelPath == "" {
+		modelPath = filepath.Join(modelDir, "model_fp16.onnx")
+	}
+	tokPath := os.Getenv("COMPLIARY_ONNX_TOKENIZER")
+	if tokPath == "" {
+		tokPath = filepath.Join(modelDir, "tokenizer.json")
+	}
+	libPath := os.Getenv("COMPLIARY_ONNX_LIB")
+
+	// Verify model assets exist before proceeding.
+	if _, err := os.Stat(modelPath); err != nil {
+		return nil, fmt.Errorf("ONNX model not found at %s — set COMPLIARY_ONNX_MODEL or place model at default path", modelPath)
+	}
+	if _, err := os.Stat(tokPath); err != nil {
+		return nil, fmt.Errorf("ONNX tokenizer not found at %s — set COMPLIARY_ONNX_TOKENIZER or place tokenizer at default path", tokPath)
+	}
+	log.Info("index: ONNX model", "model", modelPath, "tokenizer", tokPath)
+
+	embedder, err := onnxembed.New(onnxembed.Config{
+		ModelPath:     modelPath,
+		TokenizerPath: tokPath,
+		LibPath:       libPath,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("init ONNX embedder: %w", err)
+	}
+	return embedder, nil
+}
+
+func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
+	// List files eligible for indexing (normalized but not yet indexed).
+	ingQ := dbingest.New(pool)
+	files, err := ingQ.ListFilesToIndex(ctx)
+	if err != nil {
+		return fmt.Errorf("list files to index: %w", err)
+	}
+	log.Info("index: eligible files", "count", len(files))
+
+	if len(files) == 0 {
+		log.Info("index: nothing to do")
+		return nil
+	}
+
+	silverQ := dbsilver.New(pool)
+	goldQ := dbgold.New(pool)
+
+	// Chunk building needs no embedder — defer ONNX init to embed phase.
+	idx := &ragindex.Indexer{
+		Log:       log,
+		BatchSize: 32,
+	}
+
+	// Reap orphan chunks whose control_id no longer exists in silver.
+	if _, err := idx.ReapOrphans(ctx, goldQ); err != nil {
+		log.Error("index: reap orphans", "err", err)
+		return fmt.Errorf("index: reap orphans: %w", err)
+	}
+
+	var totalChunks, totalEmbeddings int
+	var hasError bool
+
+	for _, f := range files {
+		fc := *f.FrameworkCode
+		vl := *f.VersionLabel
+
+		// Per-file error flag — MarkIndexed only on full success.
+		fileErrored := false
+
+		// Find the silver document for this file.
+		docs, err := silverQ.ListDocumentsForVersion(ctx, dbsilver.ListDocumentsForVersionParams{
+			FrameworkCode: fc,
+			VersionLabel:  vl,
+		})
+		if err != nil {
+			log.Error("index: list documents", "file", f.RelPath, "err", err)
+			_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{ID: f.ID, StageError: "index: " + err.Error()})
+			hasError = true
+			continue
+		}
+		if len(docs) == 0 {
+			log.Warn("index: no silver document", "file", f.RelPath, "framework", fc, "version", vl)
+			_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{ID: f.ID, StageError: "index: no silver document found"})
+			hasError = true
+			continue
+		}
+
+		for _, doc := range docs {
+			controls, err := silverQ.ListControlsForDocument(ctx, doc.ID)
+			if err != nil {
+				log.Error("index: list controls", "doc", doc.DocKey, "err", err)
+				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{ID: f.ID, StageError: "index: " + err.Error()})
+				fileErrored = true
+				hasError = true
+				continue
+			}
+			if len(controls) == 0 {
+				log.Info("index: no controls", "doc", doc.DocKey)
+				continue
+			}
+
+			created, err := idx.BuildChunks(ctx, doc, controls, goldQ)
+			if err != nil {
+				log.Error("index: build chunks", "doc", doc.DocKey, "err", err)
+				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{ID: f.ID, StageError: "index: " + err.Error()})
+				fileErrored = true
+				hasError = true
+				continue
+			}
+			totalChunks += created
+			log.Info("index: chunks built", "doc", doc.DocKey, "chunks", created)
+		}
+
+		// Mark indexed only when every document for this file succeeded.
+		if fileErrored {
+			continue
+		}
+		if err := ingQ.MarkIndexed(ctx, f.ID); err != nil {
+			log.Error("index: mark indexed", "file", f.RelPath, "err", err)
+			hasError = true
+		}
+	}
+
+	// Lazily init the ONNX embedder — only needed for the embed phase.
+	embedder, err := initONNXEmbedder(log)
+	if err != nil {
+		log.Error("index: embedder init deferred", "err", err)
+		hasError = true
+	} else {
+		idx.Embedder = embedder
+		embedded, err := idx.EmbedMissing(ctx, goldQ)
+		if err != nil {
+			log.Error("index: embed", "err", err)
+			hasError = true
+		}
+		totalEmbeddings += embedded
+	}
+
+	log.Info("index complete",
+		"chunks_created", totalChunks,
+		"embeddings_upserted", totalEmbeddings,
+	)
+
+	if hasError {
+		return fmt.Errorf("index: completed with errors")
 	}
 	return nil
 }
