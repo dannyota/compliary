@@ -99,12 +99,15 @@ Design settled in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) +
 [`docs/design/SCHEMA.md`](docs/design/SCHEMA.md); M0 (bootstrap) and M1 (`cmd/fetch`) done — see
 milestone history.
 
-1. **M2 — parse** (in progress): ~~schema layer~~ done — ~~manifest scanner~~ done (26 files) —
-   ~~OSCAL extract~~ done — ~~XLSX extract~~ done (4 workbooks captured as `workbook-rows-json`) —
-   ~~PDF extract~~ done (9 PDFs captured as `pdf-pages-json` via go-fitz purego) — ~~all 8 v0.1.0
-   parsers~~ done (11 documents / 3402 controls / 3068 edges / 1870 resolved). All acquired
-   frameworks parse. Deferred: amendments (27001+22301 amd1-2024) role-guarded; CAIQ; 27001 Annex A
-   bodies table-shallow; column-separation (PCI body noise). **Next:** Index + LexIndex.
+1. **M2 — parse + index** (in progress): ~~schema layer~~ done — ~~manifest scanner~~ done (26
+   files) — ~~OSCAL extract~~ done — ~~XLSX extract~~ done (4 workbooks captured as
+   `workbook-rows-json`) — ~~PDF extract~~ done (9 PDFs captured as `pdf-pages-json` via go-fitz
+   purego) — ~~all 8 v0.1.0 parsers~~ done (11 documents / 3402 controls / 3068 edges / 1870
+   resolved) — ~~Index + LexIndex~~ done (3402 chunks embedded + BM25 sparse) — ~~hybrid
+   retriever~~ done (baseline: recall 57.8%, MRR 32.3%, current 100%). All acquired frameworks
+   parse and retrieve. Deferred: amendments (27001+22301 amd1-2024) role-guarded; CAIQ; 27001
+   Annex A bodies table-shallow; column-separation (PCI body noise); retrieval tuning.
+   **Next:** MCP service (M3).
 2. **M3 — MCP evidence service** — `guide`, `corpus_status`, `quality_gaps`, `search`, `document`;
    citation-keyed golden set + eval gate with baseline floors.
 3. **M4 — deploy maintainer instance** — `compliary.danny.vn`: public landing, **authenticated
@@ -209,3 +212,15 @@ patch — new documents always cut v0.2.0+.
   `terms_note` (fires for soc2tsc — AICPA clause). Deferred: amendments (27001+22301 amd1-2024)
   role-guarded; CAIQ; 27001 Annex A bodies table-shallow. All v0.1.0 parsers landed. Corpus totals:
   11 documents / 3402 controls / 3068 edges / 1870 resolved.
+- **2026-07-20** — **M2 Index round: hybrid retriever + first retrieval baseline.** Eval harness +
+  golden set (50 queries, 10 citation schemes) landed earlier; Index + LexIndex stages landed
+  (3402 chunks, 3402 embeddings, 3402 BM25 sparse vectors). Hybrid retriever (`pkg/rag/retrieve`):
+  RRF fusion (dense cosine exact scan + BM25 sparsevec), version filters via
+  `config.framework_version.is_current`, citation-shaped query routing (10 scheme regexes, direct
+  `citation_norm` lookup with pinned hits), non-current version pass. Constants: top_k=8,
+  vector_k=100, bm25_k=100, rrf_k=60, doc_cap=0. Dropped from banhmi: VN diacritics, rollup,
+  section-aggregate, HNSW, abbreviation expansion, identifier scope. First accepted baseline
+  (hybrid, ONNX Qwen3 query-time, 50 queries): **recall@8 57.8%, MRR@8 32.3%, current-version
+  100%, abstention 90%**. Eval floors: recall 0.55, MRR 0.30, current 0.98, abstain 0.88. Known
+  gaps: no score-floor abstention (5 OOS cases return hits), short-chunk frameworks (ISO/SOC2/PCI)
+  weak in both arms. Tuning is eval-driven follow-up.
