@@ -35,11 +35,19 @@ type MappingEdge struct {
 	ProvenanceDetail string // the OSCAL link href
 }
 
+// UnresolvedLink records a withdrawn-control link whose target could not be
+// resolved to a citation in the catalog.
+type UnresolvedLink struct {
+	Citation string // the withdrawn control's citation
+	Href     string // the raw OSCAL link href
+}
+
 // TreeResult holds the output of the pure OSCAL tree builder.
 type TreeResult struct {
-	Title    string // catalog title from metadata
-	Controls []ControlRow
-	Mappings []MappingEdge
+	Title           string // catalog title from metadata
+	Controls        []ControlRow
+	Mappings        []MappingEdge
+	UnresolvedLinks []UnresolvedLink
 }
 
 // BuildOSCALTree parses an OSCAL catalog JSON document and returns the
@@ -130,17 +138,22 @@ func BuildOSCALTree(raw json.RawMessage) (*TreeResult, error) {
 				for _, link := range c.Links {
 					if link.Rel == "incorporated-into" || link.Rel == "moved-to" {
 						targetNorm := resolveHref(link.Href, idToLabel)
-						if targetNorm != "" {
-							result.Mappings = append(result.Mappings, MappingEdge{
-								FromIdx:          controlIdx,
-								ToFrameworkCode:  "nist80053",
-								ToVersionLabel:   strPtr("r5"),
-								ToCitationNorm:   targetNorm,
-								MappingSource:    "publisher-catalog",
-								Relationship:     link.Rel,
-								ProvenanceDetail: link.Href,
+						if targetNorm == "" {
+							result.UnresolvedLinks = append(result.UnresolvedLinks, UnresolvedLink{
+								Citation: label,
+								Href:     link.Href,
 							})
+							continue
 						}
+						result.Mappings = append(result.Mappings, MappingEdge{
+							FromIdx:          controlIdx,
+							ToFrameworkCode:  "nist80053",
+							ToVersionLabel:   strPtr("r5"),
+							ToCitationNorm:   targetNorm,
+							MappingSource:    "publisher-catalog",
+							Relationship:     link.Rel,
+							ProvenanceDetail: link.Href,
+						})
 					}
 				}
 			}
@@ -171,17 +184,22 @@ func BuildOSCALTree(raw json.RawMessage) (*TreeResult, error) {
 					for _, link := range enh.Links {
 						if link.Rel == "incorporated-into" || link.Rel == "moved-to" {
 							targetNorm := resolveHref(link.Href, idToLabel)
-							if targetNorm != "" {
-								result.Mappings = append(result.Mappings, MappingEdge{
-									FromIdx:          enhIdx,
-									ToFrameworkCode:  "nist80053",
-									ToVersionLabel:   strPtr("r5"),
-									ToCitationNorm:   targetNorm,
-									MappingSource:    "publisher-catalog",
-									Relationship:     link.Rel,
-									ProvenanceDetail: link.Href,
+							if targetNorm == "" {
+								result.UnresolvedLinks = append(result.UnresolvedLinks, UnresolvedLink{
+									Citation: enhLabel,
+									Href:     link.Href,
 								})
+								continue
 							}
+							result.Mappings = append(result.Mappings, MappingEdge{
+								FromIdx:          enhIdx,
+								ToFrameworkCode:  "nist80053",
+								ToVersionLabel:   strPtr("r5"),
+								ToCitationNorm:   targetNorm,
+								MappingSource:    "publisher-catalog",
+								Relationship:     link.Rel,
+								ProvenanceDetail: link.Href,
+							})
 						}
 					}
 				}
@@ -383,6 +401,9 @@ func renderParam(paramID string, paramIdx map[string]oscalParam) string {
 	}
 
 	if p.Select != nil && len(p.Select.Choice) > 0 {
+		if p.Select.HowMany == "one-or-more" {
+			return "[Selection (one or more): " + strings.Join(p.Select.Choice, "; ") + "]"
+		}
 		return "[Selection: " + strings.Join(p.Select.Choice, "; ") + "]"
 	}
 

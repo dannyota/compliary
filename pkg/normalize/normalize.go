@@ -138,6 +138,15 @@ func (n *Normalizer) normalizeOSCAL(
 		return fmt.Errorf("build tree: %w", err)
 	}
 
+	// Log any unresolved links.
+	for _, ul := range tree.UnresolvedLinks {
+		n.Log.Warn("unresolved withdrawn link",
+			"path", f.RelPath,
+			"citation", ul.Citation,
+			"href", ul.Href,
+		)
+	}
+
 	// Build doc_key: <framework_code>|<version_label>|<doc_role>
 	fwCode := deref(f.FrameworkCode)
 	verLabel := deref(f.VersionLabel)

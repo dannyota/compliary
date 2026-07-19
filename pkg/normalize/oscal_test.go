@@ -3,6 +3,7 @@ package normalize
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -31,13 +32,14 @@ const syntheticOSCAL = `{
             "props": [{"name": "label", "value": "SY-01"}],
             "params": [
               {"id": "sy-1_prm_1", "label": "organization-defined frequency"},
-              {"id": "sy-1_prm_2", "select": {"how-many": "one-or-more", "choice": ["option A", "option B", "option C"]}}
+              {"id": "sy-1_prm_2", "select": {"how-many": "one-or-more", "choice": ["option A", "option B", "option C"]}},
+              {"id": "sy-1_prm_3", "select": {"choice": ["daily", "weekly"]}}
             ],
             "parts": [
               {
                 "id": "sy-1_stmt",
                 "name": "statement",
-                "prose": "Implement controls {{ insert: param, sy-1_prm_1 }} using {{ insert: param, sy-1_prm_2 }}."
+                "prose": "Implement controls {{ insert: param, sy-1_prm_1 }} using {{ insert: param, sy-1_prm_2 }} on a {{ insert: param, sy-1_prm_3 }} basis."
               },
               {
                 "id": "sy-1_gdn",
@@ -141,13 +143,16 @@ func TestBuildOSCALTree_Synthetic(t *testing.T) {
 		t.Fatal("c1.Body is nil")
 	}
 	body := *c1.Body
-	if !contains(body, "[Assignment: organization-defined frequency]") {
+	if !strings.Contains(body, "[Assignment: organization-defined frequency]") {
 		t.Errorf("c1 body missing Assignment rendering: %s", body)
 	}
-	if !contains(body, "[Selection: option A; option B; option C]") {
-		t.Errorf("c1 body missing Selection rendering: %s", body)
+	if !strings.Contains(body, "[Selection (one or more): option A; option B; option C]") {
+		t.Errorf("c1 body missing Selection (one or more) rendering: %s", body)
 	}
-	if !contains(body, "This is guidance text") {
+	if !strings.Contains(body, "[Selection: daily; weekly]") {
+		t.Errorf("c1 body missing plain Selection rendering: %s", body)
+	}
+	if !strings.Contains(body, "This is guidance text") {
 		t.Errorf("c1 body missing guidance: %s", body)
 	}
 
@@ -313,17 +318,12 @@ func TestBuildOSCALTree_Golden(t *testing.T) {
 	if unresolvable > 0 {
 		t.Errorf("unresolvable mapping targets: %d", unresolvable)
 	}
-}
 
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsStr(s, substr))
-}
-
-func containsStr(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
+	// Unresolved links: the real catalog should have zero.
+	if len(tree.UnresolvedLinks) != 0 {
+		t.Errorf("unresolved links=%d, want 0", len(tree.UnresolvedLinks))
+		for _, ul := range tree.UnresolvedLinks {
+			t.Logf("  unresolved: citation=%s href=%s", ul.Citation, ul.Href)
 		}
 	}
-	return false
 }
