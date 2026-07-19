@@ -905,3 +905,40 @@ func TestBuildISOControlCatalogTree_27018_Golden(t *testing.T) {
 		}
 	}
 }
+
+func TestStripISO27002AttributeTable(t *testing.T) {
+	tests := []struct {
+		name     string
+		body     string
+		wantBody string
+	}{
+		{
+			name:     "typical 27002 control",
+			body:     "Control type Information security properties\nCybersecurity\nconcepts\nOperational\ncapabilities\nSecurity domains\n#Preventive #Confidentiality #Integrity #Availability\n#Identify #Governance #Governance_and_Eco-system #Resilience\nControl\nPolicies should be defined and published.\nPurpose\nTo ensure continuing suitability.",
+			wantBody: "Policies should be defined and published.\nPurpose\nTo ensure continuing suitability.",
+		},
+		{
+			name:     "split Control type header (5.32 pattern)",
+			body:     "Control type Information\nsecurity properties\nCybersecurity\nconcepts\nOperational\ncapabilities\nSecurity domains\n#Preventive #Confidentiality\nControl\nThe organization should protect IP rights.\nPurpose\nTo ensure compliance.",
+			wantBody: "The organization should protect IP rights.\nPurpose\nTo ensure compliance.",
+		},
+		{
+			name:     "no attribute table (defensive)",
+			body:     "This is a plain body without attribute table.",
+			wantBody: "This is a plain body without attribute table.",
+		},
+		{
+			name:     "empty body",
+			body:     "",
+			wantBody: "",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := stripISO27002AttributeTable(tc.body)
+			if got != tc.wantBody {
+				t.Errorf("stripISO27002AttributeTable:\ngot:  %q\nwant: %q", got, tc.wantBody)
+			}
+		})
+	}
+}

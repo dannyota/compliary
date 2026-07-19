@@ -509,7 +509,10 @@ func buildISO27002Tree(cap isoCapture, versionLabel string) (*TreeResult, error)
 		}
 
 		if c.body != "" {
-			body := c.body
+			// Strip the attribute-table boilerplate that go-fitz leaks into
+			// every 27002:2022 control body (Control type / Information
+			// security properties / #tags block).
+			body := stripISO27002AttributeTable(c.body)
 			cr.Body = &body
 		}
 
@@ -980,6 +983,51 @@ func parseISO27018Sections(pages []isoPage) (sections []isoControlItem, annexIte
 	}
 
 	return
+}
+
+// --- ISO 27002 attribute-table boilerplate strip ---
+
+// stripISO27002AttributeTable removes the per-control attribute-table block that
+// go-fitz reading-order extraction leaks into every 27002:2022 control body. The
+// block runs from the start of the body to the first line that is exactly "Control"
+// (the label preceding the normative control statement). The block contains:
+//
+//	Control type Information security properties
+//	Cybersecurity
+//	concepts
+//	Operational
+//	capabilities
+//	Security domains
+//	#tag1 #tag2 ...
+//	Control              <-- strip boundary (this line removed too)
+//
+// Returns the body with the boilerplate stripped. If no "Control" boundary line
+// is found, the body is returned unchanged (defensive — don't corrupt).
+func stripISO27002AttributeTable(body string) string {
+	lines := strings.Split(body, "\n")
+
+	// Find the first line that is exactly "Control" (trimmed). This is the
+	// label line preceding the actual control statement in the attribute table.
+	// We expect it within the first ~15 lines.
+	boundary := -1
+	for i, line := range lines {
+		if i > 20 {
+			break // safety: if not found in the first 20 lines, bail
+		}
+		if strings.TrimSpace(line) == "Control" {
+			boundary = i
+			break
+		}
+	}
+
+	if boundary < 0 {
+		// No boundary found — return unchanged.
+		return body
+	}
+
+	// Strip everything up to and including the boundary line.
+	remaining := lines[boundary+1:]
+	return strings.TrimSpace(strings.Join(remaining, "\n"))
 }
 
 // --- Shared helpers ---
