@@ -87,16 +87,17 @@ ACSC Essential Eight, UK Cyber Essentials, SOC 1 / SOC 3, FedRAMP Rev 5 baseline
 **Mapping data sources (cross-framework relations):** NIST OLIR, CIS↔ISO/NIST mappings, CSA CCM
 mappings, Secure Controls Framework (license check needed before use).
 
-## Design questions (settle before code)
+## Design questions
 
-1. **Schema for versions + mappings** — supersession relations (`27001:2013 → :2022`) and
-   cross-framework control mappings as first-class relation types with provenance.
-2. **Registry shape** — framework descriptor: sources, source access (`auto-fetch`/`BYO`), parser,
-   citation scheme, version lineage (analog of banhmi's jurisdiction descriptor).
-3. **Reuse strategy** — new repo, port banhmi patterns (fetch client, extraction cascade, chunking,
-   eval harness); no code dependency on banhmi. *Recommended; confirm.*
-4. **Maintainer `/mcp` auth mechanism** — bearer token + CloudFront origin header (banhmi pattern)
-   vs OAuth (needed for claude.ai custom connectors). Decide at M5.
+1. **Schema for versions + mappings** — **SETTLED 2026-07-19** in
+   [`docs/design/SCHEMA.md`](docs/design/SCHEMA.md): `version_relation` supersession edges,
+   version-aware business-keyed `control_mapping`, amendment patch linkage; two-agent review passed.
+2. **Registry shape** — **SETTLED 2026-07-19**: `config.framework`/`framework_version` +
+   vocabularies, CSV-seeded with `origin` overrides ([`docs/design/SCHEMA.md`](docs/design/SCHEMA.md)).
+3. **Reuse strategy** — **SETTLED 2026-07-19**: port banhmi patterns, no code dependency
+   ([`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)).
+4. **Maintainer `/mcp` auth mechanism** — OPEN: bearer token + CloudFront origin header (banhmi
+   pattern) vs OAuth (needed for claude.ai custom connectors). Decide at M4 (deploy).
 
 ## Roadmap
 
