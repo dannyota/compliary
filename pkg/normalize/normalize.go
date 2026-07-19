@@ -46,6 +46,18 @@ type ConfigQuerier interface {
 	ListReferenceSources(ctx context.Context) ([]dbconfig.ConfigReferenceSource, error)
 }
 
+// DocIdentity carries the manifest-derived fields needed by writeTree.
+type DocIdentity struct {
+	ManifestID    int64
+	RelPath       string
+	Sha256        string
+	FrameworkCode string
+	VersionLabel  string
+	DocRole       string
+	Qualifier     string
+	ServeGate     string // from bronze source_file
+}
+
 // Normalizer runs the normalize stage over a set of manifest rows.
 type Normalizer struct {
 	Log *slog.Logger
@@ -161,97 +173,18 @@ func (n *Normalizer) normalizeOSCAL(
 		)
 	}
 
-	// Build doc_key: <framework_code>|<version_label>|<doc_role>
-	docRole := deref(f.DocRole)
-	qualifier := f.Qualifier
-	docKey := fwCode + "|" + verLabel + "|" + docRole
-	if qualifier != "" {
-		docKey += ":" + qualifier
+	// Write tree to silver.
+	doc := DocIdentity{
+		ManifestID:    f.ID,
+		RelPath:       f.RelPath,
+		Sha256:        f.Sha256,
+		FrameworkCode: fwCode,
+		VersionLabel:  verLabel,
+		DocRole:       deref(f.DocRole),
+		Qualifier:     f.Qualifier,
+		ServeGate:     sf.ServeGate,
 	}
-
-	// Upsert silver.document.
-	doc, err := silverQ.UpsertDocument(ctx, dbsilver.UpsertDocumentParams{
-		DocKey:           docKey,
-		FrameworkCode:    fwCode,
-		VersionLabel:     verLabel,
-		DocRole:          docRole,
-		Qualifier:        qualifier,
-		Title:            tree.Title,
-		SourceFileSha256: f.Sha256,
-		ServeGate:        sf.ServeGate,
-		Markdown:         nil,
-	})
-	if err != nil {
-		return fmt.Errorf("upsert document: %w", err)
-	}
-
-	// Delete existing controls (idempotent rebuild).
-	_, err = silverQ.DeleteControlsForDocument(ctx, doc.ID)
-	if err != nil {
-		return fmt.Errorf("delete controls: %w", err)
-	}
-
-	// Insert all controls; track the index→DB ID mapping for parent linking.
-	dbIDs := make([]int64, len(tree.Controls))
-	for i, cr := range tree.Controls {
-		var parentID *int64
-		if cr.ParentIdx >= 0 {
-			pid := dbIDs[cr.ParentIdx]
-			parentID = &pid
-		}
-
-		id, err := silverQ.InsertControl(ctx, dbsilver.InsertControlParams{
-			DocumentID:      doc.ID,
-			ParentControlID: parentID,
-			Citation:        cr.Citation,
-			CitationNorm:    cr.CitationNorm,
-			Kind:            cr.Kind,
-			Status:          cr.Status,
-			Title:           cr.Title,
-			TitleOriginal:   cr.TitleOriginal,
-			Body:            cr.Body,
-			Ordinal:         cr.Ordinal,
-		})
-		if err != nil {
-			return fmt.Errorf("insert control %s: %w", cr.Citation, err)
-		}
-		dbIDs[i] = id
-	}
-
-	// Insert mapping edges.
-	for _, m := range tree.Mappings {
-		fromID := dbIDs[m.FromIdx]
-		err := silverQ.UpsertControlMapping(ctx, dbsilver.UpsertControlMappingParams{
-			FromControlID:     fromID,
-			ToFrameworkCode:   m.ToFrameworkCode,
-			ToVersionLabel:    m.ToVersionLabel,
-			ToCitationNorm:    m.ToCitationNorm,
-			MappingSourceCode: m.MappingSource,
-			Relationship:      m.Relationship,
-			ProvenanceDetail:  m.ProvenanceDetail,
-		})
-		if err != nil {
-			return fmt.Errorf("upsert mapping from %s: %w", tree.Controls[m.FromIdx].Citation, err)
-		}
-	}
-
-	// Resolve intra-document mapping edges.
-	_, err = silverQ.ResolveControlMappings(ctx)
-	if err != nil {
-		return fmt.Errorf("resolve mappings: %w", err)
-	}
-
-	// Mark the manifest row as normalized.
-	if err := ingQ.MarkNormalized(ctx, f.ID); err != nil {
-		return fmt.Errorf("mark normalized: %w", err)
-	}
-
-	n.Log.Info("normalized",
-		"path", f.RelPath,
-		"controls", len(tree.Controls),
-		"mappings", len(tree.Mappings),
-	)
-	return nil
+	return n.writeTree(ctx, doc, tree, ingQ, silverQ)
 }
 
 func (n *Normalizer) normalizeCSF(
@@ -313,24 +246,46 @@ func (n *Normalizer) normalizeCSF(
 		}
 	}
 
+	// Write tree to silver.
+	doc := DocIdentity{
+		ManifestID:    f.ID,
+		RelPath:       f.RelPath,
+		Sha256:        f.Sha256,
+		FrameworkCode: fwCode,
+		VersionLabel:  verLabel,
+		DocRole:       deref(f.DocRole),
+		Qualifier:     f.Qualifier,
+		ServeGate:     sf.ServeGate,
+	}
+	return n.writeTree(ctx, doc, tree, ingQ, silverQ)
+}
+
+// writeTree writes a TreeResult to silver: upsert document, delete+insert
+// controls, upsert mapping edges, resolve mappings, mark normalized. This is
+// the shared DB-writer extracted from normalizeOSCAL and normalizeCSF.
+func (n *Normalizer) writeTree(
+	ctx context.Context,
+	doc DocIdentity,
+	tree *TreeResult,
+	ingQ IngestQuerier,
+	silverQ SilverQuerier,
+) error {
 	// Build doc_key: <framework_code>|<version_label>|<doc_role>
-	docRole := deref(f.DocRole)
-	qualifier := f.Qualifier
-	docKey := fwCode + "|" + verLabel + "|" + docRole
-	if qualifier != "" {
-		docKey += ":" + qualifier
+	docKey := doc.FrameworkCode + "|" + doc.VersionLabel + "|" + doc.DocRole
+	if doc.Qualifier != "" {
+		docKey += ":" + doc.Qualifier
 	}
 
 	// Upsert silver.document.
-	doc, err := silverQ.UpsertDocument(ctx, dbsilver.UpsertDocumentParams{
+	sdoc, err := silverQ.UpsertDocument(ctx, dbsilver.UpsertDocumentParams{
 		DocKey:           docKey,
-		FrameworkCode:    fwCode,
-		VersionLabel:     verLabel,
-		DocRole:          docRole,
-		Qualifier:        qualifier,
+		FrameworkCode:    doc.FrameworkCode,
+		VersionLabel:     doc.VersionLabel,
+		DocRole:          doc.DocRole,
+		Qualifier:        doc.Qualifier,
 		Title:            tree.Title,
-		SourceFileSha256: f.Sha256,
-		ServeGate:        sf.ServeGate,
+		SourceFileSha256: doc.Sha256,
+		ServeGate:        doc.ServeGate,
 		Markdown:         nil,
 	})
 	if err != nil {
@@ -338,12 +293,12 @@ func (n *Normalizer) normalizeCSF(
 	}
 
 	// Delete existing controls (idempotent rebuild).
-	_, err = silverQ.DeleteControlsForDocument(ctx, doc.ID)
+	_, err = silverQ.DeleteControlsForDocument(ctx, sdoc.ID)
 	if err != nil {
 		return fmt.Errorf("delete controls: %w", err)
 	}
 
-	// Insert all controls; track the index→DB ID mapping for parent linking.
+	// Insert all controls; track the index-to-DB-ID mapping for parent linking.
 	dbIDs := make([]int64, len(tree.Controls))
 	for i, cr := range tree.Controls {
 		var parentID *int64
@@ -353,7 +308,7 @@ func (n *Normalizer) normalizeCSF(
 		}
 
 		id, err := silverQ.InsertControl(ctx, dbsilver.InsertControlParams{
-			DocumentID:      doc.ID,
+			DocumentID:      sdoc.ID,
 			ParentControlID: parentID,
 			Citation:        cr.Citation,
 			CitationNorm:    cr.CitationNorm,
@@ -394,12 +349,12 @@ func (n *Normalizer) normalizeCSF(
 	}
 
 	// Mark the manifest row as normalized.
-	if err := ingQ.MarkNormalized(ctx, f.ID); err != nil {
+	if err := ingQ.MarkNormalized(ctx, doc.ManifestID); err != nil {
 		return fmt.Errorf("mark normalized: %w", err)
 	}
 
 	n.Log.Info("normalized",
-		"path", f.RelPath,
+		"path", doc.RelPath,
 		"controls", len(tree.Controls),
 		"mappings", len(tree.Mappings),
 	)

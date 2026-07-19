@@ -125,6 +125,30 @@ func (e *Extractor) extractWorkbook(
 	return nil
 }
 
+// CaptureXLSXFile opens an xlsx file from disk and returns the exact
+// workbook-rows-json capture (as json.RawMessage) that the extract stage
+// would store in bronze. This is exported for test-time use by parser
+// golden tests that must build captures from data/ without committing
+// licensed captures to testdata/.
+func CaptureXLSXFile(path string) (json.RawMessage, error) {
+	xlFile, err := excelize.OpenFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("open xlsx %q: %w", path, err)
+	}
+	defer func() { _ = xlFile.Close() }()
+
+	capture, err := captureWorkbook(xlFile)
+	if err != nil {
+		return nil, fmt.Errorf("capture workbook: %w", err)
+	}
+
+	raw, err := json.Marshal(capture)
+	if err != nil {
+		return nil, fmt.Errorf("marshal capture: %w", err)
+	}
+	return json.RawMessage(raw), nil
+}
+
 // captureWorkbook reads all sheets in workbook order and returns the cell
 // capture. Empty cells are omitted. Cell order is row-major within each sheet.
 // Uses excelize.GetRows for each sheet — it resolves shared strings and

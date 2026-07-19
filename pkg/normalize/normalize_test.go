@@ -326,6 +326,185 @@ func TestNormalizer_SkipsUnimplementedScheme(t *testing.T) {
 	}
 }
 
+// --- writeTree unit test ---
+
+// recordingSilverQuerier records the order of operations for writeTree.
+type recordingSilverQuerier struct {
+	fakeSilverQuerier
+	ops []string
+}
+
+func newRecordingSilverQuerier() *recordingSilverQuerier {
+	return &recordingSilverQuerier{
+		fakeSilverQuerier: fakeSilverQuerier{nextID: 1},
+	}
+}
+
+func (r *recordingSilverQuerier) UpsertDocument(ctx context.Context, arg dbsilver.UpsertDocumentParams) (dbsilver.SilverDocument, error) {
+	r.ops = append(r.ops, "upsert-document")
+	return r.fakeSilverQuerier.UpsertDocument(ctx, arg)
+}
+
+func (r *recordingSilverQuerier) DeleteControlsForDocument(ctx context.Context, docID int64) (int64, error) {
+	r.ops = append(r.ops, "delete-controls")
+	return r.fakeSilverQuerier.DeleteControlsForDocument(ctx, docID)
+}
+
+func (r *recordingSilverQuerier) InsertControl(ctx context.Context, arg dbsilver.InsertControlParams) (int64, error) {
+	r.ops = append(r.ops, "insert-control")
+	return r.fakeSilverQuerier.InsertControl(ctx, arg)
+}
+
+func (r *recordingSilverQuerier) UpsertControlMapping(ctx context.Context, arg dbsilver.UpsertControlMappingParams) error {
+	r.ops = append(r.ops, "upsert-mapping")
+	return r.fakeSilverQuerier.UpsertControlMapping(ctx, arg)
+}
+
+func (r *recordingSilverQuerier) ResolveControlMappings(ctx context.Context) (int64, error) {
+	r.ops = append(r.ops, "resolve-mappings")
+	return r.fakeSilverQuerier.ResolveControlMappings(ctx)
+}
+
+// recordingIngestQuerier records MarkNormalized calls.
+type recordingIngestQuerier struct {
+	fakeIngestQuerier
+	ops []string
+}
+
+func newRecordingIngestQuerier() *recordingIngestQuerier {
+	return &recordingIngestQuerier{
+		fakeIngestQuerier: fakeIngestQuerier{
+			normalized: map[int64]bool{},
+			errors:     map[int64]string{},
+		},
+	}
+}
+
+func (r *recordingIngestQuerier) MarkNormalized(ctx context.Context, id int64) error {
+	r.ops = append(r.ops, "mark-normalized")
+	return r.fakeIngestQuerier.MarkNormalized(ctx, id)
+}
+
+func TestWriteTree_CallOrder(t *testing.T) {
+	silverQ := newRecordingSilverQuerier()
+	ingestQ := newRecordingIngestQuerier()
+
+	tree := &TreeResult{
+		Title: "Test Document",
+		Controls: []ControlRow{
+			{Citation: "FAM", CitationNorm: "FAM", Kind: "family", Status: "active", ParentIdx: -1, Ordinal: 0},
+			{Citation: "C-1", CitationNorm: "C-1", Kind: "control", Status: "active", ParentIdx: 0, Ordinal: 1},
+		},
+		Mappings: []MappingEdge{
+			{FromIdx: 1, ToFrameworkCode: "other", ToCitationNorm: "X-1", MappingSource: "test", Relationship: "related"},
+		},
+	}
+
+	doc := DocIdentity{
+		ManifestID:    42,
+		RelPath:       "test/doc.json",
+		Sha256:        "abc123",
+		FrameworkCode: "testfw",
+		VersionLabel:  "v1",
+		DocRole:       "main",
+		ServeGate:     "public",
+	}
+
+	norm := &Normalizer{Log: testLogger()}
+	err := norm.writeTree(context.Background(), doc, tree, ingestQ, silverQ)
+	if err != nil {
+		t.Fatalf("writeTree: %v", err)
+	}
+
+	// Verify call order: upsert-document, delete-controls, insert-control (x2),
+	// upsert-mapping, resolve-mappings.
+	wantSilverOps := []string{
+		"upsert-document",
+		"delete-controls",
+		"insert-control",
+		"insert-control",
+		"upsert-mapping",
+		"resolve-mappings",
+	}
+	if len(silverQ.ops) != len(wantSilverOps) {
+		t.Fatalf("silver ops=%v, want %v", silverQ.ops, wantSilverOps)
+	}
+	for i, op := range wantSilverOps {
+		if silverQ.ops[i] != op {
+			t.Errorf("silver op[%d]=%s, want %s", i, silverQ.ops[i], op)
+		}
+	}
+
+	// Verify MarkNormalized called last.
+	if len(ingestQ.ops) != 1 || ingestQ.ops[0] != "mark-normalized" {
+		t.Errorf("ingest ops=%v, want [mark-normalized]", ingestQ.ops)
+	}
+
+	// Verify document fields.
+	if silverQ.doc == nil {
+		t.Fatal("document not created")
+	}
+	if silverQ.doc.DocKey != "testfw|v1|main" {
+		t.Errorf("doc_key=%q, want testfw|v1|main", silverQ.doc.DocKey)
+	}
+	if silverQ.doc.ServeGate != "public" {
+		t.Errorf("serve_gate=%q, want public", silverQ.doc.ServeGate)
+	}
+
+	// Verify controls inserted with correct parent linking.
+	if len(silverQ.controls) != 2 {
+		t.Fatalf("controls=%d, want 2", len(silverQ.controls))
+	}
+	if silverQ.controls[0].ParentControlID != nil {
+		t.Error("family should have nil parent")
+	}
+	if silverQ.controls[1].ParentControlID == nil {
+		t.Error("control should have non-nil parent")
+	}
+
+	// Verify mapping inserted.
+	if len(silverQ.mappings) != 1 {
+		t.Fatalf("mappings=%d, want 1", len(silverQ.mappings))
+	}
+	if silverQ.mappings[0].ToFrameworkCode != "other" {
+		t.Errorf("mapping to_fw=%q, want other", silverQ.mappings[0].ToFrameworkCode)
+	}
+
+	// Verify MarkNormalized was called with correct ID.
+	if !ingestQ.normalized[42] {
+		t.Error("manifest row 42 should be marked normalized")
+	}
+}
+
+func TestWriteTree_QualifierInDocKey(t *testing.T) {
+	silverQ := newRecordingSilverQuerier()
+	ingestQ := newRecordingIngestQuerier()
+
+	tree := &TreeResult{
+		Title:    "Qualified Doc",
+		Controls: []ControlRow{{Citation: "X", CitationNorm: "X", Kind: "control", Status: "active", ParentIdx: -1}},
+	}
+
+	doc := DocIdentity{
+		ManifestID:    1,
+		RelPath:       "test.json",
+		Sha256:        "s",
+		FrameworkCode: "fw",
+		VersionLabel:  "v1",
+		DocRole:       "main",
+		Qualifier:     "amendment-1",
+		ServeGate:     "auth-only",
+	}
+
+	norm := &Normalizer{Log: testLogger()}
+	if err := norm.writeTree(context.Background(), doc, tree, ingestQ, silverQ); err != nil {
+		t.Fatal(err)
+	}
+	if silverQ.doc.DocKey != "fw|v1|main:amendment-1" {
+		t.Errorf("doc_key=%q, want fw|v1|main:amendment-1", silverQ.doc.DocKey)
+	}
+}
+
 func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 }

@@ -277,6 +277,70 @@ func TestExtractWorkbook_CorruptFile(t *testing.T) {
 	}
 }
 
+func TestCaptureXLSXFile_Synthetic(t *testing.T) {
+	dir := t.TempDir()
+	rel := "capture-test.xlsx"
+	buildSyntheticXLSX(t, dir, rel)
+
+	raw, err := CaptureXLSXFile(filepath.Join(dir, rel))
+	if err != nil {
+		t.Fatalf("CaptureXLSXFile: %v", err)
+	}
+
+	// Must be valid JSON.
+	if !json.Valid(raw) {
+		t.Fatal("result is not valid JSON")
+	}
+
+	// Unmarshal and verify structure matches what extractWorkbook produces.
+	var cap WorkbookCapture
+	if err := json.Unmarshal(raw, &cap); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	// Should have 2 sheets: Data and Meta (same as buildSyntheticXLSX).
+	if len(cap.Sheets) != 2 {
+		t.Fatalf("sheets=%d, want 2", len(cap.Sheets))
+	}
+	if cap.Sheets[0].Name != "Data" {
+		t.Errorf("sheet[0].name=%q, want Data", cap.Sheets[0].Name)
+	}
+	if cap.Sheets[1].Name != "Meta" {
+		t.Errorf("sheet[1].name=%q, want Meta", cap.Sheets[1].Name)
+	}
+
+	// Data sheet: 5 non-empty cells (A1=Header, B1=Values, A2=42, A3=Header, B3=hello).
+	if len(cap.Sheets[0].Rows) != 5 {
+		t.Errorf("Data cells=%d, want 5; got %+v", len(cap.Sheets[0].Rows), cap.Sheets[0].Rows)
+	}
+
+	cellMap := map[string]string{}
+	for _, c := range cap.Sheets[0].Rows {
+		cellMap[c.Ref] = c.Value
+	}
+	if cellMap["A1"] != "Header" {
+		t.Errorf("A1=%q, want Header", cellMap["A1"])
+	}
+	if cellMap["A2"] != "42" {
+		t.Errorf("A2=%q, want '42' (numeric as string)", cellMap["A2"])
+	}
+
+	// Meta sheet: 1 cell (C5=metadata-value).
+	if len(cap.Sheets[1].Rows) != 1 {
+		t.Errorf("Meta cells=%d, want 1", len(cap.Sheets[1].Rows))
+	}
+	if len(cap.Sheets[1].Rows) > 0 && cap.Sheets[1].Rows[0].Value != "metadata-value" {
+		t.Errorf("Meta C5=%q, want metadata-value", cap.Sheets[1].Rows[0].Value)
+	}
+}
+
+func TestCaptureXLSXFile_NonExistent(t *testing.T) {
+	_, err := CaptureXLSXFile("/nonexistent/path.xlsx")
+	if err == nil {
+		t.Fatal("expected error for non-existent file")
+	}
+}
+
 func TestExtractWorkbook_DeterministicOrder(t *testing.T) {
 	// Verify that cells are in row-major order and sheets in workbook order.
 	dir := t.TempDir()
