@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dannyota/compliary/pkg/operator"
+	"danny.vn/compliary/pkg/operator"
 )
 
 // CIS gates the Controls download behind a Pardot registration form (no

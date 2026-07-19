@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dannyota/compliary/pkg/fetch"
-	"github.com/dannyota/compliary/pkg/operator"
+	"danny.vn/compliary/pkg/fetch"
+	"danny.vn/compliary/pkg/operator"
 )
 
 func main() {

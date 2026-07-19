@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dannyota/compliary/pkg/operator"
+	"danny.vn/compliary/pkg/operator"
 )
 
 // PCI SSC serves standards behind a click-through license agreement

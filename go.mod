@@ -1,3 +1,3 @@
-module github.com/dannyota/compliary
+module danny.vn/compliary
 
 go 1.26.5
