@@ -22,7 +22,7 @@ Schema in [`SCHEMA.md`](SCHEMA.md); pipeline + stack in [`../ARCHITECTURE.md`](.
 
 - **Bulk embed:** Kaggle T4 GPU engine, auto-selected when `KAGGLE_API_TOKEN` is set and
   >=200 chunks need embedding. Uploads chunk text to the operator's **private** Kaggle dataset
-  (warned in logs). CPU bulk embedding explicitly rejected (laptop thermal load).
+  (warned in logs). CPU bulk embedding remains the supported fallback (engine=local) but is slow; Kaggle T4 is auto-selected when a token is present and the batch is large.
 - **Query-time embed:** local ONNX in-process (requires `-tags onnx` build + model at
   `~/.cache/banhmi/qwen3-embedding`).
 
