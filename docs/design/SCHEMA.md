@@ -137,10 +137,17 @@ default for every self-deployed operator.)
    interleaves the 3-column layout in reading order; guidance-column prose leaks into 282/351
    requirement bodies after the requirement text (noisy, not wrong — requirement text leads the
    body; zero testing-procedure text leaked); column-separation pass deferred to eval.
-6. **AICPA TSC — PDF**: criteria (`CC6.1`) + points of focus.
-7. **ISO family — PDF**: clause/annex-control trees (27001/27002/27017/27018; 22301 body waits on
-   phase-2 purchase).
-8. **COBIT 2019 — PDF**: objectives (`EDM01`–`MEA04`) + practices.
+6. **AICPA TSC — PDF**: 61 criteria (CC/A/C/PI/P series) + 332 points of focus = 393 rows; neutral
+   titles (`"Criterion CC1.1"`), `title_original` = PoF bold lead-in (auth-gated), `serve_gate`
+   auth-only. `terms_note` warning fires at normalize (AICPA knowledge-base clause). **Landed.**
+7. **ISO family — PDF**: 27001:2022 = 138 rows (45 clauses + 93 Annex A); 27002:2022 = 97 (4 themes
+   + 93 controls); 27017:2015 = 176 (incl. 7 CLD cloud-extended); 27018:2019 = 120 (incl. 25
+   Annex A PII). Neutral titles (`"Annex A control A.5.1"`), `title_original` auth-gated or NULL,
+   `serve_gate` auth-only. **Landed.** Deferred: 27001 Annex A bodies are table-shallow (go-fitz
+   renders minimal text from the reference table); amendments (27001+22301 amd1-2024) role-guarded,
+   not normalized this round.
+8. **COBIT 2019 — PDF**: 5 domains + 40 objectives + 231 practices = 276 rows; neutral titles
+   (`"Practice EDM01.01"`), `title_original` auth-gated, `serve_gate` auth-only. **Landed.**
 
 Each parser lands with golden-count tests (expected control counts per version — e.g. 27001:2022
 Annex A = 93, CCM v4.1 = 207 controls + 17 domains, CSF 2.0 subcategories = 106) — parsed counts

@@ -101,12 +101,10 @@ milestone history.
 
 1. **M2 — parse** (in progress): ~~schema layer~~ done — ~~manifest scanner~~ done (26 files) —
    ~~OSCAL extract~~ done — ~~XLSX extract~~ done (4 workbooks captured as `workbook-rows-json`) —
-   ~~PDF extract~~ done (9 PDFs captured as `pdf-pages-json` via go-fitz purego) — ~~NIST 800-53 r5
-   normalize~~ done — ~~NIST CSF 2.0 normalize~~ done — ~~CIS Controls v8.1 normalize~~ done
-   (171 rows) — ~~CSA CCM v4.1 normalize~~ done (224 rows) — ~~PCI DSS v4.0.1 normalize~~ done
-   (366 rows). All XLSX parsers complete; first PDF parser (PCI) complete; 62/62 CSF→CIS v8.1 +
-   551/551 CSF→PCI DSS mapping edges resolved. **Next:** TSC/ISO/COBIT PDF parsers per SCHEMA.md
-   order; then Index + LexIndex.
+   ~~PDF extract~~ done (9 PDFs captured as `pdf-pages-json` via go-fitz purego) — ~~all 8 v0.1.0
+   parsers~~ done (11 documents / 3402 controls / 3068 edges / 1870 resolved). All acquired
+   frameworks parse. Deferred: amendments (27001+22301 amd1-2024) role-guarded; CAIQ; 27001 Annex A
+   bodies table-shallow; column-separation (PCI body noise). **Next:** Index + LexIndex.
 2. **M3 — MCP evidence service** — `guide`, `corpus_status`, `quality_gaps`, `search`, `document`;
    citation-keyed golden set + eval gate with baseline floors.
 3. **M4 — deploy maintainer instance** — `compliary.danny.vn`: public landing, **authenticated
@@ -197,3 +195,17 @@ patch — new documents always cut v0.2.0+.
   bracket gate recovery; synthetic fixture covers the collision shape. All 551 version-unspecified
   PCI edges from CSF now resolve (551/551) via the NULL-version→current-version arm. Corpus totals:
   5 documents / 2202 controls / 3068 edges / 1696 resolved.
+- **2026-07-19** — **M2 final parser wave — TSC + ISO family + COBIT (three parallel worktrees).**
+  AICPA TSC normalized: 61 criteria (CC/A/C/PI/P series) + 332 points of focus = 393 rows; neutral
+  titles, `title_original` auth-gated, `serve_gate` auth-only; `terms_note` warning fires (AICPA
+  knowledge-base clause). ISO family normalized: 27001:2022 = 138 (45 clauses + 93 Annex A);
+  27002:2022 = 97 (4 themes + 93 controls); 27017:2015 = 176 (incl. 7 CLD cloud-extended);
+  27018:2019 = 120 (incl. 25 Annex A PII); neutral titles everywhere, `title_original` auth-gated
+  or NULL, `serve_gate` auth-only. COBIT 2019 normalized: 5 domains + 40 objectives + 231 practices
+  = 276 rows; neutral titles, `title_original` auth-gated, `serve_gate` auth-only. New mapping
+  resolutions: CSF→ISO 27001 174/470 (misses are citation-form mismatches — surfaced as quality
+  gaps); CSF→PCI 551/551 and CSF→CIS 62/62 unchanged. ISO review caught + fixed a fixture licensing
+  violation (real headings replaced with invented wording). Normalize now warns on non-empty
+  `terms_note` (fires for soc2tsc — AICPA clause). Deferred: amendments (27001+22301 amd1-2024)
+  role-guarded; CAIQ; 27001 Annex A bodies table-shallow. All v0.1.0 parsers landed. Corpus totals:
+  11 documents / 3402 controls / 3068 edges / 1870 resolved.

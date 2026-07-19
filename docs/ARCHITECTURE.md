@@ -63,11 +63,12 @@ framework version: control tree, citations, version + mapping relations) → **I
 embeddings; bulk embed on Kaggle T4 like banhmi) → **LexIndex** (BM25 sparse vectors).
 
 **Landed:** Manifest (all 26 corpus files classified — 23 matched / 3 ignored), Extract (OSCAL JSON
-+ XLSX + PDF via go-fitz purego — all 9 eligible PDFs captured as `pdf-pages-json`), Normalize (NIST
-SP 800-53 r5 + NIST CSF 2.0 + CSF informative-reference mappings + CIS Controls v8.1 + CSA CCM
-v4.1 + PCI DSS v4.0.1 — 5 parsers landed; see PLAN.md milestone history for validated numbers). All
-XLSX parsers complete; first PDF parser (PCI) complete. **Next:** TSC/ISO/COBIT PDF parsers per
-SCHEMA.md order, then Index/LexIndex.
++ XLSX + PDF via go-fitz purego — all 9 eligible PDFs captured as `pdf-pages-json`), Normalize (all
+8 v0.1.0 parsers landed: NIST SP 800-53 r5, NIST CSF 2.0 + informative-reference mappings, CIS
+Controls v8.1, CSA CCM v4.1, PCI DSS v4.0.1, AICPA TSC, ISO 27001/27002/27017/27018, COBIT 2019;
+see PLAN.md milestone history for validated numbers). Deferred: amendments (27001+22301 amd1-2024)
+role-guarded; CAIQ (non-main doc role); 27001 Annex A bodies table-shallow; column-separation
+(PCI body noise). **Next:** Index + LexIndex.
 
 ```mermaid
 graph LR
@@ -114,7 +115,7 @@ compliary/
 │   ├── operator/          # operator identity (.env)
 │   ├── manifest/          # data/ scanner + file_rule matcher
 │   ├── extract/           # OSCAL JSON + XLSX + PDF (go-fitz purego) extractors
-│   ├── normalize/         # NIST 800-53 + CSF 2.0 + CIS v8.1 + CCM v4.1 + PCI DSS v4.0.1 → silver (TSC/ISO/COBIT: target)
+│   ├── normalize/         # all v0.1.0 parsers → silver (800-53/CSF/CIS/CCM/PCI/TSC/ISO/COBIT)
 │   ├── rag/               # embed, hybrid retrieve            [target]
 │   ├── mcp/               # MCP tools over the shared query core [target]
 │   └── store/             # generated sqlc (do not hand-edit)
