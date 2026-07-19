@@ -2,8 +2,11 @@ package mcp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // DocumentInput is the document tool's argument schema.
@@ -291,7 +294,7 @@ LIMIT 1`, strings.Join(conds, " AND "))
 		&ctrl.ServeGate,
 	)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return ControlDetail{}, false, nil
 		}
 		return ControlDetail{}, false, fmt.Errorf("find control: %w", err)
@@ -345,7 +348,7 @@ WHERE sc.id = $1 AND sc.parent_control_id IS NOT NULL`
 		&parent.Title,
 	)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("control parent: %w", err)
@@ -447,7 +450,6 @@ ORDER BY d.framework_code, sc.citation_norm`
 	for rows.Next() {
 		var me MappingEdge
 		me.Direction = "inbound"
-		me.Resolved = true
 		if err := rows.Scan(
 			&me.FrameworkCode,
 			&me.VersionLabel,

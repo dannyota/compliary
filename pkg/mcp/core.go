@@ -150,6 +150,11 @@ func (c *Core) projectHit(h SearchHit) SearchHit {
 // body/title_original/chunk content are stripped from controls and chunks.
 func (c *Core) ProjectDocument(out DocumentOutput) DocumentOutput {
 	if c.projection == ProjectionReduced {
+		// Strip licensed fields from the control itself.
+		if out.Control != nil {
+			out.Control.Body = ""
+			out.Control.TitleOriginal = ""
+		}
 		for i := range out.Chunks {
 			out.Chunks[i].Content = ""
 			out.Chunks[i].ContextPrefix = ""

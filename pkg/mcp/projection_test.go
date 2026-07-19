@@ -101,6 +101,18 @@ func TestProjectDocumentReduced(t *testing.T) {
 
 	got := c.ProjectDocument(doc)
 
+	// Control Body and TitleOriginal must be stripped (primary licensed fields).
+	if got.Control.Body != "" {
+		t.Errorf("reduced projection should strip Control.Body, got %q", got.Control.Body)
+	}
+	if got.Control.TitleOriginal != "" {
+		t.Errorf("reduced projection should strip Control.TitleOriginal, got %q", got.Control.TitleOriginal)
+	}
+	// Paraphrased title must survive.
+	if got.Control.Title != "Account Management" {
+		t.Errorf("reduced projection should keep Control.Title, got %q", got.Control.Title)
+	}
+
 	// Chunk content must be stripped.
 	for i, ch := range got.Chunks {
 		if ch.Content != "" {
