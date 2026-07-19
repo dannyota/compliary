@@ -33,6 +33,7 @@ import (
 	"danny.vn/compliary/pkg/extract"
 	"danny.vn/compliary/pkg/manifest"
 	"danny.vn/compliary/pkg/normalize"
+	"danny.vn/compliary/pkg/rag/embed/kagglebatch"
 	"danny.vn/compliary/pkg/rag/embed/onnxembed"
 	ragindex "danny.vn/compliary/pkg/rag/index"
 	dbbronze "danny.vn/compliary/pkg/store/bronze"
@@ -98,7 +99,7 @@ func run(cfgPath, stage string, log *slog.Logger) error {
 				hasError = true
 			}
 		case "index":
-			if err := runIndex(ctx, pool, log); err != nil {
+			if err := runIndex(ctx, cfg, pool, log); err != nil {
 				log.Error("index stage failed", "err", err)
 				hasError = true
 			}
@@ -290,7 +291,7 @@ func initONNXEmbedder(log *slog.Logger) (ragindex.Embedder, error) {
 	return embedder, nil
 }
 
-func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
+func runIndex(ctx context.Context, cfg *config.Config, pool poolWrapper, log *slog.Logger) error {
 	// List files eligible for indexing (normalized but not yet indexed).
 	ingQ := dbingest.New(pool)
 	files, err := ingQ.ListFilesToIndex(ctx)
@@ -307,7 +308,7 @@ func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
 	silverQ := dbsilver.New(pool)
 	goldQ := dbgold.New(pool)
 
-	// Chunk building needs no embedder — defer ONNX init to embed phase.
+	// Chunk building needs no embedder — defer init to embed phase.
 	idx := &ragindex.Indexer{
 		Log:       log,
 		BatchSize: 32,
@@ -319,12 +320,15 @@ func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
 		return fmt.Errorf("index: reap orphans: %w", err)
 	}
 
+	// Collect distinct framework codes for the licensing warning.
+	frameworkSet := make(map[string]bool)
 	var totalChunks, totalEmbeddings int
 	var hasError bool
 
 	for _, f := range files {
 		fc := *f.FrameworkCode
 		vl := *f.VersionLabel
+		frameworkSet[fc] = true
 
 		// Per-file error flag — MarkIndexed only on full success.
 		fileErrored := false
@@ -383,19 +387,67 @@ func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
 		}
 	}
 
-	// Lazily init the ONNX embedder — only needed for the embed phase.
-	embedder, err := initONNXEmbedder(log)
-	if err != nil {
-		log.Error("index: embedder init deferred", "err", err)
-		hasError = true
-	} else {
-		idx.Embedder = embedder
-		embedded, err := idx.EmbedMissing(ctx, goldQ)
+	// Engine selection for the embed phase.
+	const embedModel = "qwen3-embedding-0.6b"
+	const embedDims = 1024
+
+	engine := cfg.EmbedEngine()
+
+	// For "auto" with Kaggle token, check MinBatch threshold.
+	if engine == "kaggle" && cfg.Embed.Engine == "auto" {
+		missingCount, err := idx.CountMissing(ctx, goldQ, embedModel)
 		if err != nil {
-			log.Error("index: embed", "err", err)
+			log.Error("index: count missing embeddings", "err", err)
 			hasError = true
+		} else if missingCount < cfg.Embed.Kaggle.MinBatch {
+			log.Info("index: missing chunks below min_batch, falling back to local",
+				"missing", missingCount, "min_batch", cfg.Embed.Kaggle.MinBatch)
+			engine = "local"
 		}
-		totalEmbeddings += embedded
+	}
+
+	log.Info("index: embed engine selected", "engine", engine)
+
+	var frameworks []string
+	for fc := range frameworkSet {
+		frameworks = append(frameworks, fc)
+	}
+
+	switch engine {
+	case "kaggle":
+		batch, err := kagglebatch.New(kagglebatch.Options{
+			Owner:        cfg.Embed.Kaggle.Owner,
+			ModelDataset: cfg.Embed.Kaggle.ModelDataset,
+			Accelerator:  cfg.Embed.Kaggle.Accelerator,
+			Dims:         embedDims,
+			Token:        cfg.KaggleToken,
+		}, log)
+		if err != nil {
+			log.Error("index: kaggle embedder init", "err", err)
+			hasError = true
+		} else {
+			embedded, err := idx.EmbedMissingKaggle(ctx, goldQ, batch, embedModel, embedDims, frameworks)
+			if err != nil {
+				log.Error("index: kaggle embed", "err", err)
+				hasError = true
+			}
+			totalEmbeddings += embedded
+		}
+
+	default: // "local"
+		embedder, err := initONNXEmbedder(log)
+		if err != nil {
+			log.Error("index: embedder init deferred", "err", err)
+			hasError = true
+		} else {
+			idx.Embedder = embedder
+			embedded, err := idx.EmbedMissing(ctx, goldQ)
+			if err != nil {
+				log.Error("index: embed", "err", err)
+				hasError = true
+			}
+			totalEmbeddings += embedded
+		}
 	}
 
 	log.Info("index complete",

@@ -3,6 +3,7 @@ module danny.vn/compliary
 go 1.26.5
 
 require (
+	danny.vn/kaggle v0.1.0
 	github.com/daulet/tokenizers v1.27.0
 	github.com/gen2brain/go-fitz v1.28.2
 	github.com/jackc/pgx/v5 v5.10.0

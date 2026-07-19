@@ -18,6 +18,12 @@ type Config struct {
 	Name     string         `yaml:"name"`
 	DataDir  string         `yaml:"data_dir"` // operator-built corpus root scanned by the manifest stage
 	Database DatabaseConfig `yaml:"database"`
+	Embed    EmbedConfig    `yaml:"embed"`
+
+	// KaggleToken is the Kaggle API token (KGAT). Like the DB password it is a
+	// secret sourced from the environment (KAGGLE_API_TOKEN), never the YAML file.
+	// It drives the "auto" bulk-engine choice and authenticates the Kaggle client.
+	KaggleToken string `yaml:"-"`
 }
 
 // DatabaseConfig holds PostgreSQL connection settings. Password comes from the
@@ -29,6 +35,34 @@ type DatabaseConfig struct {
 	DBName   string `yaml:"dbname"`
 	SSLMode  string `yaml:"sslmode"`
 	Password string `yaml:"-"`
+}
+
+// EmbedConfig selects how chunk embeddings are produced for indexing. Engine
+// only chooses the BULK embedding engine, never the synchronous query path.
+//
+// Engine: "auto" (default) uses Kaggle when KAGGLE_API_TOKEN is set AND the
+// missing-chunk count >= MinBatch, else local ONNX; "local" forces the local
+// ONNX embedder; "kaggle" forces the Kaggle batch engine.
+type EmbedConfig struct {
+	Engine string            `yaml:"engine"` // "auto" | "local" | "kaggle"
+	Kaggle EmbedKaggleConfig `yaml:"kaggle"`
+}
+
+// EmbedKaggleConfig configures the Kaggle batch embedding engine
+// (pkg/rag/embed/kagglebatch). Auth is the KAGGLE_API_TOKEN environment
+// variable, never the YAML file.
+type EmbedKaggleConfig struct {
+	// Owner is the Kaggle username owning the input dataset and embed kernel.
+	// Optional: auto-derived from the token when empty.
+	Owner string `yaml:"owner"`
+	// ModelDataset mounts the Qwen3-Embedding-0.6B ONNX FP16 model from a Kaggle
+	// dataset ("owner/slug") so the kernel runs offline.
+	ModelDataset string `yaml:"model_dataset"`
+	// Accelerator is the Kaggle machine shape, e.g. "NvidiaTeslaT4".
+	Accelerator string `yaml:"accelerator"`
+	// MinBatch falls back to the local embedder when fewer than this many chunks
+	// need embedding (a Kaggle round-trip is not worth it for small batches).
+	MinBatch int `yaml:"min_batch"`
 }
 
 // Default returns the built-in configuration, matching the local podman dev
@@ -43,6 +77,14 @@ func Default() *Config {
 			User:    "compliary",
 			DBName:  "compliary",
 			SSLMode: "disable",
+		},
+		Embed: EmbedConfig{
+			Engine: "auto",
+			Kaggle: EmbedKaggleConfig{
+				ModelDataset: "danhsoftware/qwen3-embedding-06b-onnx-fp16",
+				Accelerator:  "NvidiaTeslaT4",
+				MinBatch:     200,
+			},
 		},
 	}
 }
@@ -82,6 +124,32 @@ func (c *Config) applyEnv() {
 	}
 	if v := os.Getenv("COMPLIARY_DATA_DIR"); v != "" {
 		c.DataDir = v
+	}
+	if v := os.Getenv("KAGGLE_API_TOKEN"); v != "" {
+		c.KaggleToken = v
+	}
+	if v := os.Getenv("COMPLIARY_EMBED_ENGINE"); v != "" {
+		c.Embed.Engine = v
+	}
+	if v := os.Getenv("COMPLIARY_EMBED_KAGGLE_MODEL_DATASET"); v != "" {
+		c.Embed.Kaggle.ModelDataset = v
+	}
+}
+
+// EmbedEngine resolves the bulk-embedding engine: "kaggle" or "local".
+// Configured "auto" (or empty) resolves to "kaggle" when KAGGLE_API_TOKEN is
+// set, otherwise "local".
+func (c *Config) EmbedEngine() string {
+	switch strings.ToLower(strings.TrimSpace(c.Embed.Engine)) {
+	case "local":
+		return "local"
+	case "kaggle":
+		return "kaggle"
+	default: // "auto" or empty
+		if c.KaggleToken != "" {
+			return "kaggle"
+		}
+		return "local"
 	}
 }
 

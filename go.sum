@@ -1,3 +1,5 @@
+danny.vn/kaggle v0.1.0 h1:8QrETnvFRnSuOs0ULhYuKl9LtLe81pNilQ3ObQQiqN4=
+danny.vn/kaggle v0.1.0/go.mod h1:8liXxYGbJm0vgRaGhnW32Itnl3oAONnvyWgl1tE5Rrg=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/dannyota/onnxruntime/go v1.28.3 h1:Xtq/PkxHmOk9150kGqYs7tFDgAZEeexrS+XXMyc8cIM=
 github.com/dannyota/onnxruntime/go v1.28.3/go.mod h1:y6lrwg9wJfp1/eahM089k+5YM7nekCeWhl8UGvefyzo=

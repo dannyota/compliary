@@ -1,7 +1,8 @@
 // Package index implements the Index pipeline stage: building gold.chunk rows
-// (one per silver.control) and filling gold.chunk_embedding with dense vectors
-// from the local ONNX embedder. The stage is idempotent — it only processes
-// chunks that are missing embeddings for the configured model.
+// (one per silver.control) and filling gold.chunk_embedding with dense vectors.
+// The stage is idempotent — it only processes chunks that are missing embeddings
+// for the configured model. Embedding can run via the local ONNX embedder or the
+// Kaggle batch engine (selected by config).
 package index
 
 import (
@@ -13,6 +14,7 @@ import (
 	pgvector "github.com/pgvector/pgvector-go"
 
 	"danny.vn/compliary/pkg/rag/embed"
+	"danny.vn/compliary/pkg/rag/embed/kagglebatch"
 	dbgold "danny.vn/compliary/pkg/store/gold"
 	dbsilver "danny.vn/compliary/pkg/store/silver"
 )
@@ -165,6 +167,66 @@ func (idx *Indexer) EmbedMissing(ctx context.Context, goldQ GoldQuerier) (int, e
 	}
 
 	return upserted, nil
+}
+
+// EmbedMissingKaggle finds chunks missing embeddings for the given model and
+// embeds them via the Kaggle batch engine. It streams input to disk and upserts
+// vectors one at a time on return (bounded memory). Returns the number of
+// embeddings upserted. The frameworks parameter lists the framework codes whose
+// text is being sent to Kaggle — logged as a licensing warning.
+func (idx *Indexer) EmbedMissingKaggle(ctx context.Context, goldQ GoldQuerier, batch *kagglebatch.BatchEmbedder, model string, dims int, frameworks []string) (int, error) {
+	missing, err := goldQ.ListChunksMissingEmbedding(ctx, model)
+	if err != nil {
+		return 0, fmt.Errorf("list chunks missing embedding: %w", err)
+	}
+	if len(missing) == 0 {
+		idx.Log.Info("index: all chunks have embeddings", "model", model)
+		return 0, nil
+	}
+
+	// LICENSING WARNING: chunk texts are uploaded to Kaggle (operator's private
+	// dataset, internal use). Log which frameworks are included.
+	idx.Log.Warn("index: uploading chunk texts to Kaggle for batch embedding — licensed control text leaves this machine",
+		"frameworks", frameworks, "chunks", len(missing))
+
+	// Build the id index so onVector can upsert by chunk ID.
+	ids := make([]int64, len(missing))
+
+	n, err := batch.EmbedStream(ctx,
+		func(w *kagglebatch.InputWriter) error {
+			for i, chunk := range missing {
+				ids[i] = chunk.ID
+				text := embedText(chunk.ContextPrefix, chunk.Content)
+				if err := w.Write(text); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		func(index int, vec []float32) error {
+			return goldQ.UpsertChunkEmbedding(ctx, dbgold.UpsertChunkEmbeddingParams{
+				ChunkID:   ids[index],
+				Model:     model,
+				Dims:      int32(dims),
+				Embedding: pgvector.NewVector(vec),
+			})
+		},
+	)
+	if err != nil {
+		return 0, fmt.Errorf("kaggle batch embed: %w", err)
+	}
+
+	idx.Log.Info("index: kaggle batch embed complete", "embedded", n)
+	return n, nil
+}
+
+// CountMissing returns the number of chunks missing embeddings for the given model.
+func (idx *Indexer) CountMissing(ctx context.Context, goldQ GoldQuerier, model string) (int, error) {
+	missing, err := goldQ.ListChunksMissingEmbedding(ctx, model)
+	if err != nil {
+		return 0, fmt.Errorf("count chunks missing embedding: %w", err)
+	}
+	return len(missing), nil
 }
 
 // buildContextPrefix builds the contextual retrieval header:

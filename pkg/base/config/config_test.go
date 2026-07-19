@@ -7,6 +7,77 @@ import (
 	"testing"
 )
 
+// --- Embed engine selection tests ---
+
+func TestEmbedEngineAutoNoToken(t *testing.T) {
+	c := Default()
+	c.KaggleToken = ""
+	if got := c.EmbedEngine(); got != "local" {
+		t.Errorf("EmbedEngine() = %q, want local (no token)", got)
+	}
+}
+
+func TestEmbedEngineAutoWithToken(t *testing.T) {
+	c := Default()
+	c.KaggleToken = "some-kgat-token"
+	if got := c.EmbedEngine(); got != "kaggle" {
+		t.Errorf("EmbedEngine() = %q, want kaggle (token set)", got)
+	}
+}
+
+func TestEmbedEngineExplicitLocal(t *testing.T) {
+	c := Default()
+	c.KaggleToken = "some-kgat-token" // token set but engine forced local
+	c.Embed.Engine = "local"
+	if got := c.EmbedEngine(); got != "local" {
+		t.Errorf("EmbedEngine() = %q, want local (explicit)", got)
+	}
+}
+
+func TestEmbedEngineExplicitKaggle(t *testing.T) {
+	c := Default()
+	c.KaggleToken = ""
+	c.Embed.Engine = "kaggle"
+	if got := c.EmbedEngine(); got != "kaggle" {
+		t.Errorf("EmbedEngine() = %q, want kaggle (explicit)", got)
+	}
+}
+
+func TestEmbedEnvOverrides(t *testing.T) {
+	t.Setenv("KAGGLE_API_TOKEN", "test-token-value")
+	t.Setenv("COMPLIARY_EMBED_ENGINE", "kaggle")
+	t.Setenv("COMPLIARY_EMBED_KAGGLE_MODEL_DATASET", "user/custom-model")
+	c, err := Load(filepath.Join(t.TempDir(), "absent.yaml"))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if c.KaggleToken != "test-token-value" {
+		t.Errorf("KaggleToken not applied from env")
+	}
+	if c.Embed.Engine != "kaggle" {
+		t.Errorf("Embed.Engine = %q, want kaggle", c.Embed.Engine)
+	}
+	if c.Embed.Kaggle.ModelDataset != "user/custom-model" {
+		t.Errorf("Embed.Kaggle.ModelDataset = %q, want user/custom-model", c.Embed.Kaggle.ModelDataset)
+	}
+}
+
+func TestEmbedDefaults(t *testing.T) {
+	c := Default()
+	if c.Embed.Engine != "auto" {
+		t.Errorf("Embed.Engine = %q, want auto", c.Embed.Engine)
+	}
+	if c.Embed.Kaggle.ModelDataset != "danhsoftware/qwen3-embedding-06b-onnx-fp16" {
+		t.Errorf("Embed.Kaggle.ModelDataset = %q", c.Embed.Kaggle.ModelDataset)
+	}
+	if c.Embed.Kaggle.Accelerator != "NvidiaTeslaT4" {
+		t.Errorf("Embed.Kaggle.Accelerator = %q", c.Embed.Kaggle.Accelerator)
+	}
+	if c.Embed.Kaggle.MinBatch != 200 {
+		t.Errorf("Embed.Kaggle.MinBatch = %d, want 200", c.Embed.Kaggle.MinBatch)
+	}
+}
+
 func TestLoadMissingFileUsesDefaults(t *testing.T) {
 	c, err := Load(filepath.Join(t.TempDir(), "absent.yaml"))
 	if err != nil {
