@@ -1,0 +1,13 @@
+code,note
+domain,Top-level grouping (CCM domain; CIS Controls asset-class grouping; 27002 theme)
+family,Control family (800-53 AC/AU/...; TSC common-criteria series)
+clause,Management-system clause (ISO clauses 4-10)
+control,Generic control unit (27002 control; CIS Control; CCM control; SWIFT CSCF control)
+enhancement,Control enhancement (800-53 AC-2(3))
+criterion,Trust Services criterion (CC6.1)
+point-of-focus,TSC point of focus under a criterion; citable and mappable
+requirement,PCI DSS requirement (8.3.6)
+objective,COBIT governance/management objective (EDM01-MEA04)
+practice,COBIT practice under an objective (EDM01.01); citable and mappable
+safeguard,CIS Safeguard under a Control (5.1)
+annex-control,ISO Annex A control (A.5.1)

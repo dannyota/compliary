@@ -1,0 +1,31 @@
+# compliary dev stack.
+#   Infra only: podman compose -f deploy/compose/compliary.yaml up -d
+#
+# compliary is evidence-only: no answer LLM. The corpus is built locally by the
+# operator (data/ drop-ins + cmd/fetch); this stack is just PostgreSQL.
+#
+# Host-port scheme (host:container), offset from banhmi's 1000x block:
+#   postgres 10011:5432 · (future) compliary-server 10018:8088
+name: compliary
+
+services:
+  postgres:
+    # pgvector on PostgreSQL 17 — matches banhmi's proven stack. The lexical
+    # arm is native sparsevec BM25, so no pg_search/ParadeDB is needed.
+    image: docker.io/pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: compliary
+      POSTGRES_PASSWORD: compliary
+      POSTGRES_DB: compliary
+    ports:
+      - "10011:5432"
+    volumes:
+      - compliary-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U compliary"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  compliary-pg:

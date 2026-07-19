@@ -1,0 +1,6 @@
+code,name,authority_note
+nist-olir,NIST OLIR informative references,NIST-published Online Informative References mapping catalog
+csa-ccm-v4.1,CSA CCM v4.1 mapping sheets,CSA-published mappings shipped inside the CCM v4.1 workbook
+cis-v8.1-mappings,CIS Controls v8.1 mapping workbooks,CIS-published mappings between CIS Safeguards and other frameworks
+publisher-catalog,Publisher catalog cross-references,Mappings embedded in a framework's own publication (e.g. 800-53 related-control links; withdrawn-control incorporation notes)
+operator,Operator-supplied mapping,Operator-curated edges; not publisher-authoritative

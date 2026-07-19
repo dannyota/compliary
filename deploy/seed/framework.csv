@@ -1,0 +1,16 @@
+code,name,publisher,source_access,license_class,ingest_enabled,serve_policy,citation_scheme,terms_note
+iso27001,ISO/IEC 27001 Information security management systems (ISMS) requirements,ISO/IEC JTC 1/SC 27,byo,licensed,true,auth-text-only,iso-ams,
+soc2tsc,SOC 2 Trust Services Criteria (AICPA TSC),AICPA,byo,licensed,true,auth-text-only,tsc-criteria,AICPA terms allow personal non-commercial use only and object to AI/LLM knowledge-base inclusion; ingesting is the operator's explicit choice
+pcidss,PCI Data Security Standard,PCI Security Standards Council,form-gated,licensed,true,auth-text-only,pci-requirement,Click-through license: internal use and employee study only; no redistribution or derivative works
+nistcsf,NIST Cybersecurity Framework,NIST,auto-fetch,public-domain,true,full,csf-workbook,
+nist80053,NIST SP 800-53 Security and Privacy Controls,NIST,auto-fetch,public-domain,true,full,oscal-catalog,
+ciscontrols,CIS Critical Security Controls,Center for Internet Security,auto-fetch,open-restricted,true,full,cis-workbook,CC BY-NC-ND 4.0: attribution required; non-commercial; no derivative works
+iso27002,ISO/IEC 27002 Information security controls,ISO/IEC JTC 1/SC 27,byo,licensed,true,auth-text-only,iso-control-catalog,
+iso27017,ISO/IEC 27017 Information security controls for cloud services,ISO/IEC JTC 1/SC 27,byo,licensed,true,auth-text-only,iso-control-catalog,
+iso27018,ISO/IEC 27018 Protection of PII in public clouds acting as PII processors,ISO/IEC JTC 1/SC 27,byo,licensed,true,auth-text-only,iso-control-catalog,
+iso27701,ISO/IEC 27701 Privacy information management systems,ISO/IEC JTC 1/SC 27,byo,licensed,true,auth-text-only,iso-ams,
+iso22301,ISO 22301 Business continuity management systems requirements,ISO/TC 292,byo,licensed,true,auth-text-only,iso-ams,
+iso42001,ISO/IEC 42001 Artificial intelligence management systems,ISO/IEC JTC 1/SC 42,byo,licensed,true,auth-text-only,iso-ams,
+swiftcscf,SWIFT Customer Security Controls Framework,SWIFT,byo,licensed,true,auth-text-only,cscf-control,
+csaccm,CSA Cloud Controls Matrix,Cloud Security Alliance,byo,open-restricted,true,auth-text-only,ccm-workbook,
+cobit,COBIT Governance and management objectives,ISACA,byo,licensed,true,auth-text-only,cobit-objective,

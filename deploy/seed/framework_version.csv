@@ -1,0 +1,29 @@
+framework_code,version_label,published_on,is_current,edition_note
+iso27001,2013,,false,Second edition (2013-10); superseded by 2022
+iso27001,2022,2022-10-25,true,Third edition; Amd 1:2024 (climate action) applies
+iso27002,2013,,false,Second edition (2013-10); superseded by 2022
+iso27002,2022,,true,Third edition (2022-02); 93 controls in 4 themes
+iso27017,2015,,true,First edition (2015-12); controls keyed to 27002:2013 numbering; ITU-T X.1631 co-publication
+iso27018,2014,,false,First edition (2014-08)
+iso27018,2019,,false,Second edition (2019-01); superseded by 2025
+iso27018,2025,,true,Third edition (2025); realigned to 27002:2022 numbering
+iso27701,2019,,false,First edition (2019-08); ISMS extension keyed to 27001:2013
+iso27701,2025,,true,Second edition (2025); standalone PIMS requirements; 2019 transition ends 2028
+iso22301,2012,,false,First edition (2012-05)
+iso22301,2019,,true,Second edition (2019-10); Amd 1:2024 (climate action) applies
+iso42001,2023,,true,First edition (2023-12)
+soc2tsc,2017,,true,TSP Section 100 (2017); 2022 revised points of focus ingested as amendment document
+pcidss,v3.2.1,,false,Published 2018-05; retired 2024-03-31
+pcidss,v4.0,2022-03-31,false,Superseded by v4.0.1 limited revision
+pcidss,v4.0.1,2024-06-11,true,Mandatory from 2025-03-31
+nistcsf,1.1,2018-04-16,false,Superseded by CSF 2.0
+nistcsf,2.0,2024-02-26,true,
+nist80053,r4,2013-04-30,false,Revision 4; withdrawn 2021-09-23
+nist80053,r5,2020-09-23,true,Revision 5; OSCAL catalog updated via 5.x releases
+ciscontrols,v8,2021-05-18,false,Superseded by v8.1
+ciscontrols,v8.1,,true,Released 2024-06; guide document at v8.1.2 (2025-03)
+csaccm,v4.0,2021-01-21,false,Superseded by v4.1
+csaccm,v4.1,,true,Released 2026-01
+swiftcscf,v2026,,true,Annual release for the 2026 attestation cycle
+cobit,5,,false,Released 2012-04; superseded by COBIT 2019
+cobit,2019,,true,Released 2018-11
