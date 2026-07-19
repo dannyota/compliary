@@ -66,7 +66,8 @@ type Normalizer struct {
 // Run processes the given manifest files (already filtered to normalize-eligible).
 // It dispatches by the framework's citation_scheme — implemented: 'oscal-catalog',
 // 'csf-workbook', 'cis-workbook', 'ccm-workbook', 'pci-requirement',
-// 'tsc-criteria'; other schemes and non-'main' doc roles are skipped as deferrals.
+// 'tsc-criteria', 'cobit-objective'; other schemes and non-'main' doc roles are
+// skipped as deferrals.
 func (n *Normalizer) Run(
 	ctx context.Context,
 	files []dbingest.IngestManifestFile,
@@ -163,6 +164,17 @@ func (n *Normalizer) Run(
 			}
 		case "tsc-criteria":
 			if err := n.normalizeTSC(ctx, f, ingQ, bronzeQ, silverQ); err != nil {
+				n.Log.Error("normalize failed", "path", f.RelPath, "err", err)
+				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{
+					ID:         f.ID,
+					StageError: fmt.Sprintf("normalize: %s: %s", f.RelPath, err.Error()),
+				})
+				sum.Failed++
+			} else {
+				sum.Succeeded++
+			}
+		case "cobit-objective":
+			if err := n.normalizeCOBIT(ctx, f, ingQ, bronzeQ, silverQ); err != nil {
 				n.Log.Error("normalize failed", "path", f.RelPath, "err", err)
 				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{
 					ID:         f.ID,
@@ -486,6 +498,53 @@ func (n *Normalizer) normalizeTSC(
 	tree, err := BuildTSCTree(json.RawMessage(re.ContentJsonb), fwCode, verLabel)
 	if err != nil {
 		return fmt.Errorf("build TSC tree: %w", err)
+	}
+
+	// Write tree to silver.
+	doc := DocIdentity{
+		ManifestID:    f.ID,
+		RelPath:       f.RelPath,
+		Sha256:        f.Sha256,
+		FrameworkCode: fwCode,
+		VersionLabel:  verLabel,
+		DocRole:       deref(f.DocRole),
+		Qualifier:     f.Qualifier,
+		ServeGate:     sf.ServeGate,
+	}
+	return n.writeTree(ctx, doc, tree, ingQ, silverQ)
+}
+
+func (n *Normalizer) normalizeCOBIT(
+	ctx context.Context,
+	f dbingest.IngestManifestFile,
+	ingQ IngestQuerier,
+	bronzeQ BronzeQuerier,
+	silverQ SilverQuerier,
+) error {
+	// Load source file from bronze.
+	sf, err := bronzeQ.GetSourceFile(ctx, dbbronze.GetSourceFileParams{
+		ManifestRelPath: f.RelPath,
+		Sha256:          f.Sha256,
+	})
+	if err != nil {
+		return fmt.Errorf("get source_file: %w", err)
+	}
+
+	// Load raw extract (pdf-pages-json capture).
+	re, err := bronzeQ.GetRawExtract(ctx, dbbronze.GetRawExtractParams{
+		SourceFileID: sf.ID,
+		Kind:         "pdf-pages-json",
+	})
+	if err != nil {
+		return fmt.Errorf("get raw_extract: %w", err)
+	}
+
+	// Parse the capture into in-memory tree (pure function).
+	fwCode := deref(f.FrameworkCode)
+	verLabel := deref(f.VersionLabel)
+	tree, err := BuildCOBITTree(json.RawMessage(re.ContentJsonb), fwCode, verLabel)
+	if err != nil {
+		return fmt.Errorf("build COBIT tree: %w", err)
 	}
 
 	// Write tree to silver.
