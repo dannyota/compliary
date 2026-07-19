@@ -22,7 +22,9 @@ import (
 	"danny.vn/compliary/pkg/base/config"
 	"danny.vn/compliary/pkg/base/db"
 	clog "danny.vn/compliary/pkg/base/log"
+	"danny.vn/compliary/pkg/extract"
 	"danny.vn/compliary/pkg/manifest"
+	dbbronze "danny.vn/compliary/pkg/store/bronze"
 	dbconfig "danny.vn/compliary/pkg/store/config"
 	dbingest "danny.vn/compliary/pkg/store/ingest"
 )
@@ -73,7 +75,10 @@ func run(cfgPath, stage string, log *slog.Logger) error {
 				hasError = true
 			}
 		case "extract":
-			log.Info("extract stage: not yet implemented")
+			if err := runExtract(ctx, cfg, pool, log); err != nil {
+				log.Error("extract stage failed", "err", err)
+				hasError = true
+			}
 		case "normalize":
 			log.Info("normalize stage: not yet implemented")
 		}
@@ -86,6 +91,7 @@ func run(cfgPath, stage string, log *slog.Logger) error {
 }
 
 type poolWrapper interface {
+	dbbronze.DBTX
 	dbconfig.DBTX
 	dbingest.DBTX
 }
@@ -129,5 +135,50 @@ func runManifest(ctx context.Context, cfg *config.Config, pool poolWrapper, log 
 		return fmt.Errorf("manifest: %d files failed to read", sum.Failed)
 	}
 
+	return nil
+}
+
+func runExtract(ctx context.Context, cfg *config.Config, pool poolWrapper, log *slog.Logger) error {
+	// Load file rules from config (for provenance re-match).
+	cfgQ := dbconfig.New(pool)
+	allRules, err := cfgQ.ListAllFileRules(ctx)
+	if err != nil {
+		return fmt.Errorf("load file rules: %w", err)
+	}
+	rules := manifest.RulesFromDB(allRules)
+
+	// List eligible rows.
+	ingQ := dbingest.New(pool)
+	files, err := ingQ.ListFilesToExtract(ctx)
+	if err != nil {
+		return fmt.Errorf("list files to extract: %w", err)
+	}
+	log.Info("extract: eligible files", "count", len(files))
+
+	if len(files) == 0 {
+		log.Info("extract: nothing to do")
+		return nil
+	}
+
+	bronzeQ := dbbronze.New(pool)
+	ext := &extract.Extractor{
+		DataDir: cfg.DataDir,
+		Rules:   rules,
+		Log:     log,
+	}
+	sum, err := ext.Run(ctx, files, ingQ, bronzeQ, cfgQ)
+	if err != nil {
+		return fmt.Errorf("extract run: %w", err)
+	}
+
+	log.Info("extract complete",
+		"succeeded", sum.Succeeded,
+		"failed", sum.Failed,
+		"skipped", sum.Skipped,
+	)
+
+	if sum.Failed > 0 {
+		return fmt.Errorf("extract: %d files failed", sum.Failed)
+	}
 	return nil
 }
