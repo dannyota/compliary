@@ -117,7 +117,7 @@ CREATE TABLE silver.control_mapping (
     CONSTRAINT fk_silver_mapping_to FOREIGN KEY (to_control_id)
         REFERENCES silver.control (id) ON DELETE SET NULL,
     CONSTRAINT uq_silver_control_mapping UNIQUE NULLS NOT DISTINCT (from_control_id, to_framework_code, to_version_label, to_citation_norm, mapping_source_code),
-    CONSTRAINT chk_silver_mapping_rel CHECK (relationship IN ('equivalent', 'subset-of', 'superset-of', 'intersects', 'related', 'incorporated-into'))
+    CONSTRAINT chk_silver_mapping_rel CHECK (relationship IN ('equivalent', 'subset-of', 'superset-of', 'intersects', 'related', 'incorporated-into', 'moved-to'))
 );
 
 CREATE INDEX idx_silver_mapping_target ON silver.control_mapping (to_framework_code, to_citation_norm);

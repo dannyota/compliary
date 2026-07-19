@@ -24,9 +24,11 @@ import (
 	clog "danny.vn/compliary/pkg/base/log"
 	"danny.vn/compliary/pkg/extract"
 	"danny.vn/compliary/pkg/manifest"
+	"danny.vn/compliary/pkg/normalize"
 	dbbronze "danny.vn/compliary/pkg/store/bronze"
 	dbconfig "danny.vn/compliary/pkg/store/config"
 	dbingest "danny.vn/compliary/pkg/store/ingest"
+	dbsilver "danny.vn/compliary/pkg/store/silver"
 )
 
 func main() {
@@ -80,7 +82,10 @@ func run(cfgPath, stage string, log *slog.Logger) error {
 				hasError = true
 			}
 		case "normalize":
-			log.Info("normalize stage: not yet implemented")
+			if err := runNormalize(ctx, pool, log); err != nil {
+				log.Error("normalize stage failed", "err", err)
+				hasError = true
+			}
 		}
 	}
 
@@ -94,6 +99,7 @@ type poolWrapper interface {
 	dbbronze.DBTX
 	dbconfig.DBTX
 	dbingest.DBTX
+	dbsilver.DBTX
 }
 
 func runManifest(ctx context.Context, cfg *config.Config, pool poolWrapper, log *slog.Logger) error {
@@ -179,6 +185,41 @@ func runExtract(ctx context.Context, cfg *config.Config, pool poolWrapper, log *
 
 	if sum.Failed > 0 {
 		return fmt.Errorf("extract: %d files failed", sum.Failed)
+	}
+	return nil
+}
+
+func runNormalize(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
+	ingQ := dbingest.New(pool)
+	files, err := ingQ.ListFilesToNormalize(ctx)
+	if err != nil {
+		return fmt.Errorf("list files to normalize: %w", err)
+	}
+	log.Info("normalize: eligible files", "count", len(files))
+
+	if len(files) == 0 {
+		log.Info("normalize: nothing to do")
+		return nil
+	}
+
+	bronzeQ := dbbronze.New(pool)
+	silverQ := dbsilver.New(pool)
+	cfgQ := dbconfig.New(pool)
+
+	norm := &normalize.Normalizer{Log: log}
+	sum, err := norm.Run(ctx, files, ingQ, bronzeQ, silverQ, cfgQ)
+	if err != nil {
+		return fmt.Errorf("normalize run: %w", err)
+	}
+
+	log.Info("normalize complete",
+		"succeeded", sum.Succeeded,
+		"failed", sum.Failed,
+		"skipped", sum.Skipped,
+	)
+
+	if sum.Failed > 0 {
+		return fmt.Errorf("normalize: %d files failed", sum.Failed)
 	}
 	return nil
 }
