@@ -101,10 +101,12 @@ milestone history.
 
 1. **M2 — parse** (in progress): ~~schema layer~~ done — ~~manifest scanner~~ done (26 files) —
    ~~OSCAL extract~~ done — ~~XLSX extract~~ done (4 workbooks captured as `workbook-rows-json`) —
-   ~~NIST 800-53 r5 normalize~~ done — ~~NIST CSF 2.0 normalize~~ done — ~~CIS Controls v8.1
-   normalize~~ done (171 rows) — ~~CSA CCM v4.1 normalize~~ done (224 rows). All XLSX parsers
-   complete; 62/62 CSF→CIS v8.1 mapping edges resolved (first cross-framework resolution proof).
-   **Next:** PDF extractors + parsers per SCHEMA.md order; then Index + LexIndex.
+   ~~PDF extract~~ done (9 PDFs captured as `pdf-pages-json` via go-fitz purego) — ~~NIST 800-53 r5
+   normalize~~ done — ~~NIST CSF 2.0 normalize~~ done — ~~CIS Controls v8.1 normalize~~ done
+   (171 rows) — ~~CSA CCM v4.1 normalize~~ done (224 rows) — ~~PCI DSS v4.0.1 normalize~~ done
+   (366 rows). All XLSX parsers complete; first PDF parser (PCI) complete; 62/62 CSF→CIS v8.1 +
+   551/551 CSF→PCI DSS mapping edges resolved. **Next:** TSC/ISO/COBIT PDF parsers per SCHEMA.md
+   order; then Index + LexIndex.
 2. **M3 — MCP evidence service** — `guide`, `corpus_status`, `quality_gaps`, `search`, `document`;
    citation-keyed golden set + eval gate with baseline floors.
 3. **M4 — deploy maintainer instance** — `compliary.danny.vn`: public landing, **authenticated
@@ -182,3 +184,16 @@ patch — new documents always cut v0.2.0+.
   skipped by normalize dispatch). Corpus totals: 4 documents, 1836 controls, 3068 edges (1145
   resolved: 947 nist80053 + 136 nistcsf + 62 ciscontrols). Unresolved: CIS v8 60 + CCM v4.0 657 +
   ISO 470 + PCI 551 + CSF v1.1 185 — pending parsers/documents.
+- **2026-07-19** — **M2 PDF extraction + PCI DSS v4.0.1 parser.** PDF extraction landed: go-fitz
+  v1.28.2 (purego, no cgo); bronze kind `pdf-pages-json` (page-scoped text capture, supersedes
+  `text-markdown` intent for PDFs); all 9 eligible PDFs captured; extract deferrals now zero.
+  PCI DSS v4.0.1 normalized: 15 roots (Requirements 1–12 + A1/A2/A3) + 351 numbered requirements =
+  366 rows; depth X.Y=71 / X.Y.Z=230 / X.Y.Z.W=49 / depth-5=1; titles are generated neutral labels
+  (`"Requirement 8.3.6"`), `title_original` NULL (licensed no-title framework rule); Testing
+  Procedures + Guidance columns deferred (assessment machinery). Body noise: go-fitz 3-column
+  interleave leaks guidance prose into 282/351 bodies after the requirement text (noisy, not wrong;
+  column-separation pass deferred to eval). Controller audit caught a same-number testing-procedure
+  collision that initially dropped requirement 10.2.1.4 — fixed via principled pre-scan + sibling/
+  bracket gate recovery; synthetic fixture covers the collision shape. All 551 version-unspecified
+  PCI edges from CSF now resolve (551/551) via the NULL-version→current-version arm. Corpus totals:
+  5 documents / 2202 controls / 3068 edges / 1696 resolved.

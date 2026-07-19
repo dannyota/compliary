@@ -63,9 +63,11 @@ framework version: control tree, citations, version + mapping relations) → **I
 embeddings; bulk embed on Kaggle T4 like banhmi) → **LexIndex** (BM25 sparse vectors).
 
 **Landed:** Manifest (all 26 corpus files classified — 23 matched / 3 ignored), Extract (OSCAL JSON
-+ XLSX), Normalize (NIST SP 800-53 r5 + NIST CSF 2.0 + CSF informative-reference mappings + CIS
-Controls v8.1 + CSA CCM v4.1 — see PLAN.md milestone history for validated numbers). All XLSX
-parsers complete. **Next:** PDF extractors + parsers per SCHEMA.md order, then Index/LexIndex.
++ XLSX + PDF via go-fitz purego — all 9 eligible PDFs captured as `pdf-pages-json`), Normalize (NIST
+SP 800-53 r5 + NIST CSF 2.0 + CSF informative-reference mappings + CIS Controls v8.1 + CSA CCM
+v4.1 + PCI DSS v4.0.1 — 5 parsers landed; see PLAN.md milestone history for validated numbers). All
+XLSX parsers complete; first PDF parser (PCI) complete. **Next:** TSC/ISO/COBIT PDF parsers per
+SCHEMA.md order, then Index/LexIndex.
 
 ```mermaid
 graph LR
@@ -111,8 +113,8 @@ compliary/
 │   ├── fetch/             # per-publisher fetchers
 │   ├── operator/          # operator identity (.env)
 │   ├── manifest/          # data/ scanner + file_rule matcher
-│   ├── extract/           # OSCAL JSON + XLSX extractors (PDF: target)
-│   ├── normalize/         # NIST 800-53 + CSF 2.0 + CIS v8.1 + CCM v4.1 → silver (PDF parsers: target)
+│   ├── extract/           # OSCAL JSON + XLSX + PDF (go-fitz purego) extractors
+│   ├── normalize/         # NIST 800-53 + CSF 2.0 + CIS v8.1 + CCM v4.1 + PCI DSS v4.0.1 → silver (TSC/ISO/COBIT: target)
 │   ├── rag/               # embed, hybrid retrieve            [target]
 │   ├── mcp/               # MCP tools over the shared query core [target]
 │   └── store/             # generated sqlc (do not hand-edit)
@@ -124,9 +126,9 @@ compliary/
 ## Technology stack
 
 Same as banhmi except where noted: Go (module `danny.vn/compliary`), PostgreSQL 17 + pgvector
-(single `compliary` DB), sqlc, Atlas→goose migrations, go-fitz extraction (**no OCR engine at
-all**), Qwen3-Embedding-0.6B ONNX (Kaggle bulk / in-process queries), official Go MCP SDK,
-Apache 2.0 (code only — corpus stays operator-local).
+(single `compliary` DB), sqlc, Atlas→goose migrations, go-fitz v1.28.2 extraction (**purego, no
+cgo**; no OCR engine at all), Qwen3-Embedding-0.6B ONNX (Kaggle bulk / in-process queries),
+official Go MCP SDK, Apache 2.0 (code only — corpus stays operator-local).
 
 **Embedder strategy (settled):** the maintainer's deployed instance **shares banhmi's
 embedder** (same Qwen3 model + infra, one embedding service for both products — wiring decided

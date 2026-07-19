@@ -56,12 +56,17 @@ document text** (log-leak rule).
 | Table | Role | Notes |
 |-------|------|-------|
 | `source_file` | One row per ingested file observation | `manifest_rel_path` · `sha256` · `framework_code`/`version_label` · **license provenance:** `source_url` (official publisher page), `license_kind` (verbatim class: `public-domain`/`cc-by-nc-nd`/`click-through`/`purchased`/`membership`/`unverified`), `retrieved_on`, `provenance_note` (e.g. "ITU X.1631 co-publication", "operator-accepted re-hosted copy") · **`serve_gate`** (`public`/`auth-only`) — the read path enforces this per document |
-| `raw_extract` | Extracted raw structures per file | `kind` (`text-markdown`/`oscal-catalog-json`/`workbook-rows-json`) · `content` / `content_jsonb` · UNIQUE `(source_file_id, kind)` (idempotent re-extract) |
+| `raw_extract` | Extracted raw structures per file | `kind` (`text-markdown`/`oscal-catalog-json`/`workbook-rows-json`/`pdf-pages-json`) · `content` / `content_jsonb` · UNIQUE `(source_file_id, kind)` (idempotent re-extract) |
 
 **`workbook-rows-json` capture:** the canonical raw extraction for XLSX files — cell grid as
 `{"sheets":[{"name":…,"rows":[{"ref":"A5","value":…}…]}…]}`, shared strings resolved, no styling.
 XLSX is a binary container; byte-preservation does not apply — the JSON capture IS the raw
 extraction (unlike PDF `text-markdown`, where the file itself is byte-preserved in `source_file`).
+
+**`pdf-pages-json` capture:** the canonical raw extraction for PDF files — page-scoped text via
+go-fitz (purego, no cgo): `{"pages":[{"n":1,"text":"…"},…]}`. Page numbers enable parser provenance
+citations (`p.37`). Supersedes the earlier `text-markdown` intent for PDFs — `text-markdown` remains
+valid for non-PDF text sources.
 
 ## `silver` — frameworks, controls, versions, mappings
 
@@ -124,7 +129,14 @@ default for every self-deployed operator.)
    this round; the `csa-ccm-v4.1` mapping source stays unused. **CAIQ deferred:** the normalize
    dispatch skips non-`main` doc roles (e.g. `companion-workbook` for CAIQ sheets) — assessment
    questions are not controls.
-5. **PCI DSS v4.0.1 — PDF**: requirement tree (`8.3.6`) via go-fitz + layout rules.
+5. **PCI DSS v4.0.1 — PDF**: 15 roots (Requirements 1–12 + A1/A2/A3) + 351 numbered requirements
+   = 366 rows; depth distribution X.Y=71 / X.Y.Z=230 / X.Y.Z.W=49 / depth-5=1. **Landed.**
+   Titling: generated neutral labels (`"Requirement 8.3.6"`), `title_original` NULL — licensed
+   no-title framework rule (see title policy in silver `control` above). Testing Procedures +
+   Guidance columns not modeled (assessment machinery; revisit at eval). **Body noise:** go-fitz
+   interleaves the 3-column layout in reading order; guidance-column prose leaks into 282/351
+   requirement bodies after the requirement text (noisy, not wrong — requirement text leads the
+   body; zero testing-procedure text leaked); column-separation pass deferred to eval.
 6. **AICPA TSC — PDF**: criteria (`CC6.1`) + points of focus.
 7. **ISO family — PDF**: clause/annex-control trees (27001/27002/27017/27018; 22301 body waits on
    phase-2 purchase).
