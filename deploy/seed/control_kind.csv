@@ -11,3 +11,6 @@ objective,COBIT governance/management objective (EDM01-MEA04)
 practice,COBIT practice under an objective (EDM01.01); citable and mappable
 safeguard,CIS Safeguard under a Control (5.1)
 annex-control,ISO Annex A control (A.5.1)
+function,CSF function (GV GOVERN)
+category,CSF/CIS category grouping (GV.OC Organizational Context)
+subcategory,CSF subcategory outcome statement (GV.OC-01)

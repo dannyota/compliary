@@ -129,6 +129,11 @@ func newFakeConfigQuerier() *fakeConfigQuerier {
 				CitationScheme: "oscal-catalog",
 				ServePolicy:    "full",
 			},
+			"nistcsf": {
+				Code:           "nistcsf",
+				CitationScheme: "csf-workbook",
+				ServePolicy:    "full",
+			},
 			"ciscontrols": {
 				Code:           "ciscontrols",
 				CitationScheme: "cis-xlsx",
@@ -214,6 +219,75 @@ func TestNormalizer_HappyPath(t *testing.T) {
 	// Verify MarkNormalized called.
 	if !ingestQ.normalized[10] {
 		t.Error("manifest row 10 should be marked normalized")
+	}
+}
+
+func TestNormalizer_CSF_HappyPath(t *testing.T) {
+	bronzeQ := newFakeBronzeQuerier()
+	bronzeQ.sourceFiles["nist/nist-csf-2.0.xlsx|sha456"] = dbbronze.BronzeSourceFile{
+		ID:        2,
+		ServeGate: "public",
+	}
+	bronzeQ.extracts[2] = dbbronze.BronzeRawExtract{
+		ID:           2,
+		SourceFileID: 2,
+		Kind:         "workbook-rows-json",
+		ContentJsonb: json.RawMessage(syntheticCSF),
+	}
+
+	ingestQ := newFakeIngestQuerier()
+	silverQ := newFakeSilverQuerier()
+	configQ := newFakeConfigQuerier()
+
+	files := []dbingest.IngestManifestFile{
+		{
+			ID:            30,
+			RelPath:       "nist/nist-csf-2.0.xlsx",
+			Sha256:        "sha456",
+			FrameworkCode: strPtr("nistcsf"),
+			VersionLabel:  strPtr("2.0"),
+			DocRole:       strPtr("main"),
+			Qualifier:     "",
+		},
+	}
+
+	norm := &Normalizer{Log: testLogger()}
+	sum, err := norm.Run(context.Background(), files, ingestQ, bronzeQ, silverQ, configQ)
+	if err != nil {
+		t.Fatalf("normalize: %v", err)
+	}
+
+	if sum.Succeeded != 1 {
+		t.Errorf("succeeded=%d, want 1", sum.Succeeded)
+	}
+	if sum.Failed != 0 {
+		t.Errorf("failed=%d, want 0", sum.Failed)
+	}
+
+	// Verify document was created.
+	if silverQ.doc == nil {
+		t.Fatal("document not created")
+	}
+	if silverQ.doc.DocKey != "nistcsf|2.0|main" {
+		t.Errorf("doc_key=%q, want nistcsf|2.0|main", silverQ.doc.DocKey)
+	}
+	if silverQ.doc.ServeGate != "public" {
+		t.Errorf("serve_gate=%q, want public", silverQ.doc.ServeGate)
+	}
+
+	// Verify controls inserted (10 from synthetic CSF fixture).
+	if len(silverQ.controls) != 10 {
+		t.Errorf("controls=%d, want 10", len(silverQ.controls))
+	}
+
+	// Verify mappings inserted (5 edges).
+	if len(silverQ.mappings) != 5 {
+		t.Errorf("mappings=%d, want 5", len(silverQ.mappings))
+	}
+
+	// Verify MarkNormalized called.
+	if !ingestQ.normalized[30] {
+		t.Error("manifest row 30 should be marked normalized")
 	}
 }
 

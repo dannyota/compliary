@@ -94,6 +94,17 @@ func (n *Normalizer) Run(
 			} else {
 				sum.Succeeded++
 			}
+		case "csf-workbook":
+			if err := n.normalizeCSF(ctx, f, ingQ, bronzeQ, silverQ); err != nil {
+				n.Log.Error("normalize failed", "path", f.RelPath, "err", err)
+				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{
+					ID:         f.ID,
+					StageError: fmt.Sprintf("normalize: %s: %s", f.RelPath, err.Error()),
+				})
+				sum.Failed++
+			} else {
+				sum.Succeeded++
+			}
 		default:
 			// Unimplemented citation scheme — skip as deferral.
 			sum.Skipped++
@@ -224,6 +235,132 @@ func (n *Normalizer) normalizeOSCAL(
 	}
 
 	// Resolve intra-document mapping edges.
+	_, err = silverQ.ResolveControlMappings(ctx)
+	if err != nil {
+		return fmt.Errorf("resolve mappings: %w", err)
+	}
+
+	// Mark the manifest row as normalized.
+	if err := ingQ.MarkNormalized(ctx, f.ID); err != nil {
+		return fmt.Errorf("mark normalized: %w", err)
+	}
+
+	n.Log.Info("normalized",
+		"path", f.RelPath,
+		"controls", len(tree.Controls),
+		"mappings", len(tree.Mappings),
+	)
+	return nil
+}
+
+func (n *Normalizer) normalizeCSF(
+	ctx context.Context,
+	f dbingest.IngestManifestFile,
+	ingQ IngestQuerier,
+	bronzeQ BronzeQuerier,
+	silverQ SilverQuerier,
+) error {
+	// Load source file from bronze.
+	sf, err := bronzeQ.GetSourceFile(ctx, dbbronze.GetSourceFileParams{
+		ManifestRelPath: f.RelPath,
+		Sha256:          f.Sha256,
+	})
+	if err != nil {
+		return fmt.Errorf("get source_file: %w", err)
+	}
+
+	// Load raw extract (workbook-rows-json capture).
+	re, err := bronzeQ.GetRawExtract(ctx, dbbronze.GetRawExtractParams{
+		SourceFileID: sf.ID,
+		Kind:         "workbook-rows-json",
+	})
+	if err != nil {
+		return fmt.Errorf("get raw_extract: %w", err)
+	}
+
+	// Parse the workbook into in-memory tree (pure function).
+	fwCode := deref(f.FrameworkCode)
+	verLabel := deref(f.VersionLabel)
+	tree, err := BuildCSFTree(json.RawMessage(re.ContentJsonb), fwCode, verLabel)
+	if err != nil {
+		return fmt.Errorf("build CSF tree: %w", err)
+	}
+
+	// Build doc_key: <framework_code>|<version_label>|<doc_role>
+	docRole := deref(f.DocRole)
+	qualifier := f.Qualifier
+	docKey := fwCode + "|" + verLabel + "|" + docRole
+	if qualifier != "" {
+		docKey += ":" + qualifier
+	}
+
+	// Upsert silver.document.
+	doc, err := silverQ.UpsertDocument(ctx, dbsilver.UpsertDocumentParams{
+		DocKey:           docKey,
+		FrameworkCode:    fwCode,
+		VersionLabel:     verLabel,
+		DocRole:          docRole,
+		Qualifier:        qualifier,
+		Title:            tree.Title,
+		SourceFileSha256: f.Sha256,
+		ServeGate:        sf.ServeGate,
+		Markdown:         nil,
+	})
+	if err != nil {
+		return fmt.Errorf("upsert document: %w", err)
+	}
+
+	// Delete existing controls (idempotent rebuild).
+	_, err = silverQ.DeleteControlsForDocument(ctx, doc.ID)
+	if err != nil {
+		return fmt.Errorf("delete controls: %w", err)
+	}
+
+	// Insert all controls; track the index→DB ID mapping for parent linking.
+	dbIDs := make([]int64, len(tree.Controls))
+	for i, cr := range tree.Controls {
+		var parentID *int64
+		if cr.ParentIdx >= 0 {
+			pid := dbIDs[cr.ParentIdx]
+			parentID = &pid
+		}
+
+		id, err := silverQ.InsertControl(ctx, dbsilver.InsertControlParams{
+			DocumentID:      doc.ID,
+			ParentControlID: parentID,
+			Citation:        cr.Citation,
+			CitationNorm:    cr.CitationNorm,
+			Kind:            cr.Kind,
+			Status:          cr.Status,
+			Title:           cr.Title,
+			TitleOriginal:   cr.TitleOriginal,
+			Body:            cr.Body,
+			Ordinal:         cr.Ordinal,
+		})
+		if err != nil {
+			return fmt.Errorf("insert control %s: %w", cr.Citation, err)
+		}
+		dbIDs[i] = id
+	}
+
+	// Insert mapping edges.
+	for _, m := range tree.Mappings {
+		fromID := dbIDs[m.FromIdx]
+		err := silverQ.UpsertControlMapping(ctx, dbsilver.UpsertControlMappingParams{
+			FromControlID:     fromID,
+			ToFrameworkCode:   m.ToFrameworkCode,
+			ToVersionLabel:    m.ToVersionLabel,
+			ToCitationNorm:    m.ToCitationNorm,
+			MappingSourceCode: m.MappingSource,
+			Relationship:      m.Relationship,
+			ProvenanceDetail:  m.ProvenanceDetail,
+		})
+		if err != nil {
+			return fmt.Errorf("upsert mapping from %s: %w", tree.Controls[m.FromIdx].Citation, err)
+		}
+	}
+
+	// Resolve mapping edges.
 	_, err = silverQ.ResolveControlMappings(ctx)
 	if err != nil {
 		return fmt.Errorf("resolve mappings: %w", err)

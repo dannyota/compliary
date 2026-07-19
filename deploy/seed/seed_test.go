@@ -109,7 +109,7 @@ func TestControlKindSeed(t *testing.T) {
 	want := []string{
 		"domain", "family", "clause", "control", "enhancement", "criterion",
 		"point-of-focus", "requirement", "objective", "practice", "safeguard",
-		"annex-control",
+		"annex-control", "function", "category", "subcategory",
 	}
 	rows := readCSV(t, "control_kind.csv")[1:]
 	got := map[string]bool{}
