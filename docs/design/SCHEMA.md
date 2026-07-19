@@ -18,7 +18,8 @@ banhmi (re-seed replaces seed rows, never touches user rows).
 | `framework` | One row per framework | `code` (`iso27001`, `soc2tsc`, `pcidss`, `nistcsf`, `nist80053`, `ciscontrols`, `iso27002`, `iso27017`, `iso27018`, `iso27701`, `iso22301`, `iso42001`, `swiftcscf`, `csaccm`, `cobit`) · `name` · `publisher` · `source_access` (`auto-fetch`/`form-gated`/`byo`) · `license_class` (`public-domain`/`open-restricted`/`licensed`) · **`ingest_enabled`** (default true — operator opt-out; the pipeline warns on frameworks whose terms restrict knowledge-base use, e.g. AICPA TSC, and the operator owns the choice) · **`terms_note`** (data-driven restricted-terms warning text, e.g. AICPA's knowledge-base clause; non-empty → pipeline prints the warning) · **`serve_policy`** (`full` / `auth-text-only` / `operator-assumes-risk`) · `citation_scheme` (parser + cite-format key) | `(code)` |
 | `framework_version` | One row per published version | `framework_code` · `version_label` (`2022`, `v8.1.2`, `2.0`, `v4.0.1`) · `published_on` · `is_current` · `edition_note` | `(framework_code, version_label)` + partial unique `uq_config_framework_version_current` on `(framework_code) WHERE is_current` (at most one current per framework) |
 | `mapping_source` | Provenance vocab for mapping edges | `code` (`nist-olir`, `csa-ccm-v4.1`, `cis-v8.1-mappings`, `publisher-catalog`, `operator`) · `name` · `authority_note` | `(code)` |
-| `control_kind` | Vocab for `silver.control.kind` | `code` (`domain`/`family`/`clause`/`control`/`enhancement`/`criterion`/`point-of-focus`/`requirement`/`objective`/`practice`/`safeguard`/`annex-control`) — COBIT practices (`EDM01.01`) and TSC points of focus are first-class citable units, not body text | `(code)` |
+| `control_kind` | Vocab for `silver.control.kind` | `code` (`domain`/`family`/`clause`/`control`/`enhancement`/`criterion`/`point-of-focus`/`requirement`/`objective`/`practice`/`safeguard`/`annex-control`/`function`/`category`/`subcategory`) — framework-native unit naming; COBIT practices (`EDM01.01`) and TSC points of focus are first-class citable units, not body text | `(code)` |
+| `reference_source` | Prefix→target mapping for informative-reference extraction | `prefix` (exact colon-split match, e.g. `SP 800-53 Rev 5.2.0`) · `to_framework_code` · `to_version_label` (nullable = version-unspecified) · `mapping_source_code` (default `publisher-catalog`) · `enabled` · UNIQUE `(prefix)` — seeded from CSV; unknown/disabled prefixes are skipped and counted, never guessed | `(prefix)` |
 | `file_rule` | Filename→document matching + per-file license provenance | `ordinal` (match order; first match wins) · `pattern` (path.Match glob over rel_path) · `framework_code`/`version_label`/`doc_role`/`qualifier` (NULL for ignore rules) · `ignore`/`ignore_reason` · `file_format` · `license_kind`/`source_url`/`provenance_note` (provenance flows to `bronze.source_file` at extract time) · `origin` seed/user | `(pattern)` |
 | `setting` | key/value gates | `key`, `value` | `(key)` |
 
@@ -57,6 +58,11 @@ document text** (log-leak rule).
 | `source_file` | One row per ingested file observation | `manifest_rel_path` · `sha256` · `framework_code`/`version_label` · **license provenance:** `source_url` (official publisher page), `license_kind` (verbatim class: `public-domain`/`cc-by-nc-nd`/`click-through`/`purchased`/`membership`/`unverified`), `retrieved_on`, `provenance_note` (e.g. "ITU X.1631 co-publication", "operator-accepted re-hosted copy") · **`serve_gate`** (`public`/`auth-only`) — the read path enforces this per document |
 | `raw_extract` | Extracted raw structures per file | `kind` (`text-markdown`/`oscal-catalog-json`/`workbook-rows-json`) · `content` / `content_jsonb` · UNIQUE `(source_file_id, kind)` (idempotent re-extract) |
 
+**`workbook-rows-json` capture:** the canonical raw extraction for XLSX files — cell grid as
+`{"sheets":[{"name":…,"rows":[{"ref":"A5","value":…}…]}…]}`, shared strings resolved, no styling.
+XLSX is a binary container; byte-preservation does not apply — the JSON capture IS the raw
+extraction (unlike PDF `text-markdown`, where the file itself is byte-preserved in `source_file`).
+
 ## `silver` — frameworks, controls, versions, mappings
 
 | Table | Role | Notes |
@@ -66,6 +72,19 @@ document text** (log-leak rule).
 | `version_relation` | Version lineage edges | `from_framework_code`+`from_version_label` → `to_framework_code`+`to_version_label` · `relation_type` (`supersedes`/`amends`/`consolidates`) · `note` (e.g. "cancels and replaces; realigned to 27002:2022") — populated from registry knowledge + publisher forewords · endpoints validated against `config.framework_version` at pipeline time; unresolved → quality gap |
 | `control_mapping` | **Cross-framework edges, the product's second half** | `from_control_id` → `to_framework_code` + **`to_version_label`** (nullable = version-unspecified; the real data is version-specific — CSF 2.0's workbook maps separately to 800-53 r5.1.1 and r5.2.0) + `to_citation_norm` (business key — target may not be ingested yet, banhmi's `doc_ref` stub pattern flattened) · `mapping_source_code` (config vocab) · `relationship` (`equivalent`/`subset-of`/`superset-of`/`intersects`/`related`/`incorporated-into`/`moved-to`) · `provenance_detail` (row/cell reference only — never quoted text) · resolved `to_control_id` nullable, filled when the target framework lands · candidate key `(from_control_id, to_framework_code, to_version_label, to_citation_norm, mapping_source_code)` |
 | `control_topic` | Optional theme tags | deferred vocabulary; schema-ready |
+
+**Informative-reference edges:** publisher workbooks (e.g. CSF 2.0 col E) list relatedness claims
+to other frameworks. These are extracted as `control_mapping` with `relationship='related'`,
+`mapping_source_code='publisher-catalog'`, source prefix resolved via `config.reference_source`.
+Publisher citation typos (e.g. ISO `6.11`/`6.13`) are recorded **verbatim** — fidelity to source,
+surfaced later as quality gaps by design. Version-unspecified targets (e.g. PCI DSS with no version
+in the reference line) use `to_version_label=NULL`, resolving lazily to the current version when
+that framework's parser lands.
+
+**Withdrawn-in-document modeling:** when a publisher lists superseded items inline (e.g. CSF v1.1
+categories/subcategories inside the 2.0 workbook, marked `[Withdrawn: Incorporated into …]`),
+they live in the **2.0 document** — never a fabricated v1.1 document we don't have. Status
+`withdrawn`, `incorporated-into`/`moved-to` edges to 2.0 targets.
 
 Key differences from banhmi's silver: no gazette/alias/text-authority machinery (single
 authoritative file per document, no reconcile); validity collapses into `version_relation` +

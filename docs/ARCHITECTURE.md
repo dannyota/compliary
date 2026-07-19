@@ -62,10 +62,10 @@ crawling. Stages: **Manifest** (scan `data/`, hash, classify via `config.file_ru
 framework version: control tree, citations, version + mapping relations) → **Index** (chunks +
 embeddings; bulk embed on Kaggle T4 like banhmi) → **LexIndex** (BM25 sparse vectors).
 
-**Landed:** Manifest (all 26 corpus files classified — 23 matched / 3 ignored), Extract (OSCAL JSON),
-Normalize (NIST SP 800-53 r5: 20 families, 324 controls, 872 enhancements, 182 withdrawn,
-200 publisher-catalog mapping edges — validated on real rows). **Next:** XLSX/PDF extractors (CSF,
-CIS, CCM parsers), then Index/LexIndex.
+**Landed:** Manifest (all 26 corpus files classified — 23 matched / 3 ignored), Extract (OSCAL JSON
++ XLSX), Normalize (NIST SP 800-53 r5 + NIST CSF 2.0 + CSF informative-reference mappings —
+see PLAN.md milestone history for validated numbers). **Next:** remaining XLSX parsers (CIS, CCM),
+PDF extractors + parsers, then Index/LexIndex.
 
 ```mermaid
 graph LR
@@ -111,8 +111,8 @@ compliary/
 │   ├── fetch/             # per-publisher fetchers
 │   ├── operator/          # operator identity (.env)
 │   ├── manifest/          # data/ scanner + file_rule matcher
-│   ├── extract/           # OSCAL JSON extractor (XLSX/PDF: target)
-│   ├── normalize/         # NIST 800-53 parser → silver (more parsers: target)
+│   ├── extract/           # OSCAL JSON + XLSX extractors (PDF: target)
+│   ├── normalize/         # NIST 800-53 + CSF 2.0 parsers → silver (more parsers: target)
 │   ├── rag/               # embed, hybrid retrieve            [target]
 │   ├── mcp/               # MCP tools over the shared query core [target]
 │   └── store/             # generated sqlc (do not hand-edit)

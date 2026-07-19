@@ -99,13 +99,11 @@ Design settled in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) +
 [`docs/design/SCHEMA.md`](docs/design/SCHEMA.md); M0 (bootstrap) and M1 (`cmd/fetch`) done — see
 milestone history.
 
-1. **M2 — parse** (in progress; manifest/extract/normalize landed for 800-53 r5, XLSX/PDF parsers
-   next): ~~schema layer~~ done — ~~manifest scanner~~ done (26 files: 23 matched / 3 ignored via
-   `config.file_rule`) — ~~OSCAL extract~~ done — ~~NIST 800-53 r5 normalize~~ done (20 families,
-   324 controls, 872 enhancements = 1216 silver rows; 182 withdrawn; 200 publisher-catalog mapping
-   edges — 166 incorporated-into + 34 moved-to; golden-count tests pinned; validated on real rows).
-   **Next:** CSF 2.0 XLSX parser → remaining XLSX/PDF parsers per SCHEMA.md order; then Index +
-   LexIndex.
+1. **M2 — parse** (in progress): ~~schema layer~~ done — ~~manifest scanner~~ done (26 files) —
+   ~~OSCAL extract~~ done — ~~XLSX extract~~ done (4 workbooks captured as `workbook-rows-json`) —
+   ~~NIST 800-53 r5 normalize~~ done — ~~NIST CSF 2.0 normalize~~ done (225 rows / 91 withdrawn;
+   2732 informative-reference mapping edges — see milestone history). **Next:** remaining XLSX
+   parsers (CIS, CCM) → PDF extractors + parsers per SCHEMA.md order; then Index + LexIndex.
 2. **M3 — MCP evidence service** — `guide`, `corpus_status`, `quality_gaps`, `search`, `document`;
    citation-keyed golden set + eval gate with baseline floors.
 3. **M4 — deploy maintainer instance** — `compliary.danny.vn`: public landing, **authenticated
@@ -160,3 +158,14 @@ patch — new documents always cut v0.2.0+.
   incorporated-into + 34 moved-to) resolved via `ResolveControlMappings`; golden-count tests
   pinned; idempotent delete-and-rebuild. `cmd/pipeline` + `pkg/manifest` + `pkg/extract` +
   `pkg/normalize` landed. XLSX/PDF extractors deferred (next parser wave: CSF 2.0 XLSX).
+- **2026-07-19** — **M2 XLSX extract + CSF 2.0 tree + informative-reference mappings.** XLSX
+  extractor: 4 workbooks captured into bronze as `workbook-rows-json` (canonical capture; PDF
+  deferral now 9). CSF 2.0 normalized: 6 functions + 34 categories (22 active / 12 withdrawn) +
+  185 subcategories (106 active / 79 withdrawn) = 225 rows, 91 withdrawn; implementation examples
+  appended to active subcategory bodies; 136 intra-CSF withdrawal edges (117 incorporated-into +
+  19 moved-to); `control_kind` vocab gained `function`/`category`/`subcategory` (15 kinds total).
+  `config.reference_source` seeded: 8 prefix→target mappings; CSF informative-reference edges:
+  2732 `related` edges — nist80053/r5 747 (all resolved), csaccm/v4.0 657, pcidss/NULL 551,
+  iso27001/2022 470, nistcsf/1.1 185, ciscontrols v8.1 62 + v8 60; 800-53 dual-release lines
+  dedupe to r5; publisher typos recorded verbatim (surfaced as quality gaps). Corpus totals: 26
+  manifest / 5 bronze / 1441 silver controls / 3068 mapping edges (1030 resolved).
