@@ -53,7 +53,8 @@ Most sources are copyrighted publications; compliary never redistributes them.
 
 ## Architecture (target)
 
-Mirrors the banhmi-proven stack — ported patterns, no code dependency:
+Mirrors the banhmi-proven stack — ported patterns, no code dependency. Full design:
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/design/SCHEMA.md](docs/design/SCHEMA.md).
 
 - **Go** + **PostgreSQL + pgvector** (one datastore) + **sqlc**; medallion pipeline
   (bronze → silver → gold).
@@ -69,8 +70,9 @@ Mirrors the banhmi-proven stack — ported patterns, no code dependency:
 ## Status
 
 **M1 done** — `cmd/fetch` downloads every automatable source (validated live: NIST, PCI DSS
-v4.0.1, CIS v8.1.2). Next: design docs + NIST OSCAL parser (M2). Roadmap, design questions, and
-milestones in [PLAN.md](PLAN.md).
+v4.0.1, CIS v8.1.2); corpus 12/15 frameworks acquired. **M2 in progress** — design docs drafted
+([docs/](docs/README.md)); next: NIST OSCAL parser. Roadmap, design questions, and milestones in
+[PLAN.md](PLAN.md).
 
 ## License
 
