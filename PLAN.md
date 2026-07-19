@@ -228,8 +228,20 @@ patch — new documents always cut v0.2.0+.
   hierarchy, withdrawn-control) merged with 42 v1 survivors (8 dropped: 1 defective, 7 dups).
   2 withdrawn-control cases (SC-19, ID.GV) marked expect_fail — retriever status=active filter
   excludes them (honest unreachability record). Corpus-citations snapshot extended to include
-  withdrawn controls (273 rows added, citations-only metadata). **Golden v2 baseline** (hybrid,
-  ONNX Qwen3, 105 queries / 98 scored): **recall@8 63.3%, MRR@8 43.2%, current-version 100%,
-  abstention 95.1%**. Eval floors: recall 0.61, MRR 0.41, current 0.98, abstain 0.93. Numbers
-  not comparable to 50-case baseline (different set size/composition). Known gaps: ISO 27018
-  recall 0% (short annex controls), no score-floor abstention, short-chunk frameworks weak.
+  withdrawn controls (273 rows added, citations-only metadata). Golden v2 baseline (hybrid,
+  ONNX Qwen3, 105 queries / 98 scored): recall@8 63.3%, MRR@8 43.2%, current-version 100%,
+  abstention 95.1%.
+- **2026-07-20** — **Phase A retrieval improvements.** Golden label fixes (27002 5.7/5.11
+  verified against DB bodies, 2 false negatives eliminated). CCM ampersand citation routing
+  (A&A-01/I&S-05 forms now matched). ISO 27002 attribute-table boilerplate stripped (92/93
+  control bodies cleaned, ~250 chars/control of identical prefix removed, re-embedded via
+  Kaggle). `include_withdrawn` SearchOpts flag wired through both retrieval arms + citation
+  lookup. Two-lane eval: open-corpus (no pins, floors gate) + framework-filtered (pins from
+  golden metadata, `include_withdrawn` for withdrawn-target cases). 2 formerly `expect_fail`
+  withdrawn cases (SC-19, ID.GV) un-expect_failed — pass in filtered lane via
+  `include_withdrawn`. **Phase A baseline** (hybrid, ONNX Qwen3, 105 queries / 100 scored):
+  **Open-corpus: recall@8 65.0%, MRR@8 43.1%, current 100%, abstain 95.2%.
+  Filtered: recall@8 81.0%, MRR@8 62.5%, current 94.2%, abstain 95.2%.**
+  Eval floors (open-corpus): recall 0.63, MRR 0.41, current 0.98, abstain 0.93. Remaining
+  gaps: ISO 27018 3/4 pin cases still fail (superseded version structural); ISO 27001 Annex A
+  short one-liners; PCI column interleave; semantic paraphrase misses.
