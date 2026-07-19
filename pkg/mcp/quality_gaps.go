@@ -316,7 +316,7 @@ func staticBodyQualityCaveats() []BodyQualityCaveat {
 func staticEvalFloors() []EvalFloor {
 	return []EvalFloor{
 		{Metric: "recall@8", Floor: 0.63, Last: 0.650},
-		{Metric: "MRR@8", Floor: 0.41, Last: 0.431},
+		{Metric: "MRR@8", Floor: 0.41, Last: 0.446},
 		{Metric: "current-version", Floor: 0.98, Last: 1.000},
 		{Metric: "abstention", Floor: 0.93, Last: 0.952},
 	}

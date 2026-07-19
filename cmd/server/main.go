@@ -186,6 +186,7 @@ func secure(h http.Handler, token string, log *slog.Logger) (http.Handler, func(
 	h = bearerAuth(h, token, log)
 	h = rl.middleware(h)
 	h = securityHeaders(h)
+	h = recoverPanic(h, log)
 	return h, stop
 }
 
