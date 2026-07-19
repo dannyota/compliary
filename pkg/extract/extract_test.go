@@ -420,7 +420,7 @@ func TestExtract_InvalidJSON(t *testing.T) {
 	}
 }
 
-func TestExtract_SkipsPdf(t *testing.T) {
+func TestExtract_PdfMissingFile(t *testing.T) {
 	dir := t.TempDir()
 
 	rules := []manifest.Rule{
@@ -442,25 +442,27 @@ func TestExtract_SkipsPdf(t *testing.T) {
 	}
 	sum, err := ext.Run(context.Background(), files, ingestQ, bronzeQ, configQ)
 	if err != nil {
-		t.Fatalf("extract: %v", err)
+		t.Fatalf("extract should not return fatal error: %v", err)
 	}
 
-	if sum.Skipped != 1 {
-		t.Errorf("skipped=%d, want 1", sum.Skipped)
+	// Missing PDF file should fail (stage_error + continue).
+	if sum.Failed != 1 {
+		t.Errorf("failed=%d, want 1", sum.Failed)
 	}
 	if sum.Succeeded != 0 {
 		t.Errorf("succeeded=%d, want 0", sum.Succeeded)
 	}
-	if sum.Failed != 0 {
-		t.Errorf("failed=%d, want 0", sum.Failed)
+	if sum.Skipped != 0 {
+		t.Errorf("skipped=%d, want 0", sum.Skipped)
 	}
 
-	// Skipped pdf file should NOT be marked extracted or have errors.
-	if ingestQ.extracted[2] {
-		t.Error("skipped pdf file should not be marked extracted")
+	// Should have stage_error set.
+	if ingestQ.errors[2] == "" {
+		t.Error("missing PDF should have stage_error set")
 	}
-	if ingestQ.errors[2] != "" {
-		t.Error("skipped pdf file should not have stage_error")
+	// Should NOT be marked extracted.
+	if ingestQ.extracted[2] {
+		t.Error("missing PDF should not be marked extracted")
 	}
 }
 

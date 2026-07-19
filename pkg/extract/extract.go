@@ -1,7 +1,6 @@
 // Package extract implements the extract pipeline stage: read eligible
 // manifest rows, dispatch by file_format, upsert bronze.source_file +
-// bronze.raw_extract, and mark rows extracted. Unimplemented formats
-// (pdf) are skipped with deferral counts.
+// bronze.raw_extract, and mark rows extracted.
 package extract
 
 import (
@@ -50,8 +49,7 @@ type Extractor struct {
 }
 
 // Run processes the given manifest files (already filtered to extract-eligible,
-// extracted_at IS NULL). It dispatches by file_format: oscal-json is handled
-// inline; xlsx/pdf are skipped as deferrals.
+// extracted_at IS NULL). It dispatches by file_format: oscal-json, xlsx, pdf.
 func (e *Extractor) Run(
 	ctx context.Context,
 	files []dbingest.IngestManifestFile,
@@ -87,7 +85,16 @@ func (e *Extractor) Run(
 				sum.Succeeded++
 			}
 		case "pdf":
-			sum.Skipped++
+			if err := e.extractPDF(ctx, f, ingQ, bronzeQ, cfgQ); err != nil {
+				e.Log.Error("extract failed", "path", f.RelPath, "err", err)
+				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{
+					ID:         f.ID,
+					StageError: fmt.Sprintf("extract: %s: %s", f.RelPath, err.Error()),
+				})
+				sum.Failed++
+			} else {
+				sum.Succeeded++
+			}
 		default:
 			// Unknown format — treat as error, not skip.
 			e.Log.Error("unsupported file format", "path", f.RelPath, "format", format)
@@ -97,11 +104,6 @@ func (e *Extractor) Run(
 			})
 			sum.Failed++
 		}
-	}
-
-	// Log deferral counts once.
-	if sum.Skipped > 0 {
-		e.Log.Info("extract: deferred formats", "skipped", sum.Skipped)
 	}
 
 	return sum, nil
