@@ -24,7 +24,12 @@ import (
 	"time"
 
 	goldendata "danny.vn/compliary/deploy/eval"
+	"danny.vn/compliary/pkg/base/config"
+	"danny.vn/compliary/pkg/base/db"
 	"danny.vn/compliary/pkg/eval"
+	ragembed "danny.vn/compliary/pkg/rag/embed"
+	"danny.vn/compliary/pkg/rag/embed/onnxembed"
+	"danny.vn/compliary/pkg/rag/retrieve"
 )
 
 var errSkip = errors.New("eval skipped")
@@ -58,6 +63,10 @@ func main() {
 	flag.IntVar(&o.reviewHits, "review-hits", 3, "top hits per case in review mode")
 	flag.IntVar(&o.reviewPreviewChars, "review-preview-chars", 240, "max content preview chars per hit")
 	flag.StringVar(&o.outPath, "out", "", "write JSON report to this path (empty = off)")
+	// Floors: first accepted baseline (2026-07-20, hybrid ONNX Qwen3, 50 queries):
+	//   recall@8=57.8%, MRR@8=32.3%, current=100%, abstain=90%
+	// Invoke with floors:
+	//   go run -tags onnx ./cmd/eval -min-recall 0.55 -min-mrr 0.30 -min-current 0.98 -min-abstain 0.88
 	flag.Float64Var(&o.minRecall, "min-recall", 0, "fail if recall@k below this (0 = no gate)")
 	flag.Float64Var(&o.minMRR, "min-mrr", 0, "fail if mrr@k below this (0 = no gate)")
 	flag.Float64Var(&o.minCurrent, "min-current", 0, "fail if current-version precision below this (0 = no gate)")
@@ -108,19 +117,49 @@ func run(o opts, log *slog.Logger) error {
 	}
 	log.Info("loaded golden set", "cases", len(cases))
 
-	// Wire the retriever here once Task 4 lands pkg/rag/retrieve. Until then,
-	// retriever is nil and the harness falls through to dry-run mode.
-	var retriever eval.Retriever // nil until Task 4
-
-	if retriever == nil {
-		log.Warn("no retriever configured; running in dry-run mode (golden set validation only)")
+	// Connect to the database.
+	cfg, err := config.Load("config/config.yaml")
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+	ctx := context.Background()
+	pool, err := db.NewPool(ctx, cfg.Database)
+	if err != nil {
+		log.Warn("no database configured; running in dry-run mode", "err", err)
 		return dryRun(o, cases, log)
 	}
+	defer pool.Close()
 
-	// Task 4 will supply a CurrentFn backed by the DB. For now this is
-	// unreachable but compiles as documentation of the wiring point.
+	// Build the embedder if ONNX model is available.
+	var embedder ragembed.Embedder
+	onnxModel := envOrDefault("COMPLIARY_ONNX_MODEL",
+		filepath.Join(os.Getenv("HOME"), ".cache/banhmi/qwen3-embedding/model_fp16.onnx"))
+	onnxTokenizer := envOrDefault("COMPLIARY_ONNX_TOKENIZER",
+		filepath.Join(os.Getenv("HOME"), ".cache/banhmi/qwen3-embedding/tokenizer.json"))
+	onnxLib := os.Getenv("COMPLIARY_ONNX_LIB")
+
+	embedder, err = onnxembed.New(onnxembed.Config{
+		ModelPath:     onnxModel,
+		TokenizerPath: onnxTokenizer,
+		LibPath:       onnxLib,
+		Dims:          1024,
+		Model:         "qwen3-embedding-0.6b",
+		NumKVLayers:   28,
+		NumKVHeads:    8,
+		HeadDim:       128,
+	})
+	if err != nil {
+		log.Warn("ONNX embedder not available, running BM25-only", "err", err)
+		embedder = nil
+	}
+
+	retriever, err := retrieve.New(pool, embedder, log)
+	if err != nil {
+		return fmt.Errorf("build retriever: %w", err)
+	}
+
 	isCurrent := func(h eval.Hit) bool { return h.IsCurrent }
-	return evaluate(context.Background(), o, cases, retriever, isCurrent, log)
+	return evaluate(ctx, o, cases, retriever, isCurrent, log)
 }
 
 // dryRun validates the golden set and reports what would be evaluated. This is
@@ -312,6 +351,13 @@ func previewText(s string, maxRunes int) string {
 		return s
 	}
 	return string(rs[:maxRunes-1]) + "..."
+}
+
+func envOrDefault(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }
 
 func writeJSONReportFile(path string, meta eval.JSONReportMeta, results []eval.CaseResult, agg eval.Aggregate) error {
