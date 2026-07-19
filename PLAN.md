@@ -24,11 +24,11 @@ gaps.
 > **Status convention:** "coded" = code written + unit/integration tests; "validated" = checked on
 > real documents. Never report one as the other.
 
-## Scope — frameworks (single scope, no phasing)
+## Scope — frameworks
 
 The frameworks the Vietnamese market (banks, fintech, SaaS, BPO/ITO) is actually certified or
-assessed against. Unlike regulations, these are **few, stable documents** (~15 frameworks, ~20
-files) — one scope, built together. All **planned** — nothing ingested yet.
+assessed against. Unlike regulations, these are **few, stable documents** (~15 frameworks, ~25
+files). **v0.1.0 builds on the 12 frameworks acquired; the 5 phase-2 documents land in v0.2.0.**
 
 | # | Framework | Current version | Publisher | Access / license | Ingestion | Citation unit |
 |---|-----------|-----------------|-----------|------------------|-------------|---------------|
@@ -67,7 +67,7 @@ files) — one scope, built together. All **planned** — nothing ingested yet.
   inclusion — most conservative source.
 
 **Acquisition status (2026-07-19): 12 of 15 frameworks have documents in `data/`.**
-Remaining acquisitions are **phase 2** — M2 starts on what's in hand; add these as they arrive:
+Remaining acquisitions are **phase 2 → v0.2.0** — v0.1.0 builds on what's in hand:
 
 - **ISO 22301:2019 base** — purchase (Amd 1:2024 already in `data/iso/`, ISO-produced, parseable).
 - **ISO/IEC 27018:2025** — purchase (interim :2019 in `data/iso/`, ingest flagged superseded).
@@ -100,7 +100,7 @@ mappings, Secure Controls Framework (license check needed before use).
 
 ## Roadmap
 
-### v0.1.0 — fetch, corpus, serve (single scope)
+### v0.1.0 — fetch, corpus, serve (12 acquired frameworks)
 
 1. **M0 — repo bootstrap** — CLAUDE.md, PLAN.md, git + signing. **DONE 2026-07-19.**
 2. **M1 — `cmd/fetch` (one-shot downloader)** — **DONE 2026-07-19** (validated live: 4 NIST files,
@@ -122,6 +122,22 @@ mappings, Secure Controls Framework (license check needed before use).
    golden set + eval gate with baseline floors.
 5. **M4 — deploy maintainer instance** — `compliary.danny.vn`: public landing, **authenticated
    `/mcp`** (auth mechanism per design question 4). Reuse banhmi's AWS shape (CloudFront → ECS → RDS).
+
+### v0.1.x — patch releases
+
+Improvements to the shipped v0.1.0 without new frameworks: parser fixes, retrieval-quality tuning,
+eval-floor raises, doc/metadata corrections, dependency bumps. Corpus additions never land in a
+patch — new documents always cut v0.2.0+.
+
+### v0.2.0 — phase-2 corpus completion
+
+1. Acquire the 5 deferred documents (see acquisition status above): ISO 22301:2019 base,
+   ISO/IEC 27018:2025, 27701:2025, 42001:2023 (purchases; identical-text national adoptions like
+   EVS are the cheap legitimate route), SWIFT CSCF v2026 (verify gate when swift.com is live).
+2. Ingest them: 27018:2025 lands **alongside** :2019 (supersession chain `2014→2019→2025`, 2019
+   served flagged superseded); 22301 base text joins its already-ingested Amd 1:2024; 27701/42001/
+   CSCF are new framework corpora.
+3. Replace operator-flagged interim copies where purchases upgrade provenance (27002, 22301).
 
 ## Decisions (settled)
 
