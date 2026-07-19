@@ -48,9 +48,7 @@ func BuildCISTree(raw json.RawMessage, frameworkCode, versionLabel string) (*Tre
 	}
 	slices.Sort(rowNums)
 
-	result := &TreeResult{
-		Title: "CIS Controls v" + versionLabel[1:], // "v8.1" → "CIS Controls v8.1"
-	}
+	result := &TreeResult{}
 	if strings.HasPrefix(versionLabel, "v") {
 		result.Title = "CIS Controls " + versionLabel
 	} else {
