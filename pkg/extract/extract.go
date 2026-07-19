@@ -1,7 +1,7 @@
 // Package extract implements the extract pipeline stage: read eligible
 // manifest rows, dispatch by file_format, upsert bronze.source_file +
 // bronze.raw_extract, and mark rows extracted. Unimplemented formats
-// (xlsx, pdf) are skipped with deferral counts.
+// (pdf) are skipped with deferral counts.
 package extract
 
 import (
@@ -75,7 +75,18 @@ func (e *Extractor) Run(
 			} else {
 				sum.Succeeded++
 			}
-		case "xlsx", "pdf":
+		case "xlsx":
+			if err := e.extractWorkbook(ctx, f, ingQ, bronzeQ, cfgQ); err != nil {
+				e.Log.Error("extract failed", "path", f.RelPath, "err", err)
+				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{
+					ID:         f.ID,
+					StageError: fmt.Sprintf("extract: %s: %s", f.RelPath, err.Error()),
+				})
+				sum.Failed++
+			} else {
+				sum.Succeeded++
+			}
+		case "pdf":
 			sum.Skipped++
 		default:
 			// Unknown format — treat as error, not skip.

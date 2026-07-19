@@ -420,16 +420,14 @@ func TestExtract_InvalidJSON(t *testing.T) {
 	}
 }
 
-func TestExtract_SkipsXlsxAndPdf(t *testing.T) {
+func TestExtract_SkipsPdf(t *testing.T) {
 	dir := t.TempDir()
 
 	rules := []manifest.Rule{
-		{Ordinal: 100, Pattern: "a.xlsx", FrameworkCode: strPtr("ciscontrols"), VersionLabel: strPtr("v8.1"), DocRole: strPtr("main"), FileFormat: strPtr("xlsx")},
 		{Ordinal: 200, Pattern: "b.pdf", FrameworkCode: strPtr("pcidss"), VersionLabel: strPtr("v4.0.1"), DocRole: strPtr("main"), FileFormat: strPtr("pdf")},
 	}
 
 	files := []dbingest.IngestManifestFile{
-		{ID: 1, RelPath: "a.xlsx", FrameworkCode: strPtr("ciscontrols"), FileFormat: strPtr("xlsx"), Status: "active"},
 		{ID: 2, RelPath: "b.pdf", FrameworkCode: strPtr("pcidss"), FileFormat: strPtr("pdf"), Status: "active"},
 	}
 
@@ -447,8 +445,8 @@ func TestExtract_SkipsXlsxAndPdf(t *testing.T) {
 		t.Fatalf("extract: %v", err)
 	}
 
-	if sum.Skipped != 2 {
-		t.Errorf("skipped=%d, want 2", sum.Skipped)
+	if sum.Skipped != 1 {
+		t.Errorf("skipped=%d, want 1", sum.Skipped)
 	}
 	if sum.Succeeded != 0 {
 		t.Errorf("succeeded=%d, want 0", sum.Succeeded)
@@ -457,12 +455,12 @@ func TestExtract_SkipsXlsxAndPdf(t *testing.T) {
 		t.Errorf("failed=%d, want 0", sum.Failed)
 	}
 
-	// Skipped files should NOT be marked extracted or have errors.
-	if ingestQ.extracted[1] || ingestQ.extracted[2] {
-		t.Error("skipped files should not be marked extracted")
+	// Skipped pdf file should NOT be marked extracted or have errors.
+	if ingestQ.extracted[2] {
+		t.Error("skipped pdf file should not be marked extracted")
 	}
-	if ingestQ.errors[1] != "" || ingestQ.errors[2] != "" {
-		t.Error("skipped files should not have stage_error")
+	if ingestQ.errors[2] != "" {
+		t.Error("skipped pdf file should not have stage_error")
 	}
 }
 
