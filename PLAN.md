@@ -45,7 +45,7 @@ files) — one scope, built together. All **planned** — nothing ingested yet.
 | 11 | ISO 22301 | 2019 | ISO/TC 292 | paid, copyrighted | BYO (purchase) | Clause (4–10) |
 | 12 | ISO/IEC 42001 | 2023 | ISO/IEC JTC 1/SC 42 | paid, copyrighted | BYO (purchase) | Clause; Annex A control |
 | 13 | SWIFT CSCF | v2026 | SWIFT | members only | BYO (member access) | Control (1.1–7.x) |
-| 14 | CSA CCM | v4 | CSA | free w/ registration | BYO (registration) | Control ID (AIS-01…) |
+| 14 | CSA CCM | v4.1 (2026-01) | CSA | free w/ registration | BYO (registration) | Control ID (AIS-01…) |
 | 15 | COBIT | 2019 | ISACA | paid | BYO (purchase) | Objective (EDM01–MEA04) |
 
 - **SOC 2 Type 1 vs Type 2** are *report types* (design vs operating effectiveness over a period),
