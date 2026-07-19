@@ -99,19 +99,21 @@ Design settled in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) +
 [`docs/design/SCHEMA.md`](docs/design/SCHEMA.md); M0 (bootstrap) and M1 (`cmd/fetch`) done — see
 milestone history.
 
-1. **M2 — parse + index** (in progress): ~~schema layer~~ done — ~~manifest scanner~~ done (26
-   files) — ~~OSCAL extract~~ done — ~~XLSX extract~~ done (4 workbooks captured as
-   `workbook-rows-json`) — ~~PDF extract~~ done (9 PDFs captured as `pdf-pages-json` via go-fitz
-   purego) — ~~all 8 v0.1.0 parsers~~ done (11 documents / 3402 controls / 3068 edges / 1870
-   resolved) — ~~Index + LexIndex~~ done (3402 chunks embedded + BM25 sparse) — ~~hybrid
-   retriever~~ done (golden v2 baseline: recall 63.3%, MRR 43.2%, current 100%, abstain 95.1%,
-   105 cases). All acquired frameworks
-   parse and retrieve. Deferred: amendments (27001+22301 amd1-2024) role-guarded; CAIQ; 27001
-   Annex A bodies table-shallow; column-separation (PCI body noise); retrieval tuning.
-   **Next:** MCP service (M3).
-2. **M3 — MCP evidence service** — `guide`, `corpus_status`, `quality_gaps`, `search`, `document`;
-   citation-keyed golden set + eval gate with baseline floors.
-3. **M4 — deploy maintainer instance** — `compliary.danny.vn`: public landing, **authenticated
+1. **M2 — parse + index** (done): schema layer, manifest scanner (26 files), OSCAL + XLSX + PDF
+   extract, all 8 v0.1.0 parsers (11 docs / 3402 controls / 3068 edges / 1870 resolved), Index +
+   LexIndex (3402 chunks embedded + BM25 sparse), hybrid retriever (golden v2 baseline: recall
+   63.3%, MRR 43.2%, current 100%, abstain 95.1%, 105 cases). Deferred: amendments, CAIQ, 27001
+   Annex A bodies, PCI column-separation, retrieval tuning.
+2. **M3 — MCP evidence service** (done): five tools (`guide`, `corpus_status`, `quality_gaps`,
+   `search`, `document`) over the query core (`pkg/mcp`). Transports: stdio (`cmd/mcp`, full
+   projection) + Streamable HTTP (`cmd/server`, bearer-token auth boundary). ISO-family structural
+   equivalence edges (186 bidirectional, all resolved, `iso-structural` mapping source). Score-floor
+   abstention wired (floor=0 — score band too compressed at 3.4k chunks for OOS separation;
+   operator-tunable). Haiku stand-in agent validated tool contract end-to-end over real stdio.
+   Eval (ONNX, 105 cases): open-corpus recall 65.0%/MRR 44.6%/current 100%/abstain 95.2%;
+   filtered recall 80.0%/MRR 62.9%/current 94.2%/abstain 95.2%. No regression vs Phase A baseline.
+   Tool contract in [`docs/design/MCP.md`](docs/design/MCP.md).
+3. **M4 — deploy maintainer instance** (next) — `compliary.danny.vn`: public landing, **authenticated
    `/mcp`** (auth per open decision 1). Reuse banhmi's AWS shape (CloudFront → ECS → RDS).
 
 ### v0.1.x — patch releases
@@ -245,3 +247,17 @@ patch — new documents always cut v0.2.0+.
   Eval floors (open-corpus): recall 0.63, MRR 0.41, current 0.98, abstain 0.93. Remaining
   gaps: ISO 27018 3/4 pin cases still fail (superseded version structural); ISO 27001 Annex A
   short one-liners; PCI column interleave; semantic paraphrase misses.
+- **2026-07-20** — **M3 MCP evidence service landed.** Five tools (`guide`, `corpus_status`,
+  `quality_gaps`, `search`, `document`) in `pkg/mcp`; DB-backed query core over the retriever +
+  silver/gold stores. Transports: stdio (`cmd/mcp`, full projection always) + Streamable HTTP
+  (`cmd/server`, bearer-token auth, reduced projection when unauthenticated). ISO-family structural
+  equivalence edges: 186 bidirectional `equivalent` edges (27001:2022 A.x.y to 27002:2022 x.y, 93
+  pairs), mapping source `iso-structural`, all resolved; 27017/27018 intentionally omitted
+  (27002:2013 numbering). Score-floor abstention: empirically derived floor=0 (score band too
+  compressed at 3.4k chunks for OOS/in-scope separation; `search_abstain_floor` config setting
+  seeded, operator-tunable). Haiku stand-in agent drove the real stdio server end-to-end with no
+  repo access — tool contract validated for real compliance work (4 tasks: PCI MFA search, CSF
+  PR.AA-01 mapping traversal, ISO 27001 A.5.1 currency + 27002 equivalent, GDPR out-of-scope).
+  Eval (ONNX, both lanes): open-corpus recall 65.0%/MRR 44.6%/current 100%/abstain 95.2%;
+  filtered recall 80.0%/MRR 62.9%/current 94.2%/abstain 95.2%. No regression vs Phase A baseline.
+  Tool contract documented in [`docs/design/MCP.md`](docs/design/MCP.md). **Next:** deploy (M4).

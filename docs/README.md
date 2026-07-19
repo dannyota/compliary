@@ -6,5 +6,7 @@
   mappings, parsing order.
 - [`design/RETRIEVAL.md`](design/RETRIEVAL.md) — hybrid retrieval: dense + BM25, citation routing,
   port-review conclusions, first baseline.
+- [`design/MCP.md`](design/MCP.md) — MCP tool contract: five tools, projections, auth boundary,
+  abstain-floor truth, Haiku validation summary.
 
 Roadmap and framework scope: [`PLAN.md`](../PLAN.md). Conventions: [`CLAUDE.md`](../CLAUDE.md).

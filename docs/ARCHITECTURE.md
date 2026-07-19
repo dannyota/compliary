@@ -69,7 +69,14 @@ embeddings — bulk via Kaggle T4 GPU engine, auto-selected when `KAGGLE_API_TOK
 missing; local ONNX for queries), LexIndex (3402 BM25 sparse vectors, English citation-aware
 tokenizer). Retrieval design in [`design/RETRIEVAL.md`](design/RETRIEVAL.md). Deferred: amendments
 (27001+22301 amd1-2024) role-guarded; CAIQ; 27001 Annex A bodies table-shallow; column-separation
-(PCI body noise); retrieval tuning. **Next:** MCP service (M3).
+(PCI body noise); retrieval tuning.
+
+**M3 MCP evidence service landed.** Five tools (`guide`, `corpus_status`, `quality_gaps`, `search`,
+`document`) over the query core (`pkg/mcp`). Transports: stdio (`cmd/mcp`, full projection) +
+Streamable HTTP (`cmd/server`, auth-gated projection). ISO-family structural equivalence edges
+(186 bidirectional, all resolved). Score-floor abstention wired (floor=0 at current corpus size).
+Haiku stand-in agent validated the tool contract end-to-end over real stdio. Tool contract in
+[`design/MCP.md`](design/MCP.md). **Next:** deploy (M4).
 
 ```mermaid
 graph LR
@@ -105,11 +112,11 @@ compliary/
 ├── cmd/
 │   ├── fetch/             # one-shot corpus downloader
 │   ├── pipeline/          # manifest/extract/normalize/index/lexindex stages
-│   ├── mcp/               # MCP server (stdio)              [target]
-│   ├── server/            # Streamable-HTTP /mcp             [target]
+│   ├── mcp/               # MCP server (stdio, full projection)
+│   ├── server/            # Streamable-HTTP /mcp (auth-gated projection)
 │   ├── migrate/           # DB migrations
 │   ├── seed/              # load config registry from deploy/seed/*.csv
-│   └── eval/              # retrieval eval (recall@k/MRR@k)  [target]
+│   └── eval/              # retrieval eval (recall@k/MRR@k)
 ├── pkg/
 │   ├── base/              # config, db, log
 │   ├── fetch/             # per-publisher fetchers
@@ -117,8 +124,8 @@ compliary/
 │   ├── manifest/          # data/ scanner + file_rule matcher
 │   ├── extract/           # OSCAL JSON + XLSX + PDF (go-fitz purego) extractors
 │   ├── normalize/         # all v0.1.0 parsers → silver (800-53/CSF/CIS/CCM/PCI/TSC/ISO/COBIT)
-│   ├── rag/               # embed, hybrid retrieve            [target]
-│   ├── mcp/               # MCP tools over the shared query core [target]
+│   ├── rag/               # embed, hybrid retrieve
+│   ├── mcp/               # MCP tools over the shared query core
 │   └── store/             # generated sqlc (do not hand-edit)
 ├── sql/                   # sqlc schema.sql + queries.sql per schema
 ├── deploy/                # migrations, seed CSVs, Containerfiles
