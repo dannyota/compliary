@@ -8,6 +8,62 @@ import (
 	"time"
 )
 
+type ConfigControlKind struct {
+	ID        int64
+	Code      string
+	Note      string
+	Origin    string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type ConfigFramework struct {
+	ID             int64
+	Code           string
+	Name           string
+	Publisher      string
+	SourceAccess   string
+	LicenseClass   string
+	IngestEnabled  bool
+	ServePolicy    string
+	CitationScheme string
+	TermsNote      string
+	Origin         string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+type ConfigFrameworkVersion struct {
+	ID            int64
+	FrameworkCode string
+	VersionLabel  string
+	PublishedOn   *time.Time
+	IsCurrent     bool
+	EditionNote   string
+	Origin        string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+type ConfigMappingSource struct {
+	ID            int64
+	Code          string
+	Name          string
+	AuthorityNote string
+	Origin        string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+type ConfigSetting struct {
+	ID        int64
+	Key       string
+	Value     string
+	Origin    string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type SilverControl struct {
 	ID                 int64
 	DocumentID         int64

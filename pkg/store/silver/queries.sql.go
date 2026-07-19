@@ -341,12 +341,20 @@ JOIN silver.document d ON d.id = c.document_id
 WHERE cm.to_control_id IS NULL
   AND d.framework_code = cm.to_framework_code
   AND c.citation_norm = cm.to_citation_norm
-  AND (cm.to_version_label IS NULL OR d.version_label = cm.to_version_label)
+  AND (
+      (cm.to_version_label IS NOT NULL AND d.version_label = cm.to_version_label)
+   OR (cm.to_version_label IS NULL AND d.version_label = (
+          SELECT fv.version_label FROM config.framework_version fv
+          WHERE fv.framework_code = cm.to_framework_code AND fv.is_current
+      ))
+  )
 `
 
 // Lazily fill to_control_id for edges whose target framework has landed. The
-// join pins the target document's version when the edge is version-pinned and
-// falls back to the target framework's current version otherwise.
+// join pins the target document's version when the edge is version-pinned;
+// version-unspecified edges resolve against the target framework's current
+// version (config.framework_version.is_current) so they never match a
+// superseded version's controls.
 func (q *Queries) ResolveControlMappings(ctx context.Context) (int64, error) {
 	result, err := q.db.Exec(ctx, resolveControlMappings)
 	if err != nil {

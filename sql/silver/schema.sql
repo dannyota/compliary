@@ -69,7 +69,8 @@ CREATE TABLE silver.control (
         REFERENCES silver.control (id) ON DELETE CASCADE,
     CONSTRAINT uq_silver_control UNIQUE (document_id, citation),
     CONSTRAINT chk_silver_control_status CHECK (status IN ('active', 'withdrawn', 'deprecated')),
-    CONSTRAINT chk_silver_control_amend CHECK (amend_action IN ('add', 'replace', 'delete'))
+    CONSTRAINT chk_silver_control_amend CHECK (amend_action IN ('add', 'replace', 'delete')),
+    CONSTRAINT chk_silver_control_amend_pair CHECK ((amends_citation_norm IS NULL) = (amend_action IS NULL))
 );
 
 CREATE INDEX idx_silver_control_document ON silver.control (document_id);

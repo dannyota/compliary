@@ -97,7 +97,9 @@ sql:
         overrides: *overrides
 
   - engine: "postgresql"
-    schema: "sql/silver/schema.sql"
+    schema:
+      - "sql/silver/schema.sql"
+      - "sql/config/schema.sql"
     queries: "sql/silver/queries.sql"
     gen:
       go:

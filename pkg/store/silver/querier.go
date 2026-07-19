@@ -23,8 +23,10 @@ type Querier interface {
 	ListMappingsForControl(ctx context.Context, fromControlID int64) ([]SilverControlMapping, error)
 	ListVersionRelations(ctx context.Context) ([]SilverVersionRelation, error)
 	// Lazily fill to_control_id for edges whose target framework has landed. The
-	// join pins the target document's version when the edge is version-pinned and
-	// falls back to the target framework's current version otherwise.
+	// join pins the target document's version when the edge is version-pinned;
+	// version-unspecified edges resolve against the target framework's current
+	// version (config.framework_version.is_current) so they never match a
+	// superseded version's controls.
 	ResolveControlMappings(ctx context.Context) (int64, error)
 	UpsertControlMapping(ctx context.Context, arg UpsertControlMappingParams) error
 	UpsertDocument(ctx context.Context, arg UpsertDocumentParams) (SilverDocument, error)

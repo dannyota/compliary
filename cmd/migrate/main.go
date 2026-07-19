@@ -90,6 +90,7 @@ func run(cfgPath string, log *slog.Logger) error {
 		return fmt.Errorf("pre-apply checksum check: %w", err)
 	}
 
+	// goose requires database/sql; do not refactor to pgxpool.
 	db, err := sql.Open("pgx", cfg.Database.DSN())
 	if err != nil {
 		return fmt.Errorf("open database: %w", err)
