@@ -463,12 +463,6 @@ func buildISO27002Tree(cap isoCapture, versionLabel string) (*TreeResult, error)
 	}
 
 	// 27002:2022 uses themes 5-8 as top-level domains, with controls N.M.
-	type parsedControl struct {
-		citation string
-		page     int
-		body     string
-	}
-
 	// Parse controls from the capture.
 	controls, domains := parseISO27002Controls(cap.Pages)
 
