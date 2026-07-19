@@ -37,6 +37,8 @@ type csfParsedRow struct {
 	WithdrawalTargets []string // target IDs parsed from the bracket note
 	// Cell reference for provenance_detail.
 	CellRef string // e.g. "C49"
+	// Informative References (col E) — raw text, split into lines by the ref parser.
+	ColE string
 }
 
 // csfFunctionID extracts the function code from a function cell, e.g.
@@ -62,12 +64,12 @@ var reWithdrawn = regexp.MustCompile(`^\[Withdrawn:\s*(.+)\]$`)
 var reTargetID = regexp.MustCompile(`^[A-Z]{2}(?:\.[A-Z]{2,}(?:-\d+)?)?$`)
 
 // BuildCSFTree parses a workbook-rows-json capture for NIST CSF 2.0 and returns
-// the normalized control tree. This is a pure function with no side effects.
+// the normalized control tree with informative-reference mapping edges. This is
+// a pure function with no side effects.
 //
-// The row parser is structured so that Task 3 (informative-reference mapping
-// edges from col E) can add edge emission without reshaping it: the grid
-// carries col E, and the MappingEdge slice in TreeResult is ready.
-func BuildCSFTree(raw json.RawMessage, frameworkCode, versionLabel string) (*TreeResult, error) {
+// refSources maps informative-reference prefixes to target frameworks. When
+// nil or empty, no reference edges are emitted (backward compatible).
+func BuildCSFTree(raw json.RawMessage, frameworkCode, versionLabel string, refSources ...ReferenceSource) (*TreeResult, error) {
 	var wb csfWorkbook
 	if err := json.Unmarshal(raw, &wb); err != nil {
 		return nil, fmt.Errorf("unmarshal workbook: %w", err)
@@ -94,8 +96,14 @@ func BuildCSFTree(raw json.RawMessage, frameworkCode, versionLabel string) (*Tre
 		return nil, err
 	}
 
+	// Build reference source lookup.
+	refMap := make(map[string]ReferenceSource, len(refSources))
+	for _, rs := range refSources {
+		refMap[rs.Prefix] = rs
+	}
+
 	// Build control tree from parsed rows.
-	return buildCSFControlTree(parsed, frameworkCode, versionLabel)
+	return buildCSFControlTree(parsed, frameworkCode, versionLabel, refMap)
 }
 
 // parseGrid converts a flat cell list into a map[row]map[col]value.
@@ -147,6 +155,7 @@ func parseCSFRows(grid map[int]map[string]string) ([]csfParsedRow, error) {
 		row     int
 		id      string
 		title   string
+		colE    string
 		hasDesc bool
 	}
 	funcSeen := make(map[string]*funcInfo)
@@ -163,17 +172,19 @@ func parseCSFRows(grid map[int]map[string]string) ([]csfParsedRow, error) {
 		funcID := m[1]
 		desc := strings.TrimSpace(m[2])
 		hasDesc := desc != ""
+		colE := strings.TrimSpace(grid[r]["E"])
 
 		if existing, ok := funcSeen[funcID]; ok {
 			// Keep the described one.
 			if hasDesc && !existing.hasDesc {
 				existing.row = r
 				existing.title = desc
+				existing.colE = colE
 				existing.hasDesc = true
 			}
 		} else {
 			funcSeen[funcID] = &funcInfo{
-				row: r, id: funcID, title: desc, hasDesc: hasDesc,
+				row: r, id: funcID, title: desc, colE: colE, hasDesc: hasDesc,
 			}
 		}
 	}
@@ -188,8 +199,7 @@ func parseCSFRows(grid map[int]map[string]string) ([]csfParsedRow, error) {
 		b := strings.TrimSpace(cols["B"])
 		c := strings.TrimSpace(cols["C"])
 		d := strings.TrimSpace(cols["D"])
-		// E column preserved for Task 3.
-		// e := strings.TrimSpace(cols["E"])
+		e := strings.TrimSpace(cols["E"])
 
 		if a != "" {
 			// Function row — emit only the described one (first encounter after dedupe).
@@ -211,6 +221,7 @@ func parseCSFRows(grid map[int]map[string]string) ([]csfParsedRow, error) {
 				Title:    fi.title,
 				Status:   "active", // functions are never withdrawn
 				CellRef:  fmt.Sprintf("A%d", fi.row),
+				ColE:     fi.colE,
 			})
 			continue
 		}
@@ -221,6 +232,7 @@ func parseCSFRows(grid map[int]map[string]string) ([]csfParsedRow, error) {
 			if err != nil {
 				return nil, err
 			}
+			pr.ColE = e
 			result = append(result, pr)
 			continue
 		}
@@ -231,6 +243,7 @@ func parseCSFRows(grid map[int]map[string]string) ([]csfParsedRow, error) {
 			if err != nil {
 				return nil, err
 			}
+			pr.ColE = e
 			result = append(result, pr)
 			continue
 		}
@@ -342,7 +355,7 @@ func parseTargetList(s string, pr *csfParsedRow) {
 }
 
 // buildCSFControlTree converts parsed rows into the TreeResult.
-func buildCSFControlTree(parsed []csfParsedRow, frameworkCode, versionLabel string) (*TreeResult, error) {
+func buildCSFControlTree(parsed []csfParsedRow, frameworkCode, versionLabel string, refMap map[string]ReferenceSource) (*TreeResult, error) {
 	result := &TreeResult{
 		Title: "NIST Cybersecurity Framework (CSF) 2.0",
 	}
@@ -413,7 +426,180 @@ func buildCSFControlTree(parsed []csfParsedRow, frameworkCode, versionLabel stri
 		}
 	}
 
+	// Informative-reference mapping edges from col E.
+	if len(refMap) > 0 {
+		skips := &RefSkips{
+			PerPrefix:  make(map[string]int),
+			UnknownPfx: make(map[string]int),
+		}
+		result.RefSkips = skips
+
+		for i, pr := range parsed {
+			if pr.ColE == "" {
+				continue
+			}
+			idx := idToIdx[pr.ID]
+			sheetRow := pr.SheetRow
+			parseCSFReferences(pr.ColE, idx, sheetRow, refMap, result, skips)
+			_ = i
+		}
+	}
+
 	return result, nil
+}
+
+// parseCSFReferences processes the col E text for one CSF row, splitting into
+// lines, looking up each prefix in the reference source map, extracting the
+// citation, and emitting MappingEdge entries. Handles dedupe across prefixes
+// that map to the same target (e.g. SP 800-53 Rev 5.1.1 and 5.2.0 both map
+// to nist80053/r5): uses a local seen map keyed on the natural key, with
+// provenance_detail joining the release strings of all contributing prefixes.
+func parseCSFReferences(
+	colE string,
+	controlIdx int,
+	sheetRow int,
+	refMap map[string]ReferenceSource,
+	result *TreeResult,
+	skips *RefSkips,
+) {
+	lines := strings.Split(colE, "\n")
+	cellRef := fmt.Sprintf("E%d", sheetRow)
+
+	// Dedupe key: (to_framework_code, to_version_label_str, citation_norm)
+	// Value: index into result.Mappings + list of release strings for provenance.
+	type edgeKey struct {
+		toFW  string
+		toVer string // "" for NULL
+		cite  string
+	}
+	type edgeInfo struct {
+		mappingIdx int
+		releases   []string
+	}
+	seen := make(map[edgeKey]*edgeInfo)
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		// Colon-split: find the first ':'
+		colonIdx := strings.Index(line, ":")
+		if colonIdx < 0 {
+			continue
+		}
+		prefix := strings.TrimSpace(line[:colonIdx])
+		rest := strings.TrimSpace(line[colonIdx+1:])
+
+		rs, ok := refMap[prefix]
+		if !ok {
+			skips.UnknownPfx[prefix]++
+			continue
+		}
+
+		// Parse citation from rest based on prefix rules.
+		cite, skip := parseRefCitation(prefix, rest)
+		if skip {
+			skips.PerPrefix[prefix]++
+			continue
+		}
+
+		citationNorm := strings.ToUpper(strings.TrimSpace(cite))
+
+		// Build version label string for dedup key.
+		verStr := ""
+		if rs.ToVersionLabel != nil {
+			verStr = *rs.ToVersionLabel
+		}
+
+		dk := edgeKey{toFW: rs.ToFrameworkCode, toVer: verStr, cite: citationNorm}
+		if existing, ok := seen[dk]; ok {
+			// Dedupe: add this prefix's release string to provenance.
+			existing.releases = append(existing.releases, prefix)
+			// Update the provenance_detail on the existing mapping.
+			slices.Sort(existing.releases)
+			result.Mappings[existing.mappingIdx].ProvenanceDetail = cellRef + " [" + strings.Join(existing.releases, "; ") + "]"
+			continue
+		}
+
+		mappingIdx := len(result.Mappings)
+		provenance := cellRef + " [" + prefix + "]"
+
+		result.Mappings = append(result.Mappings, MappingEdge{
+			FromIdx:          controlIdx,
+			ToFrameworkCode:  rs.ToFrameworkCode,
+			ToVersionLabel:   rs.ToVersionLabel,
+			ToCitationNorm:   citationNorm,
+			MappingSource:    rs.MappingSourceCode,
+			Relationship:     "related",
+			ProvenanceDetail: provenance,
+		})
+
+		seen[dk] = &edgeInfo{
+			mappingIdx: mappingIdx,
+			releases:   []string{prefix},
+		}
+	}
+}
+
+// parseRefCitation extracts and normalizes a citation from the rest-of-line
+// after stripping the prefix. Returns (citation, skip). skip=true means this
+// line should be counted as a skip (unparseable/empty).
+func parseRefCitation(prefix, rest string) (string, bool) {
+	switch {
+	case prefix == "ISO/IEC 27001":
+		return parseISOCitation(rest)
+	default:
+		// All other prefixes: the rest is the citation directly.
+		cite := strings.TrimSpace(rest)
+		if cite == "" {
+			return "", true
+		}
+		return cite, false
+	}
+}
+
+// parseISOCitation handles the ISO/IEC 27001 citation format:
+// "2022: Annex A Controls: 5.1" → "5.1"
+// "2022: Mandatory Clause: 8.1" → "8.1"
+// "2022: Control 5.8" → "5.8"
+// "2022: Mandatory Clause: None" → skip
+// "2022: Annex A Controls:" (bare) → skip
+// Lines not starting with "2022:" are skipped (edition mismatch).
+func parseISOCitation(rest string) (string, bool) {
+	// Verify edition echo.
+	if !strings.HasPrefix(rest, "2022:") {
+		return "", true // edition mismatch
+	}
+	after := strings.TrimSpace(rest[5:])
+
+	var cite string
+	switch {
+	case strings.HasPrefix(after, "Annex A Controls:"):
+		cite = strings.TrimSpace(after[len("Annex A Controls:"):])
+	case strings.HasPrefix(after, "Mandatory Clause:"):
+		cite = strings.TrimSpace(after[len("Mandatory Clause:"):])
+	case strings.HasPrefix(after, "Control"):
+		cite = strings.TrimSpace(after[len("Control"):])
+	default:
+		return "", true // unknown sub-form
+	}
+
+	if cite == "" || strings.EqualFold(cite, "none") {
+		return "", true
+	}
+
+	// Strip trailing comma (publisher typo).
+	cite = strings.TrimRight(cite, ",")
+	cite = strings.TrimSpace(cite)
+
+	// Multi-cite lines (contain comma after cleanup) are skipped.
+	if strings.Contains(cite, ",") {
+		return "", true
+	}
+
+	return cite, false
 }
 
 // findSubcategoryParent determines the parent index for a subcategory row.

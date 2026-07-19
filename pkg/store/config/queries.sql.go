@@ -59,6 +59,15 @@ func (q *Queries) DeleteSeedMappingSources(ctx context.Context) error {
 	return err
 }
 
+const deleteSeedReferenceSources = `-- name: DeleteSeedReferenceSources :exec
+DELETE FROM config.reference_source WHERE origin = 'seed'
+`
+
+func (q *Queries) DeleteSeedReferenceSources(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteSeedReferenceSources)
+	return err
+}
+
 const deleteSeedSettings = `-- name: DeleteSeedSettings :exec
 DELETE FROM config.setting WHERE origin = 'seed'
 `
@@ -252,6 +261,30 @@ type InsertSeedMappingSourceParams struct {
 
 func (q *Queries) InsertSeedMappingSource(ctx context.Context, arg InsertSeedMappingSourceParams) error {
 	_, err := q.db.Exec(ctx, insertSeedMappingSource, arg.Code, arg.Name, arg.AuthorityNote)
+	return err
+}
+
+const insertSeedReferenceSource = `-- name: InsertSeedReferenceSource :exec
+INSERT INTO config.reference_source (prefix, to_framework_code, to_version_label, mapping_source_code, enabled, origin)
+VALUES ($1, $2, $3, $4, $5, 'seed') ON CONFLICT (prefix) DO NOTHING
+`
+
+type InsertSeedReferenceSourceParams struct {
+	Prefix            string
+	ToFrameworkCode   string
+	ToVersionLabel    *string
+	MappingSourceCode string
+	Enabled           bool
+}
+
+func (q *Queries) InsertSeedReferenceSource(ctx context.Context, arg InsertSeedReferenceSourceParams) error {
+	_, err := q.db.Exec(ctx, insertSeedReferenceSource,
+		arg.Prefix,
+		arg.ToFrameworkCode,
+		arg.ToVersionLabel,
+		arg.MappingSourceCode,
+		arg.Enabled,
+	)
 	return err
 }
 
@@ -461,6 +494,40 @@ func (q *Queries) ListMappingSources(ctx context.Context) ([]ConfigMappingSource
 			&i.Code,
 			&i.Name,
 			&i.AuthorityNote,
+			&i.Origin,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReferenceSources = `-- name: ListReferenceSources :many
+SELECT id, prefix, to_framework_code, to_version_label, mapping_source_code, enabled, origin, created_at, updated_at FROM config.reference_source WHERE enabled ORDER BY prefix
+`
+
+func (q *Queries) ListReferenceSources(ctx context.Context) ([]ConfigReferenceSource, error) {
+	rows, err := q.db.Query(ctx, listReferenceSources)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ConfigReferenceSource
+	for rows.Next() {
+		var i ConfigReferenceSource
+		if err := rows.Scan(
+			&i.ID,
+			&i.Prefix,
+			&i.ToFrameworkCode,
+			&i.ToVersionLabel,
+			&i.MappingSourceCode,
+			&i.Enabled,
 			&i.Origin,
 			&i.CreatedAt,
 			&i.UpdatedAt,

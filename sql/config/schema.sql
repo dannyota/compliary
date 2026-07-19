@@ -118,6 +118,26 @@ CREATE TABLE config.file_rule (
     )
 );
 
+-- config.reference_source: maps informative-reference prefixes (colon-split
+-- first field) to registry targets. Each row enables the CSF normalizer to
+-- emit cross-framework mapping edges for lines matching that prefix. prefix
+-- is the exact colon-split match key; to_version_label NULL means the source
+-- does not pin a version (resolved lazily via is_current). Prefixes with no
+-- enabled row are skipped and counted — never guessed.
+CREATE TABLE config.reference_source (
+    id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    prefix              TEXT NOT NULL,
+    to_framework_code   TEXT NOT NULL,
+    to_version_label    TEXT,
+    mapping_source_code TEXT NOT NULL DEFAULT 'publisher-catalog',
+    enabled             BOOLEAN NOT NULL DEFAULT TRUE,
+    origin              TEXT NOT NULL DEFAULT 'seed',
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_config_reference_source UNIQUE (prefix),
+    CONSTRAINT chk_config_reference_source_origin CHECK (origin IN ('seed', 'user'))
+);
+
 -- config.setting: generic key/value store for operator-tunable gates.
 CREATE TABLE config.setting (
     id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

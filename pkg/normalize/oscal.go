@@ -42,12 +42,30 @@ type UnresolvedLink struct {
 	Href     string // the raw OSCAL link href
 }
 
+// ReferenceSource maps an informative-reference prefix to a target framework.
+// This mirrors config.reference_source seed data; the normalizer receives it
+// as a pre-loaded lookup table.
+type ReferenceSource struct {
+	Prefix            string
+	ToFrameworkCode   string
+	ToVersionLabel    *string // nil = version-unspecified
+	MappingSourceCode string
+}
+
+// RefSkips records how many lines were skipped per prefix during reference
+// parsing (unparseable citation, empty, etc.) and per unknown prefix.
+type RefSkips struct {
+	PerPrefix  map[string]int // known prefix → skip count
+	UnknownPfx map[string]int // unregistered prefix → line count
+}
+
 // TreeResult holds the output of the pure OSCAL tree builder.
 type TreeResult struct {
 	Title           string // catalog title from metadata
 	Controls        []ControlRow
 	Mappings        []MappingEdge
 	UnresolvedLinks []UnresolvedLink
+	RefSkips        *RefSkips // populated by CSF ref parser; nil for OSCAL
 }
 
 // BuildOSCALTree parses an OSCAL catalog JSON document and returns the

@@ -74,6 +74,18 @@ type ConfigMappingSource struct {
 	UpdatedAt     time.Time
 }
 
+type ConfigReferenceSource struct {
+	ID                int64
+	Prefix            string
+	ToFrameworkCode   string
+	ToVersionLabel    *string
+	MappingSourceCode string
+	Enabled           bool
+	Origin            string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
 type ConfigSetting struct {
 	ID        int64
 	Key       string

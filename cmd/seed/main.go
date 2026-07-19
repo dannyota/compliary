@@ -160,6 +160,30 @@ func run(cfgPath string, log *slog.Logger) error {
 	}
 	counts["setting"] = len(rows)
 
+	if err := q.DeleteSeedReferenceSources(ctx); err != nil {
+		return fmt.Errorf("clear reference_source seed: %w", err)
+	}
+	rows, err = readSeedCSV("reference_source.csv")
+	if err != nil {
+		return err
+	}
+	for _, r := range rows {
+		enabled, err := strconv.ParseBool(r[4])
+		if err != nil {
+			return fmt.Errorf("reference_source %q enabled: %w", r[0], err)
+		}
+		if err := q.InsertSeedReferenceSource(ctx, dbconfig.InsertSeedReferenceSourceParams{
+			Prefix:            r[0],
+			ToFrameworkCode:   r[1],
+			ToVersionLabel:    nullText(r[2]),
+			MappingSourceCode: r[3],
+			Enabled:           enabled,
+		}); err != nil {
+			return fmt.Errorf("insert reference_source %q: %w", r[0], err)
+		}
+	}
+	counts["reference_source"] = len(rows)
+
 	if err := q.DeleteSeedFileRules(ctx); err != nil {
 		return fmt.Errorf("clear file_rule seed: %w", err)
 	}
@@ -205,6 +229,7 @@ func run(cfgPath string, log *slog.Logger) error {
 		"mapping_source", counts["mapping_source"],
 		"control_kind", counts["control_kind"],
 		"setting", counts["setting"],
+		"reference_source", counts["reference_source"],
 		"file_rule", counts["file_rule"],
 	)
 	return nil

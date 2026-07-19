@@ -17,6 +17,7 @@ type Querier interface {
 	// a natural key is preserved. origin='user' rows are never deleted.
 	DeleteSeedFrameworks(ctx context.Context) error
 	DeleteSeedMappingSources(ctx context.Context) error
+	DeleteSeedReferenceSources(ctx context.Context) error
 	DeleteSeedSettings(ctx context.Context) error
 	GetFramework(ctx context.Context, code string) (ConfigFramework, error)
 	GetFrameworkVersion(ctx context.Context, arg GetFrameworkVersionParams) (ConfigFrameworkVersion, error)
@@ -26,6 +27,7 @@ type Querier interface {
 	InsertSeedFramework(ctx context.Context, arg InsertSeedFrameworkParams) error
 	InsertSeedFrameworkVersion(ctx context.Context, arg InsertSeedFrameworkVersionParams) error
 	InsertSeedMappingSource(ctx context.Context, arg InsertSeedMappingSourceParams) error
+	InsertSeedReferenceSource(ctx context.Context, arg InsertSeedReferenceSourceParams) error
 	InsertSeedSetting(ctx context.Context, arg InsertSeedSettingParams) error
 	ListAllFileRules(ctx context.Context) ([]ConfigFileRule, error)
 	ListControlKinds(ctx context.Context) ([]string, error)
@@ -34,6 +36,7 @@ type Querier interface {
 	// Load queries (read the registry into the app at startup).
 	ListFrameworks(ctx context.Context) ([]ConfigFramework, error)
 	ListMappingSources(ctx context.Context) ([]ConfigMappingSource, error)
+	ListReferenceSources(ctx context.Context) ([]ConfigReferenceSource, error)
 }
 
 var _ Querier = (*Queries)(nil)

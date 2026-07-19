@@ -244,6 +244,170 @@ func TestBuildCSFTree_Synthetic(t *testing.T) {
 	}
 }
 
+// syntheticCSFWithRefs is a fixture that adds col E informative references to
+// exercise the reference edge parser: prefix lookup, ISO edition stripping,
+// PCI NULL-version, out-of-registry skip, 800-53 dedupe (5.1.1 + 5.2.0 → r5),
+// ISO empty/None skip, multi-cite skip.
+const syntheticCSFWithRefs = `{
+  "sheets": [
+    {
+      "name": "CSF 2.0",
+      "rows": [
+        {"ref": "A2", "value": "Function"},
+        {"ref": "B2", "value": "Category"},
+        {"ref": "C2", "value": "Subcategory"},
+        {"ref": "D2", "value": "Implementation Examples"},
+        {"ref": "E2", "value": "Informative References"},
+
+        {"ref": "A3", "value": "GOVERN (GV): The org cybersecurity strategy"},
+        {"ref": "E3", "value": "SP 800-53 Rev 5.2.0: AC-01\nSP 800-53 Rev 5.1.1: AC-01\nISO/IEC 27001:2022: Annex A Controls: 5.1\nPCI DSS: 1.1.1\nCSF v1.1: GV\nCIS Controls v8.1: 1.1\nCIS Controls v8.0: 1.1\nCCMv4.0: AIS-01\nNICE Framework: T0001"},
+
+        {"ref": "B4", "value": "Organizational Context (GV.OC): The circumstances"},
+        {"ref": "E4", "value": "ISO/IEC 27001:2022: Mandatory Clause: None\nISO/IEC 27001:2022: Annex A Controls:\nISO/IEC 27001:2022: Mandatory Clause: 4.1\nISO/IEC 27001:2022: Control 5.1\nISO/IEC 27001:2022: Mandatory Clause: 7.1, 7.2"},
+
+        {"ref": "C5", "value": "GV.OC-01: The organizational mission is understood"},
+        {"ref": "E5", "value": "SP 800-53 Rev 5.2.0: AC-02\nSP 800-53 Rev 5.1.1: AC-02\nSP 800-53 Rev 5.2.0: AC-03"},
+
+        {"ref": "A6", "value": "GOVERN (GV)"},
+        {"ref": "A7", "value": "IDENTIFY (ID): Current risks are understood"}
+      ]
+    }
+  ]
+}`
+
+var testRefSources = []ReferenceSource{
+	{Prefix: "SP 800-53 Rev 5.2.0", ToFrameworkCode: "nist80053", ToVersionLabel: strPtr("r5"), MappingSourceCode: "publisher-catalog"},
+	{Prefix: "SP 800-53 Rev 5.1.1", ToFrameworkCode: "nist80053", ToVersionLabel: strPtr("r5"), MappingSourceCode: "publisher-catalog"},
+	{Prefix: "CCMv4.0", ToFrameworkCode: "csaccm", ToVersionLabel: strPtr("v4.0"), MappingSourceCode: "publisher-catalog"},
+	{Prefix: "ISO/IEC 27001", ToFrameworkCode: "iso27001", ToVersionLabel: strPtr("2022"), MappingSourceCode: "publisher-catalog"},
+	{Prefix: "PCI DSS", ToFrameworkCode: "pcidss", ToVersionLabel: nil, MappingSourceCode: "publisher-catalog"},
+	{Prefix: "CSF v1.1", ToFrameworkCode: "nistcsf", ToVersionLabel: strPtr("1.1"), MappingSourceCode: "publisher-catalog"},
+	{Prefix: "CIS Controls v8.1", ToFrameworkCode: "ciscontrols", ToVersionLabel: strPtr("v8.1"), MappingSourceCode: "publisher-catalog"},
+	{Prefix: "CIS Controls v8.0", ToFrameworkCode: "ciscontrols", ToVersionLabel: strPtr("v8"), MappingSourceCode: "publisher-catalog"},
+}
+
+func TestBuildCSFTree_References(t *testing.T) {
+	tree, err := BuildCSFTree(json.RawMessage(syntheticCSFWithRefs), "nistcsf", "2.0", testRefSources...)
+	if err != nil {
+		t.Fatalf("BuildCSFTree: %v", err)
+	}
+
+	// Expect 3 controls: GV (function), GV.OC (category), GV.OC-01 (subcategory), ID (function).
+	if len(tree.Controls) != 4 {
+		t.Fatalf("controls=%d, want 4; got: %v", len(tree.Controls), controlIDs(tree.Controls))
+	}
+
+	// --- Row 3 (GV function) references ---
+	// SP 800-53 Rev 5.2.0: AC-01 + SP 800-53 Rev 5.1.1: AC-01 → DEDUPE to 1 edge (nist80053/r5/AC-01)
+	// ISO/IEC 27001:2022: Annex A Controls: 5.1 → 1 edge
+	// PCI DSS: 1.1.1 → 1 edge (NULL version)
+	// CSF v1.1: GV → 1 edge
+	// CIS Controls v8.1: 1.1 → 1 edge
+	// CIS Controls v8.0: 1.1 → 1 edge
+	// CCMv4.0: AIS-01 → 1 edge
+	// NICE Framework: T0001 → skip (unknown prefix)
+	// Total for GV: 7 edges
+
+	// --- Row 4 (GV.OC category) references ---
+	// ISO/IEC 27001:2022: Mandatory Clause: None → skip (None)
+	// ISO/IEC 27001:2022: Annex A Controls: (bare) → skip (empty)
+	// ISO/IEC 27001:2022: Mandatory Clause: 4.1 → 1 edge
+	// ISO/IEC 27001:2022: Control 5.1 → 1 edge
+	// ISO/IEC 27001:2022: Mandatory Clause: 7.1, 7.2 → skip (multi-cite)
+	// Total for GV.OC: 2 edges
+
+	// --- Row 5 (GV.OC-01 subcategory) references ---
+	// SP 800-53 Rev 5.2.0: AC-02 + SP 800-53 Rev 5.1.1: AC-02 → DEDUPE to 1 edge (AC-02)
+	// SP 800-53 Rev 5.2.0: AC-03 → 1 edge (only in 5.2.0)
+	// Total for GV.OC-01: 2 edges
+
+	// Grand total: 7 + 2 + 2 = 11 reference edges (no withdrawal edges in this fixture).
+	if len(tree.Mappings) != 11 {
+		t.Fatalf("mappings=%d, want 11", len(tree.Mappings))
+	}
+
+	// All reference edges should have relationship "related".
+	for i, m := range tree.Mappings {
+		if m.Relationship != "related" {
+			t.Errorf("mapping[%d] relationship=%s, want related", i, m.Relationship)
+		}
+	}
+
+	// Check the deduped SP 800-53 edge on GV.
+	m0 := tree.Mappings[0]
+	if m0.ToFrameworkCode != "nist80053" {
+		t.Errorf("m0 to_fw=%s, want nist80053", m0.ToFrameworkCode)
+	}
+	if m0.ToCitationNorm != "AC-01" {
+		t.Errorf("m0 to_cite=%s, want AC-01", m0.ToCitationNorm)
+	}
+	// Provenance should contain both release strings, sorted.
+	if !strings.Contains(m0.ProvenanceDetail, "SP 800-53 Rev 5.1.1") ||
+		!strings.Contains(m0.ProvenanceDetail, "SP 800-53 Rev 5.2.0") {
+		t.Errorf("m0 provenance=%s, want both release strings", m0.ProvenanceDetail)
+	}
+
+	// Check PCI DSS edge (NULL version).
+	var pciEdge *MappingEdge
+	for i := range tree.Mappings {
+		if tree.Mappings[i].ToFrameworkCode == "pcidss" {
+			pciEdge = &tree.Mappings[i]
+			break
+		}
+	}
+	if pciEdge == nil {
+		t.Fatal("no PCI DSS edge found")
+	}
+	if pciEdge.ToVersionLabel != nil {
+		t.Errorf("PCI edge version=%v, want nil", pciEdge.ToVersionLabel)
+	}
+	if pciEdge.ToCitationNorm != "1.1.1" {
+		t.Errorf("PCI edge cite=%s, want 1.1.1", pciEdge.ToCitationNorm)
+	}
+
+	// Check unknown prefix skip counts.
+	if tree.RefSkips == nil {
+		t.Fatal("RefSkips is nil")
+	}
+	if tree.RefSkips.UnknownPfx["NICE Framework"] != 1 {
+		t.Errorf("NICE Framework skip=%d, want 1", tree.RefSkips.UnknownPfx["NICE Framework"])
+	}
+	// Check known prefix skips.
+	isoSkips := tree.RefSkips.PerPrefix["ISO/IEC 27001"]
+	if isoSkips != 3 {
+		t.Errorf("ISO/IEC 27001 skips=%d, want 3 (None + bare + multi-cite)", isoSkips)
+	}
+}
+
+func TestParseISOCitation(t *testing.T) {
+	tests := []struct {
+		rest     string
+		want     string
+		wantSkip bool
+	}{
+		{"2022: Annex A Controls: 5.1", "5.1", false},
+		{"2022: Mandatory Clause: 8.1", "8.1", false},
+		{"2022: Control 5.8", "5.8", false},
+		{"2022: Control  8.6", "8.6", false},            // double space
+		{"2022: Mandatory Clause: None", "", true},      // skip
+		{"2022: Annex A Controls:", "", true},           // bare
+		{"2022: Mandatory Clause: 7.1, 7.2", "", true},  // multi-cite
+		{"2022: Mandatory Clause:  6.1,", "6.1", false}, // trailing comma stripped
+		{"2022: Mandatory Clause:  4.1", "4.1", false},  // leading space in cite
+		{"2013: Annex A Controls: A.5.1", "", true},     // wrong edition
+		{"2022: Annex A Controls: None", "", true},      // None via Annex
+	}
+	for _, tc := range tests {
+		got, skip := parseISOCitation(tc.rest)
+		if skip != tc.wantSkip {
+			t.Errorf("parseISOCitation(%q): skip=%v, want %v", tc.rest, skip, tc.wantSkip)
+		}
+		if !skip && got != tc.want {
+			t.Errorf("parseISOCitation(%q): got=%q, want=%q", tc.rest, got, tc.want)
+		}
+	}
+}
+
 func TestBuildCSFTree_MissingSheet(t *testing.T) {
 	wb := `{"sheets":[{"name":"Other","rows":[]}]}`
 	_, err := BuildCSFTree(json.RawMessage(wb), "nistcsf", "2.0")
@@ -390,7 +554,7 @@ func TestBuildCSFTree_Golden(t *testing.T) {
 		}
 	}
 
-	// Mapping edge counts pinned.
+	// Mapping edge counts pinned (withdrawal edges only, no ref sources).
 	if len(tree.Mappings) != 136 {
 		t.Errorf("mappings=%d, want 136", len(tree.Mappings))
 	}
@@ -408,6 +572,101 @@ func TestBuildCSFTree_Golden(t *testing.T) {
 	}
 	if movedTo != 19 {
 		t.Errorf("moved-to=%d, want 19", movedTo)
+	}
+}
+
+func TestBuildCSFTree_GoldenRefs(t *testing.T) {
+	const workbookPath = "../../data/nist/nist-csf-2.0.xlsx"
+	if _, err := os.Stat(workbookPath); os.IsNotExist(err) {
+		t.Skipf("data file absent (expected for non-maintainer): %v", err)
+	}
+
+	capturePath := "../../testdata/csf-2.0-capture.json"
+	raw, err := os.ReadFile(capturePath)
+	if err != nil {
+		t.Skipf("golden capture file absent: %v", err)
+	}
+
+	tree, err := BuildCSFTree(json.RawMessage(raw), "nistcsf", "2.0", testRefSources...)
+	if err != nil {
+		t.Fatalf("BuildCSFTree: %v", err)
+	}
+
+	// Count edges by target framework.
+	type targetKey struct {
+		fw  string
+		ver string
+	}
+	edgesByTarget := make(map[targetKey]int)
+	var refEdges int
+	for _, m := range tree.Mappings {
+		if m.Relationship == "related" {
+			refEdges++
+			ver := ""
+			if m.ToVersionLabel != nil {
+				ver = *m.ToVersionLabel
+			}
+			edgesByTarget[targetKey{m.ToFrameworkCode, ver}]++
+		}
+	}
+
+	// Withdrawal edges unchanged: 136.
+	withdrawalEdges := len(tree.Mappings) - refEdges
+	if withdrawalEdges != 136 {
+		t.Errorf("withdrawal edges=%d, want 136", withdrawalEdges)
+	}
+
+	// Per-target golden edge counts.
+	// These are the EXACT counts from the parser reconciled against raw line counts.
+	wantEdges := map[targetKey]int{
+		{"nist80053", "r5"}:     747, // 1486 raw - 0 skips - 739 dedupes
+		{"csaccm", "v4.0"}:      657, // 657 raw, no skips, no dedupes
+		{"iso27001", "2022"}:    470, // 585 raw - 79 skips - 36 dedupes
+		{"pcidss", ""}:          551, // 551 raw, no skips
+		{"nistcsf", "1.1"}:      185, // 185 raw, no skips
+		{"ciscontrols", "v8.1"}: 62,  // 62 raw, no skips
+		{"ciscontrols", "v8"}:   60,  // 60 raw, no skips
+	}
+
+	for tk, want := range wantEdges {
+		got := edgesByTarget[tk]
+		ver := tk.ver
+		if ver == "" {
+			ver = "NULL"
+		}
+		if got != want {
+			t.Errorf("edges to %s/%s: got=%d, want=%d", tk.fw, ver, got, want)
+		}
+	}
+
+	totalRefEdges := 0
+	for _, n := range wantEdges {
+		totalRefEdges += n
+	}
+	if refEdges != totalRefEdges {
+		t.Errorf("total ref edges=%d, want %d", refEdges, totalRefEdges)
+	}
+
+	// Skip counts.
+	if tree.RefSkips == nil {
+		t.Fatal("RefSkips is nil")
+	}
+	// ISO skips: 79 (66 MC:None + 9 Annex:None + 3 bare Annex + 1 multi-cite)
+	if tree.RefSkips.PerPrefix["ISO/IEC 27001"] != 79 {
+		t.Errorf("ISO/IEC 27001 skips=%d, want 79", tree.RefSkips.PerPrefix["ISO/IEC 27001"])
+	}
+	// No skips for other registered prefixes.
+	for _, pfx := range []string{"SP 800-53 Rev 5.2.0", "SP 800-53 Rev 5.1.1", "CCMv4.0", "PCI DSS", "CSF v1.1", "CIS Controls v8.1", "CIS Controls v8.0"} {
+		if s := tree.RefSkips.PerPrefix[pfx]; s != 0 {
+			t.Errorf("%s skips=%d, want 0", pfx, s)
+		}
+	}
+	// Unknown prefix counts (top ones).
+	if tree.RefSkips.UnknownPfx["NICE Framework"] != 850 {
+		t.Errorf("NICE Framework unknown=%d, want 850", tree.RefSkips.UnknownPfx["NICE Framework"])
+	}
+	if tree.RefSkips.UnknownPfx["SCF"] != 473 {
+		t.Errorf("SCF unknown=%d, want 473", tree.RefSkips.UnknownPfx["SCF"])
 	}
 }
 

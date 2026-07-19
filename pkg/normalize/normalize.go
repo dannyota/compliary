@@ -43,6 +43,7 @@ type SilverQuerier interface {
 // ConfigQuerier is the subset of dbconfig.Querier needed by normalize.
 type ConfigQuerier interface {
 	GetFramework(ctx context.Context, code string) (dbconfig.ConfigFramework, error)
+	ListReferenceSources(ctx context.Context) ([]dbconfig.ConfigReferenceSource, error)
 }
 
 // Normalizer runs the normalize stage over a set of manifest rows.
@@ -95,7 +96,7 @@ func (n *Normalizer) Run(
 				sum.Succeeded++
 			}
 		case "csf-workbook":
-			if err := n.normalizeCSF(ctx, f, ingQ, bronzeQ, silverQ); err != nil {
+			if err := n.normalizeCSF(ctx, f, ingQ, bronzeQ, silverQ, cfgQ); err != nil {
 				n.Log.Error("normalize failed", "path", f.RelPath, "err", err)
 				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{
 					ID:         f.ID,
@@ -259,6 +260,7 @@ func (n *Normalizer) normalizeCSF(
 	ingQ IngestQuerier,
 	bronzeQ BronzeQuerier,
 	silverQ SilverQuerier,
+	cfgQ ConfigQuerier,
 ) error {
 	// Load source file from bronze.
 	sf, err := bronzeQ.GetSourceFile(ctx, dbbronze.GetSourceFileParams{
@@ -278,12 +280,37 @@ func (n *Normalizer) normalizeCSF(
 		return fmt.Errorf("get raw_extract: %w", err)
 	}
 
+	// Load reference sources for informative-reference edge emission.
+	dbRefs, err := cfgQ.ListReferenceSources(ctx)
+	if err != nil {
+		return fmt.Errorf("list reference sources: %w", err)
+	}
+	refSources := make([]ReferenceSource, len(dbRefs))
+	for i, r := range dbRefs {
+		refSources[i] = ReferenceSource{
+			Prefix:            r.Prefix,
+			ToFrameworkCode:   r.ToFrameworkCode,
+			ToVersionLabel:    r.ToVersionLabel,
+			MappingSourceCode: r.MappingSourceCode,
+		}
+	}
+
 	// Parse the workbook into in-memory tree (pure function).
 	fwCode := deref(f.FrameworkCode)
 	verLabel := deref(f.VersionLabel)
-	tree, err := BuildCSFTree(json.RawMessage(re.ContentJsonb), fwCode, verLabel)
+	tree, err := BuildCSFTree(json.RawMessage(re.ContentJsonb), fwCode, verLabel, refSources...)
 	if err != nil {
 		return fmt.Errorf("build CSF tree: %w", err)
+	}
+
+	// Log reference skip counts if any.
+	if tree.RefSkips != nil {
+		for pfx, count := range tree.RefSkips.PerPrefix {
+			n.Log.Info("ref-skip", "prefix", pfx, "skips", count, "path", f.RelPath)
+		}
+		for pfx, count := range tree.RefSkips.UnknownPfx {
+			n.Log.Info("ref-unknown-prefix", "prefix", pfx, "lines", count, "path", f.RelPath)
+		}
 	}
 
 	// Build doc_key: <framework_code>|<version_label>|<doc_role>

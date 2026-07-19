@@ -142,6 +142,43 @@ func TestMappingSourceSeed(t *testing.T) {
 	}
 }
 
+func TestReferenceSourceSeed(t *testing.T) {
+	// Load frameworks + versions for cross-reference.
+	frameworks := map[string]bool{}
+	for _, r := range readCSV(t, "framework.csv")[1:] {
+		frameworks[r[0]] = true
+	}
+	versions := map[string]bool{}
+	for _, r := range readCSV(t, "framework_version.csv")[1:] {
+		versions[r[0]+"|"+r[1]] = true
+	}
+
+	rows := readCSV(t, "reference_source.csv")[1:]
+	if len(rows) != 8 {
+		t.Fatalf("reference_source.csv: want 8 rows, got %d", len(rows))
+	}
+	seen := map[string]bool{}
+	for _, r := range rows {
+		prefix := r[0]
+		if seen[prefix] {
+			t.Errorf("reference_source %q: duplicate prefix", prefix)
+		}
+		seen[prefix] = true
+		if !frameworks[r[1]] {
+			t.Errorf("reference_source %q: unknown framework_code %q", prefix, r[1])
+		}
+		// to_version_label may be empty (NULL) for version-unspecified edges.
+		if r[2] != "" {
+			if !versions[r[1]+"|"+r[2]] {
+				t.Errorf("reference_source %q: unknown version %s/%s", prefix, r[1], r[2])
+			}
+		}
+		if _, err := strconv.ParseBool(r[4]); err != nil {
+			t.Errorf("reference_source %q: bad enabled %q", prefix, r[4])
+		}
+	}
+}
+
 func TestFileRuleSeed(t *testing.T) {
 	// Load frameworks for cross-reference.
 	frameworks := map[string]bool{}

@@ -151,6 +151,10 @@ func (f *fakeConfigQuerier) GetFramework(_ context.Context, code string) (dbconf
 	return fw, nil
 }
 
+func (f *fakeConfigQuerier) ListReferenceSources(_ context.Context) ([]dbconfig.ConfigReferenceSource, error) {
+	return nil, nil
+}
+
 // --- Tests ---
 
 func TestNormalizer_HappyPath(t *testing.T) {

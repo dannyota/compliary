@@ -66,6 +66,16 @@ DELETE FROM config.setting WHERE origin = 'seed';
 INSERT INTO config.setting (key, value, origin)
 VALUES ($1, $2, 'seed') ON CONFLICT (key) DO NOTHING;
 
+-- name: ListReferenceSources :many
+SELECT * FROM config.reference_source WHERE enabled ORDER BY prefix;
+
+-- name: DeleteSeedReferenceSources :exec
+DELETE FROM config.reference_source WHERE origin = 'seed';
+
+-- name: InsertSeedReferenceSource :exec
+INSERT INTO config.reference_source (prefix, to_framework_code, to_version_label, mapping_source_code, enabled, origin)
+VALUES ($1, $2, $3, $4, $5, 'seed') ON CONFLICT (prefix) DO NOTHING;
+
 -- name: DeleteSeedFileRules :exec
 DELETE FROM config.file_rule WHERE origin = 'seed';
 
