@@ -115,7 +115,8 @@ func (q *Queries) ListFilesToExtract(ctx context.Context) ([]IngestManifestFile,
 
 const listFilesToIndex = `-- name: ListFilesToIndex :many
 SELECT id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, qualifier, file_format, status, ignored, ignore_reason, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at FROM ingest.manifest_file
-WHERE status = 'active' AND framework_code IS NOT NULL
+WHERE status = 'active' AND framework_code IS NOT NULL AND NOT ignored
+  AND doc_role NOT IN ('guide', 'changelog')
   AND normalized_at IS NOT NULL AND indexed_at IS NULL
 ORDER BY rel_path
 `
@@ -161,7 +162,8 @@ func (q *Queries) ListFilesToIndex(ctx context.Context) ([]IngestManifestFile, e
 
 const listFilesToNormalize = `-- name: ListFilesToNormalize :many
 SELECT id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, qualifier, file_format, status, ignored, ignore_reason, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at FROM ingest.manifest_file
-WHERE status = 'active' AND framework_code IS NOT NULL
+WHERE status = 'active' AND framework_code IS NOT NULL AND NOT ignored
+  AND doc_role NOT IN ('guide', 'changelog')
   AND extracted_at IS NOT NULL AND normalized_at IS NULL
 ORDER BY rel_path
 `

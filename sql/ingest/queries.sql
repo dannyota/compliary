@@ -48,13 +48,15 @@ ORDER BY rel_path;
 
 -- name: ListFilesToNormalize :many
 SELECT * FROM ingest.manifest_file
-WHERE status = 'active' AND framework_code IS NOT NULL
+WHERE status = 'active' AND framework_code IS NOT NULL AND NOT ignored
+  AND doc_role NOT IN ('guide', 'changelog')
   AND extracted_at IS NOT NULL AND normalized_at IS NULL
 ORDER BY rel_path;
 
 -- name: ListFilesToIndex :many
 SELECT * FROM ingest.manifest_file
-WHERE status = 'active' AND framework_code IS NOT NULL
+WHERE status = 'active' AND framework_code IS NOT NULL AND NOT ignored
+  AND doc_role NOT IN ('guide', 'changelog')
   AND normalized_at IS NOT NULL AND indexed_at IS NULL
 ORDER BY rel_path;
 

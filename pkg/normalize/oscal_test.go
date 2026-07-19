@@ -105,7 +105,7 @@ const syntheticOSCAL = `{
 }`
 
 func TestBuildOSCALTree_Synthetic(t *testing.T) {
-	tree, err := BuildOSCALTree(json.RawMessage(syntheticOSCAL))
+	tree, err := BuildOSCALTree(json.RawMessage(syntheticOSCAL), "synthfw", "v1")
 	if err != nil {
 		t.Fatalf("BuildOSCALTree: %v", err)
 	}
@@ -193,6 +193,12 @@ func TestBuildOSCALTree_Synthetic(t *testing.T) {
 	if m0.ToCitationNorm != "SY-01" {
 		t.Errorf("m0.ToCitationNorm=%s, want SY-01", m0.ToCitationNorm)
 	}
+	if m0.ToFrameworkCode != "synthfw" {
+		t.Errorf("m0.ToFrameworkCode=%s, want synthfw", m0.ToFrameworkCode)
+	}
+	if m0.ToVersionLabel == nil || *m0.ToVersionLabel != "v1" {
+		t.Errorf("m0.ToVersionLabel=%v, want v1", m0.ToVersionLabel)
+	}
 	if m0.ProvenanceDetail != "#sy-1" {
 		t.Errorf("m0.ProvenanceDetail=%s, want #sy-1", m0.ProvenanceDetail)
 	}
@@ -207,6 +213,9 @@ func TestBuildOSCALTree_Synthetic(t *testing.T) {
 	}
 	if m1.ToCitationNorm != "SY-01(01)" {
 		t.Errorf("m1.ToCitationNorm=%s, want SY-01(01)", m1.ToCitationNorm)
+	}
+	if m1.ToFrameworkCode != "synthfw" {
+		t.Errorf("m1.ToFrameworkCode=%s, want synthfw", m1.ToFrameworkCode)
 	}
 
 	// citation_norm uniqueness.
@@ -233,7 +242,7 @@ func TestBuildOSCALTree_Golden(t *testing.T) {
 		t.Skipf("data file absent (expected for non-maintainer): %v", err)
 	}
 
-	tree, err := BuildOSCALTree(json.RawMessage(raw))
+	tree, err := BuildOSCALTree(json.RawMessage(raw), "nist80053", "r5")
 	if err != nil {
 		t.Fatalf("BuildOSCALTree: %v", err)
 	}

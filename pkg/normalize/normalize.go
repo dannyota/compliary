@@ -133,7 +133,9 @@ func (n *Normalizer) normalizeOSCAL(
 	}
 
 	// Parse the catalog into in-memory tree (pure function).
-	tree, err := BuildOSCALTree(json.RawMessage(re.ContentJsonb))
+	fwCode := deref(f.FrameworkCode)
+	verLabel := deref(f.VersionLabel)
+	tree, err := BuildOSCALTree(json.RawMessage(re.ContentJsonb), fwCode, verLabel)
 	if err != nil {
 		return fmt.Errorf("build tree: %w", err)
 	}
@@ -148,8 +150,6 @@ func (n *Normalizer) normalizeOSCAL(
 	}
 
 	// Build doc_key: <framework_code>|<version_label>|<doc_role>
-	fwCode := deref(f.FrameworkCode)
-	verLabel := deref(f.VersionLabel)
 	docRole := deref(f.DocRole)
 	qualifier := f.Qualifier
 	docKey := fwCode + "|" + verLabel + "|" + docRole

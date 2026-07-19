@@ -53,7 +53,9 @@ type TreeResult struct {
 // BuildOSCALTree parses an OSCAL catalog JSON document and returns the
 // normalized control tree and mapping edges as pure data. This is deterministic
 // and has no side effects — tests assert on the output directly.
-func BuildOSCALTree(raw json.RawMessage) (*TreeResult, error) {
+// frameworkCode and versionLabel identify the source catalog for intra-catalog
+// mapping edges (e.g. withdrawn-control incorporation links).
+func BuildOSCALTree(raw json.RawMessage, frameworkCode, versionLabel string) (*TreeResult, error) {
 	var cat struct {
 		Catalog struct {
 			Metadata struct {
@@ -147,8 +149,8 @@ func BuildOSCALTree(raw json.RawMessage) (*TreeResult, error) {
 						}
 						result.Mappings = append(result.Mappings, MappingEdge{
 							FromIdx:          controlIdx,
-							ToFrameworkCode:  "nist80053",
-							ToVersionLabel:   strPtr("r5"),
+							ToFrameworkCode:  frameworkCode,
+							ToVersionLabel:   strPtr(versionLabel),
 							ToCitationNorm:   targetNorm,
 							MappingSource:    "publisher-catalog",
 							Relationship:     link.Rel,
@@ -193,8 +195,8 @@ func BuildOSCALTree(raw json.RawMessage) (*TreeResult, error) {
 							}
 							result.Mappings = append(result.Mappings, MappingEdge{
 								FromIdx:          enhIdx,
-								ToFrameworkCode:  "nist80053",
-								ToVersionLabel:   strPtr("r5"),
+								ToFrameworkCode:  frameworkCode,
+								ToVersionLabel:   strPtr(versionLabel),
 								ToCitationNorm:   targetNorm,
 								MappingSource:    "publisher-catalog",
 								Relationship:     link.Rel,
