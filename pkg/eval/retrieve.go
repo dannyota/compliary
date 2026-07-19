@@ -66,6 +66,11 @@ type SearchOpts struct {
 	// lead and a small badged pass of non-current versions follows. true =
 	// strict current-only filter. false = no filter, all versions.
 	CurrentOnly *bool
+
+	// IncludeWithdrawn lifts the status='active' filter so withdrawn controls
+	// are retrievable. Defaults to false; when true, both retrieval arms and
+	// citation lookup include status='withdrawn' controls.
+	IncludeWithdrawn bool
 }
 
 // Hit is one fused retrieval result with the metadata needed to evaluate and

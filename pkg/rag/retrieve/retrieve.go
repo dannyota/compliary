@@ -105,6 +105,7 @@ type resolved struct {
 	surfaceNonCurrent bool
 	framework         string
 	versionLabel      string
+	includeWithdrawn  bool
 }
 
 func (r *Retriever) resolve(opts eval.SearchOpts) (resolved, error) {
@@ -154,6 +155,7 @@ func (r *Retriever) resolve(opts eval.SearchOpts) (resolved, error) {
 		surfaceNonCurrent: surfaceNonCurrent,
 		framework:         opts.Framework,
 		versionLabel:      opts.VersionLabel,
+		includeWithdrawn:  opts.IncludeWithdrawn,
 	}, nil
 }
 
@@ -346,16 +348,21 @@ func (r *Retriever) vectorArmExact(ctx context.Context, qv pgvector.Vector, res 
 	model := r.embedder.Model()
 	args := []any{qv, model, res.vectorK}
 
-	const filteredBody = `
+	statusPred := "sc.status = 'active'"
+	if res.includeWithdrawn {
+		statusPred = "sc.status IN ('active', 'withdrawn')"
+	}
+
+	filteredBody := fmt.Sprintf(`
 SELECT c.id, (e.embedding <=> $1)::float8
 FROM gold.chunk_embedding e
 JOIN gold.chunk c ON c.id = e.chunk_id
 JOIN silver.control sc ON sc.id = c.control_id
 WHERE e.model = $2
-  AND sc.status = 'active'
+  AND %s
   AND sc.document_id IN (SELECT document_id FROM version_filter)
 ORDER BY e.embedding <=> $1, c.id
-LIMIT $3`
+LIMIT $3`, statusPred)
 
 	var sql string
 	if nonCurrent {
@@ -366,15 +373,15 @@ LIMIT $3`
 	} else {
 		cte, fargs := buildVersionFilterCTE(res, len(args)+1)
 		if cte == "" {
-			sql = `
+			sql = fmt.Sprintf(`
 SELECT c.id, (e.embedding <=> $1)::float8
 FROM gold.chunk_embedding e
 JOIN gold.chunk c ON c.id = e.chunk_id
 JOIN silver.control sc ON sc.id = c.control_id
 WHERE e.model = $2
-  AND sc.status = 'active'
+  AND %s
 ORDER BY e.embedding <=> $1, c.id
-LIMIT $3`
+LIMIT $3`, statusPred)
 		} else {
 			args = append(args, fargs...)
 			sql = cte + filteredBody
@@ -420,29 +427,34 @@ func (r *Retriever) sparseArm(ctx context.Context, query string, res resolved) (
 	qv := lexical.QueryVector(query)
 	args := []any{qv, res.bm25K}
 
-	const filteredBody = `
+	statusPred := "sc.status = 'active'"
+	if res.includeWithdrawn {
+		statusPred = "sc.status IN ('active', 'withdrawn')"
+	}
+
+	filteredBody := fmt.Sprintf(`
 SELECT c.id, (c.content_sparse <#> $1::sparsevec) AS neg_ip
 FROM gold.chunk c
 JOIN silver.control sc ON sc.id = c.control_id
 WHERE c.content_sparse IS NOT NULL
-  AND sc.status = 'active'
+  AND %s
   AND (c.content_sparse <#> $1::sparsevec) < 0
   AND sc.document_id IN (SELECT document_id FROM version_filter)
 ORDER BY c.content_sparse <#> $1::sparsevec
-LIMIT $2`
+LIMIT $2`, statusPred)
 
 	cte, fargs := buildVersionFilterCTE(res, len(args)+1)
 	var sql string
 	if cte == "" {
-		sql = `
+		sql = fmt.Sprintf(`
 SELECT c.id, (c.content_sparse <#> $1::sparsevec) AS neg_ip
 FROM gold.chunk c
 JOIN silver.control sc ON sc.id = c.control_id
 WHERE c.content_sparse IS NOT NULL
-  AND sc.status = 'active'
+  AND %s
   AND (c.content_sparse <#> $1::sparsevec) < 0
 ORDER BY c.content_sparse <#> $1::sparsevec
-LIMIT $2`
+LIMIT $2`, statusPred)
 	} else {
 		args = append(args, fargs...)
 		sql = cte + filteredBody
@@ -533,6 +545,11 @@ func (r *Retriever) citationLookup(ctx context.Context, matches []CitationMatch,
         )`)
 	}
 
+	statusPred := "sc.status = 'active'"
+	if res.includeWithdrawn {
+		statusPred = "sc.status IN ('active', 'withdrawn')"
+	}
+
 	sql := fmt.Sprintf(`
 SELECT
     c.id,
@@ -551,9 +568,9 @@ JOIN config.framework_version fv
   ON fv.framework_code = d.framework_code
  AND fv.version_label = d.version_label
 WHERE %s
-  AND sc.status = 'active'
+  AND %s
 ORDER BY fv.is_current DESC, d.framework_code, d.version_label, sc.citation_norm, c.ordinal
-LIMIT 16`, strings.Join(conds, "\n  AND "))
+LIMIT 16`, strings.Join(conds, "\n  AND "), statusPred)
 
 	rows, err := r.pool.Query(ctx, sql, args...)
 	if err != nil {

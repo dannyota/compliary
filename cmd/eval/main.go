@@ -21,6 +21,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	goldendata "danny.vn/compliary/deploy/eval"
@@ -49,6 +50,7 @@ type opts struct {
 	reviewHits         int
 	reviewPreviewChars int
 	outPath            string
+	usePins            bool
 
 	minRecall  float64
 	minMRR     float64
@@ -71,6 +73,7 @@ func main() {
 	flag.IntVar(&o.reviewHits, "review-hits", 3, "top hits per case in review mode")
 	flag.IntVar(&o.reviewPreviewChars, "review-preview-chars", 240, "max content preview chars per hit")
 	flag.StringVar(&o.outPath, "out", "", "write JSON report to this path (empty = off)")
+	flag.BoolVar(&o.usePins, "use-pins", true, "pass framework/version pins from golden case metadata to SearchOpts")
 	// Floors: golden v2 baseline (2026-07-20, hybrid ONNX Qwen3, 105 queries / 98 scored):
 	//   recall@8=63.3%, MRR@8=43.2%, current=100%, abstain=95.1%
 	// Set ~2pp under measured values:
@@ -225,6 +228,11 @@ func dryRun(o opts, cases []eval.Case, log *slog.Logger) error {
 }
 
 // evaluate is the full eval loop, invoked when a Retriever is available.
+// It runs two lanes when -use-pins is true:
+//   - open-corpus: no framework/version pins (the hard mode, baseline floors apply here)
+//   - framework-filtered: passes framework (and version for pin cases) from golden metadata
+//
+// Floors gate the open-corpus lane only.
 func evaluate(
 	ctx context.Context,
 	o opts,
@@ -234,8 +242,9 @@ func evaluate(
 	log *slog.Logger,
 ) error {
 	matcher := eval.Matcher{}
-	results := make([]eval.CaseResult, 0, len(cases))
 
+	// --- Open-corpus lane (always runs) ---
+	results := make([]eval.CaseResult, 0, len(cases))
 	var reviewRuns []reviewRun
 	for _, c := range cases {
 		searchOpts := eval.SearchOpts{
@@ -282,7 +291,47 @@ func evaluate(
 	}
 
 	agg := eval.Summarize(results)
+	_, _ = fmt.Fprintln(os.Stdout, "=== Open-corpus lane (no pins) ===")
 	eval.WriteReport(os.Stdout, results, agg)
+
+	// --- Framework-filtered lane (when -use-pins is true) ---
+	var filteredAgg eval.Aggregate
+	if o.usePins {
+		filteredResults := make([]eval.CaseResult, 0, len(cases))
+		for _, c := range cases {
+			searchOpts := eval.SearchOpts{
+				TopK:      o.topK,
+				VectorK:   o.vectorK,
+				BM25K:     o.bm25K,
+				RRFK:      o.rrfK,
+				DocCap:    o.docCap,
+				LexWeight: o.lexWeight,
+				Mode:      eval.SearchMode(o.retrievalMode),
+			}
+			// Pin framework from golden case metadata.
+			if len(c.ExpectedCitations) > 0 {
+				ec := c.ExpectedCitations[0]
+				searchOpts.Framework = ec.FrameworkCode
+				searchOpts.VersionLabel = ec.VersionLabel
+			}
+			// Include withdrawn controls when the notes tag signals it.
+			if strings.Contains(strings.ToLower(c.Notes), "withdrawn") {
+				searchOpts.IncludeWithdrawn = true
+			}
+			ev, err := r.SearchEvidence(ctx, c.Question, searchOpts)
+			if err != nil {
+				return fmt.Errorf("filtered lane case %q: %w", c.ID, err)
+			}
+			hits := ev.Hits
+			abstained := ev.Abstain || len(hits) == 0
+			result := eval.Score(c, hits, abstained, isCurrent, matcher)
+			filteredResults = append(filteredResults, result)
+		}
+		filteredAgg = eval.Summarize(filteredResults)
+		_, _ = fmt.Fprintln(os.Stdout)
+		_, _ = fmt.Fprintln(os.Stdout, "=== Framework-filtered lane (pins from golden metadata) ===")
+		eval.WriteReport(os.Stdout, filteredResults, filteredAgg)
+	}
 
 	if o.outPath != "" {
 		meta := eval.JSONReportMeta{
@@ -302,6 +351,7 @@ func evaluate(
 		writeReview(os.Stdout, o, reviewRuns, matcher)
 	}
 
+	// Floors gate the open-corpus lane only.
 	thresholds := eval.Thresholds{
 		MinRecall:  o.minRecall,
 		MinMRR:     o.minMRR,
@@ -315,6 +365,15 @@ func evaluate(
 		}
 		return fmt.Errorf("%w: %d metric(s) below floor", errThreshold, len(fails))
 	}
+
+	// Log filtered lane summary if it ran.
+	if o.usePins {
+		log.Info("framework-filtered lane",
+			"recall", fmt.Sprintf("%.1f%%", filteredAgg.RecallAtK*100),
+			"mrr", fmt.Sprintf("%.1f%%", filteredAgg.MRRAtK*100),
+		)
+	}
+
 	return nil
 }
 
