@@ -53,8 +53,8 @@ v2-n53-cite01,What does NIST 800-53 control AU-06 require for audit log analysis
 v2-n53-cite02,What are the requirements of RA-05 in NIST SP 800-53 revision 5?,nist80053,r5,RA-05,false,false,Citation-shaped: names RA-05 and revision
 v2-csf-cite01,What does CSF 2.0 subcategory PR.AA-05 require regarding access permissions?,nistcsf,2.0,PR.AA-05,false,false,Citation-shaped: names PR.AA-05 directly
 v2-csf-cite02,What is covered by NIST CSF subcategory DE.CM-09?,nistcsf,2.0,DE.CM-09,false,false,Citation-shaped: names DE.CM-09 directly
-v2-n53-ver01,NIST 800-53 r5 withdrew SC-19 on Voice over IP — is that control still active?,nist80053,r5,SC-19,false,true,Version-pin: SC-19 is withdrawn in r5; system must surface status=withdrawn; expect_fail: retriever status=active filter excludes withdrawn controls
-v2-csf-ver01,Under CSF 1.1 there was an ID.GV governance category — does CSF 2.0 still have it?,nistcsf,2.0,ID.GV,false,true,Version-pin: ID.GV withdrawn in 2.0 (moved to GV function); tests 1.1-vs-2.0 lineage; expect_fail: retriever status=active filter excludes withdrawn controls
+v2-n53-ver01,NIST 800-53 r5 withdrew SC-19 on Voice over IP — is that control still active?,nist80053,r5,SC-19,false,false,Version-pin+withdrawn: SC-19 is withdrawn in r5; filtered lane passes include_withdrawn+framework+version pins
+v2-csf-ver01,Under CSF 1.1 there was an ID.GV governance category — does CSF 2.0 still have it?,nistcsf,2.0,ID.GV,false,false,Version-pin+withdrawn: ID.GV withdrawn in 2.0 (moved to GV function); filtered lane passes include_withdrawn+framework+version pins
 v2-n53-fam01,What controls fall under the Personally Identifiable Information Processing and Transparency family in 800-53?,nist80053,r5,PT,false,false,Family-level: targets the PT family; should return family + child controls
 v2-csf-cat01,What does the CSF 2.0 GV.PO category address?,nistcsf,2.0,GV.PO,false,false,Category-level: targets GV.PO cybersecurity policy category
 v2-n53-hard01,What NIST control requires wiping or destroying storage devices before they leave the organization?,nist80053,r5,MP-06,false,false,Hard paraphrase: no keyword overlap with title Media Sanitization
@@ -84,8 +84,8 @@ v2-iso27001-policies,How should an organization establish its information securi
 v2-iso27001-screening,What control addresses background verification of personnel before hiring?,iso27001,2022,A.6.1,false,false,Semantic: ISO 27001:2022 Annex A — people screening control
 v2-iso27001-monitoring,What control covers event logging and monitoring of information systems?,iso27001,2022,A.8.16,false,false,Semantic: ISO 27001:2022 Annex A — technological control for monitoring
 v2-iso27001-clause51,What clause covers leadership and top management commitment to information security?,iso27001,2022,5.1,false,false,Semantic: ISO 27001:2022 ISMS clause (not Annex A); leadership commitment
-v2-iso27002-threat-intel,What control provides guidance on gathering and analyzing threat intelligence?,iso27002,2022,5.1,false,false,Semantic: ISO 27002:2022 — threat intelligence (organizational control 5.x series)
-v2-iso27002-asset-return,What control addresses the return of organizational assets when employment ends?,iso27002,2022,5.12,false,false,Semantic: ISO 27002:2022 — return of assets on termination
+v2-iso27002-threat-intel,What control provides guidance on gathering and analyzing threat intelligence?,iso27002,2022,5.7,false,false,Semantic: ISO 27002:2022 — threat intelligence (5.7 not 5.1; verified against DB body)
+v2-iso27002-asset-return,What control addresses the return of organizational assets when employment ends?,iso27002,2022,5.11,false,false,Semantic: ISO 27002:2022 — return of assets (5.11 not 5.12; verified against DB body)
 v2-iso27002-secure-coding,What control provides guidance on secure coding practices during software development?,iso27002,2022,8.28,false,false,Semantic: ISO 27002:2022 — secure coding (technological control 8.x series)
 v2-iso27002-config,What control covers configuration management of hardware software and networks?,iso27002,2022,8.9,false,false,Semantic: ISO 27002:2022 — configuration management
 v2-soc2-logical-access,What criterion establishes requirements for logical and physical access controls?,soc2tsc,2017,CC6.1,false,false,Semantic: SOC 2 TSC CC6.1 — logical and physical access (well-known anchor)
