@@ -83,6 +83,15 @@ func (n *Normalizer) Run(
 			continue
 		}
 
+		// Only 'main' documents parse today. Companion workbooks (CAIQ) and
+		// amendments are deferred until their parsers land — a deferral, not
+		// an error.
+		if deref(f.DocRole) != "main" {
+			n.Log.Info("normalize: deferred doc_role", "path", f.RelPath, "doc_role", deref(f.DocRole))
+			sum.Skipped++
+			continue
+		}
+
 		// Look up the framework's citation_scheme.
 		fw, err := cfgQ.GetFramework(ctx, fwCode)
 		if err != nil {
