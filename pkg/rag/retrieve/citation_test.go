@@ -121,6 +121,10 @@ func TestMatchCitation_CCM(t *testing.T) {
 		{"AIS-01 security", "AIS-01"},
 		{"DSP-17 privacy", "DSP-17"},
 		{"IAM-04 separation", "IAM-04"},
+		{"What does A&A-03 cover?", "A&A-03"},
+		{"Describe I&S-09 scope", "I&S-09"},
+		{"A&A-01 audit", "A&A-01"},
+		{"I&S-05 infrastructure", "I&S-05"},
 	}
 	for _, tc := range tests {
 		ms := MatchCitation(tc.query, "csaccm", testSchemes)

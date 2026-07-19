@@ -22,8 +22,9 @@ var schemePattern = map[string]*regexp.Regexp{
 	// OSCAL: AC-2, AC-2(3), SA-11(8) — 2 uppercase letters + hyphen + 1-2 digits + optional parens.
 	// \b doesn't work after ')' since ')' is not a word char; use lookahead-free trailing boundary.
 	"oscal-catalog": regexp.MustCompile(`\b([A-Z]{2}-\d{1,2}(?:\(\d+\))?)(?:\b|$|[^A-Za-z0-9(])`),
-	// CCM: AIS-01, DSP-17, IAM-04 — 2-4 uppercase letters + hyphen + 2 digits.
-	"ccm-workbook": regexp.MustCompile(`\b([A-Z]{2,4}-\d{2})\b`),
+	// CCM: AIS-01, DSP-17, IAM-04, A&A-01, I&S-05 — 2-5 uppercase letters
+	// (with optional ampersand for A&A, I&S domains) + hyphen + 2 digits.
+	"ccm-workbook": regexp.MustCompile(`\b([A-Z][A-Z&]{1,4}-\d{2})\b`),
 	// TSC: CC6.1, CC7.2, A1.1, PI1.1.
 	"tsc-criteria": regexp.MustCompile(`\b((?:CC|A|PI|P|C)\d+\.\d+)\b`),
 	// PCI: "Req 8.3.6", "1.2.1", "12.3.4".
