@@ -17,6 +17,10 @@ import (
 	dbsilver "danny.vn/compliary/pkg/store/silver"
 )
 
+// Embedder is re-exported from the embed package for use by callers that only
+// import the index package.
+type Embedder = embed.Embedder
+
 // Summary holds the result counters from an index run.
 type Summary struct {
 	ChunksCreated    int
@@ -26,16 +30,11 @@ type Summary struct {
 
 // GoldQuerier is the subset of dbgold.Querier needed by the indexer.
 type GoldQuerier interface {
+	DeleteOrphanChunks(ctx context.Context) (int64, error)
 	InsertChunk(ctx context.Context, arg dbgold.InsertChunkParams) (int64, error)
 	DeleteChunksForControls(ctx context.Context, dollar_1 []int64) (int64, error)
 	ListChunksMissingEmbedding(ctx context.Context, model string) ([]dbgold.ListChunksMissingEmbeddingRow, error)
 	UpsertChunkEmbedding(ctx context.Context, arg dbgold.UpsertChunkEmbeddingParams) error
-}
-
-// SilverQuerier is the subset of dbsilver.Querier needed by the indexer.
-type SilverQuerier interface {
-	ListDocuments(ctx context.Context) ([]dbsilver.SilverDocument, error)
-	ListControlsForDocument(ctx context.Context, documentID int64) ([]dbsilver.SilverControl, error)
 }
 
 // Indexer builds gold chunks from silver controls and embeds them.
@@ -44,6 +43,20 @@ type Indexer struct {
 	Log      *slog.Logger
 	// BatchSize is the number of texts to embed in one call (default 32).
 	BatchSize int
+}
+
+// ReapOrphans deletes gold.chunk rows whose control_id no longer exists in
+// silver.control. Should be called at the start of each index run to clean up
+// after re-normalize (which rebuilds control trees with new IDs).
+func (idx *Indexer) ReapOrphans(ctx context.Context, goldQ GoldQuerier) (int64, error) {
+	reaped, err := goldQ.DeleteOrphanChunks(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("reap orphan chunks: %w", err)
+	}
+	if reaped > 0 {
+		idx.Log.Info("index: reaped orphan chunks", "count", reaped)
+	}
+	return reaped, nil
 }
 
 // BuildChunks creates one gold.chunk per silver.control for the given document,

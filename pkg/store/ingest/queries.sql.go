@@ -314,9 +314,11 @@ func (q *Queries) MarkIndexed(ctx context.Context, id int64) error {
 }
 
 const markNormalized = `-- name: MarkNormalized :exec
-UPDATE ingest.manifest_file SET normalized_at = now(), stage_error = '', updated_at = now() WHERE id = $1
+UPDATE ingest.manifest_file SET normalized_at = now(), indexed_at = NULL, stage_error = '', updated_at = now() WHERE id = $1
 `
 
+// A rebuilt control tree invalidates existing chunks, so NULL indexed_at to
+// force re-indexing on the next pipeline run.
 func (q *Queries) MarkNormalized(ctx context.Context, id int64) error {
 	_, err := q.db.Exec(ctx, markNormalized, id)
 	return err

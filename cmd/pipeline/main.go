@@ -242,18 +242,24 @@ func runNormalize(ctx context.Context, pool poolWrapper, log *slog.Logger) error
 }
 
 // defaultONNXModelDir returns ~/.cache/banhmi/qwen3-embedding — the shared
-// default model directory (same model assets as banhmi).
-func defaultONNXModelDir() string {
+// default model directory (same model assets as banhmi). Returns an error if
+// the user home directory cannot be determined.
+func defaultONNXModelDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("cannot determine home directory: %w", err)
 	}
-	return filepath.Join(home, ".cache", "banhmi", "qwen3-embedding")
+	return filepath.Join(home, ".cache", "banhmi", "qwen3-embedding"), nil
 }
 
-func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
-	// Resolve ONNX model paths.
-	modelDir := defaultONNXModelDir()
+// initONNXEmbedder lazily creates the ONNX embedder. Called only when
+// embeddings are actually needed (after chunk building), so chunk building
+// works without -tags onnx.
+func initONNXEmbedder(log *slog.Logger) (ragindex.Embedder, error) {
+	modelDir, err := defaultONNXModelDir()
+	if err != nil {
+		return nil, err
+	}
 	modelPath := os.Getenv("COMPLIARY_ONNX_MODEL")
 	if modelPath == "" {
 		modelPath = filepath.Join(modelDir, "model_fp16.onnx")
@@ -266,10 +272,10 @@ func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
 
 	// Verify model assets exist before proceeding.
 	if _, err := os.Stat(modelPath); err != nil {
-		return fmt.Errorf("index: ONNX model not found at %s — set COMPLIARY_ONNX_MODEL or place model at default path", modelPath)
+		return nil, fmt.Errorf("ONNX model not found at %s — set COMPLIARY_ONNX_MODEL or place model at default path", modelPath)
 	}
 	if _, err := os.Stat(tokPath); err != nil {
-		return fmt.Errorf("index: ONNX tokenizer not found at %s — set COMPLIARY_ONNX_TOKENIZER or place tokenizer at default path", tokPath)
+		return nil, fmt.Errorf("ONNX tokenizer not found at %s — set COMPLIARY_ONNX_TOKENIZER or place tokenizer at default path", tokPath)
 	}
 	log.Info("index: ONNX model", "model", modelPath, "tokenizer", tokPath)
 
@@ -279,9 +285,12 @@ func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
 		LibPath:       libPath,
 	})
 	if err != nil {
-		return fmt.Errorf("index: init ONNX embedder: %w", err)
+		return nil, fmt.Errorf("init ONNX embedder: %w", err)
 	}
+	return embedder, nil
+}
 
+func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
 	// List files eligible for indexing (normalized but not yet indexed).
 	ingQ := dbingest.New(pool)
 	files, err := ingQ.ListFilesToIndex(ctx)
@@ -297,10 +306,17 @@ func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
 
 	silverQ := dbsilver.New(pool)
 	goldQ := dbgold.New(pool)
+
+	// Chunk building needs no embedder — defer ONNX init to embed phase.
 	idx := &ragindex.Indexer{
-		Embedder:  embedder,
 		Log:       log,
 		BatchSize: 32,
+	}
+
+	// Reap orphan chunks whose control_id no longer exists in silver.
+	if _, err := idx.ReapOrphans(ctx, goldQ); err != nil {
+		log.Error("index: reap orphans", "err", err)
+		return fmt.Errorf("index: reap orphans: %w", err)
 	}
 
 	var totalChunks, totalEmbeddings int
@@ -309,6 +325,9 @@ func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
 	for _, f := range files {
 		fc := *f.FrameworkCode
 		vl := *f.VersionLabel
+
+		// Per-file error flag — MarkIndexed only on full success.
+		fileErrored := false
 
 		// Find the silver document for this file.
 		docs, err := silverQ.ListDocumentsForVersion(ctx, dbsilver.ListDocumentsForVersionParams{
@@ -333,6 +352,7 @@ func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
 			if err != nil {
 				log.Error("index: list controls", "doc", doc.DocKey, "err", err)
 				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{ID: f.ID, StageError: "index: " + err.Error()})
+				fileErrored = true
 				hasError = true
 				continue
 			}
@@ -345,6 +365,7 @@ func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
 			if err != nil {
 				log.Error("index: build chunks", "doc", doc.DocKey, "err", err)
 				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{ID: f.ID, StageError: "index: " + err.Error()})
+				fileErrored = true
 				hasError = true
 				continue
 			}
@@ -352,20 +373,30 @@ func runIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
 			log.Info("index: chunks built", "doc", doc.DocKey, "chunks", created)
 		}
 
-		// Mark this file as indexed (chunks built); embeddings follow.
+		// Mark indexed only when every document for this file succeeded.
+		if fileErrored {
+			continue
+		}
 		if err := ingQ.MarkIndexed(ctx, f.ID); err != nil {
 			log.Error("index: mark indexed", "file", f.RelPath, "err", err)
 			hasError = true
 		}
 	}
 
-	// Embed all chunks missing embeddings (across all documents).
-	embedded, err := idx.EmbedMissing(ctx, goldQ)
+	// Lazily init the ONNX embedder — only needed for the embed phase.
+	embedder, err := initONNXEmbedder(log)
 	if err != nil {
-		log.Error("index: embed", "err", err)
+		log.Error("index: embedder init deferred", "err", err)
 		hasError = true
+	} else {
+		idx.Embedder = embedder
+		embedded, err := idx.EmbedMissing(ctx, goldQ)
+		if err != nil {
+			log.Error("index: embed", "err", err)
+			hasError = true
+		}
+		totalEmbeddings += embedded
 	}
-	totalEmbeddings += embedded
 
 	log.Info("index complete",
 		"chunks_created", totalChunks,

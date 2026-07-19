@@ -19,6 +19,8 @@ type Querier interface {
 	ListUnrecognizedManifestFiles(ctx context.Context) ([]IngestManifestFile, error)
 	MarkExtracted(ctx context.Context, id int64) error
 	MarkIndexed(ctx context.Context, id int64) error
+	// A rebuilt control tree invalidates existing chunks, so NULL indexed_at to
+	// force re-indexing on the next pipeline run.
 	MarkNormalized(ctx context.Context, id int64) error
 	SetStageError(ctx context.Context, arg SetStageErrorParams) error
 	// Manifest scan. The upsert preserves per-stage state when the sha256 is

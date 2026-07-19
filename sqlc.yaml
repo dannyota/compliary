@@ -110,7 +110,9 @@ sql:
         overrides: *overrides
 
   - engine: "postgresql"
-    schema: "sql/gold/schema.sql"
+    schema:
+      - "sql/gold/schema.sql"
+      - "sql/silver/schema.sql"
     queries: "sql/gold/queries.sql"
     gen:
       go:

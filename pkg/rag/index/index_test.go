@@ -38,17 +38,31 @@ func (f *fakeEmbedder) Embed(_ context.Context, texts []string) ([][]float32, er
 
 // fakeGoldStore implements GoldQuerier in memory.
 type fakeGoldStore struct {
-	chunks     map[int64]dbgold.GoldChunk // id -> chunk
-	embeddings map[int64]dbgold.UpsertChunkEmbeddingParams
-	nextID     int64
+	chunks          map[int64]dbgold.GoldChunk // id -> chunk
+	embeddings      map[int64]dbgold.UpsertChunkEmbeddingParams
+	nextID          int64
+	validControlIDs map[int64]bool // set of control IDs that exist in "silver"
 }
 
 func newFakeGoldStore() *fakeGoldStore {
 	return &fakeGoldStore{
-		chunks:     make(map[int64]dbgold.GoldChunk),
-		embeddings: make(map[int64]dbgold.UpsertChunkEmbeddingParams),
-		nextID:     1,
+		chunks:          make(map[int64]dbgold.GoldChunk),
+		embeddings:      make(map[int64]dbgold.UpsertChunkEmbeddingParams),
+		nextID:          1,
+		validControlIDs: make(map[int64]bool),
 	}
+}
+
+func (s *fakeGoldStore) DeleteOrphanChunks(_ context.Context) (int64, error) {
+	var reaped int64
+	for chunkID, chunk := range s.chunks {
+		if !s.validControlIDs[chunk.ControlID] {
+			delete(s.chunks, chunkID)
+			delete(s.embeddings, chunkID)
+			reaped++
+		}
+	}
+	return reaped, nil
 }
 
 func (s *fakeGoldStore) InsertChunk(_ context.Context, arg dbgold.InsertChunkParams) (int64, error) {
@@ -63,6 +77,7 @@ func (s *fakeGoldStore) InsertChunk(_ context.Context, arg dbgold.InsertChunkPar
 		Ordinal:       arg.Ordinal,
 		TokenCount:    arg.TokenCount,
 	}
+	s.validControlIDs[arg.ControlID] = true
 	return id, nil
 }
 
@@ -421,5 +436,75 @@ func TestBuildContent_withBody(t *testing.T) {
 	content := buildContent(ctrl)
 	if content != "AC-1 Policy\nThe body." {
 		t.Errorf("content = %q", content)
+	}
+}
+
+func TestReapOrphans_deletesDanglingChunks(t *testing.T) {
+	store := newFakeGoldStore()
+	idx := &Indexer{Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))}
+
+	// Manually insert chunks: control_id=1 is valid, control_id=999 is orphan.
+	store.validControlIDs[1] = true
+	store.chunks[1] = dbgold.GoldChunk{ID: 1, ControlID: 1, Citation: "AC-1", Content: "ok"}
+	store.chunks[2] = dbgold.GoldChunk{ID: 2, ControlID: 999, Citation: "ORPHAN", Content: "dangling"}
+	store.chunks[3] = dbgold.GoldChunk{ID: 3, ControlID: 999, Citation: "ORPHAN2", Content: "also dangling"}
+
+	reaped, err := idx.ReapOrphans(context.Background(), store)
+	if err != nil {
+		t.Fatalf("ReapOrphans: %v", err)
+	}
+	if reaped != 2 {
+		t.Errorf("reaped = %d, want 2", reaped)
+	}
+	if len(store.chunks) != 1 {
+		t.Errorf("remaining chunks = %d, want 1", len(store.chunks))
+	}
+	if _, ok := store.chunks[1]; !ok {
+		t.Error("valid chunk (id=1) was incorrectly reaped")
+	}
+}
+
+func TestReapOrphans_noOrphans(t *testing.T) {
+	store := newFakeGoldStore()
+	idx := &Indexer{Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))}
+
+	store.validControlIDs[1] = true
+	store.chunks[1] = dbgold.GoldChunk{ID: 1, ControlID: 1, Citation: "AC-1", Content: "ok"}
+
+	reaped, err := idx.ReapOrphans(context.Background(), store)
+	if err != nil {
+		t.Fatalf("ReapOrphans: %v", err)
+	}
+	if reaped != 0 {
+		t.Errorf("reaped = %d, want 0", reaped)
+	}
+}
+
+func TestBuildChunks_worksWithoutEmbedder(t *testing.T) {
+	doc, controls := makeTestTree()
+	store := newFakeGoldStore()
+	// Indexer with nil Embedder — chunk building must still work.
+	idx := &Indexer{Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))}
+
+	created, err := idx.BuildChunks(context.Background(), doc, controls, store)
+	if err != nil {
+		t.Fatalf("BuildChunks without embedder: %v", err)
+	}
+	if created != len(controls) {
+		t.Errorf("created = %d, want %d", created, len(controls))
+	}
+}
+
+func TestEmbedMissing_nilEmbedderReturnsError(t *testing.T) {
+	store := newFakeGoldStore()
+	store.chunks[1] = dbgold.GoldChunk{ID: 1, ControlID: 1, Content: "text"}
+	idx := &Indexer{Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))}
+
+	_, err := idx.EmbedMissing(context.Background(), store)
+	if err == nil {
+		t.Fatal("expected error for nil embedder, got nil")
+	}
+	if !strings.Contains(err.Error(), "no embedder") {
+		t.Errorf("error = %q, want to contain 'no embedder'", err.Error())
 	}
 }
