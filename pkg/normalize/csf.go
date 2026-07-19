@@ -434,14 +434,13 @@ func buildCSFControlTree(parsed []csfParsedRow, frameworkCode, versionLabel stri
 		}
 		result.RefSkips = skips
 
-		for i, pr := range parsed {
+		for _, pr := range parsed {
 			if pr.ColE == "" {
 				continue
 			}
 			idx := idToIdx[pr.ID]
 			sheetRow := pr.SheetRow
 			parseCSFReferences(pr.ColE, idx, sheetRow, refMap, result, skips)
-			_ = i
 		}
 	}
 
