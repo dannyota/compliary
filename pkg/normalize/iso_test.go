@@ -17,43 +17,43 @@ const syntheticISO27001 = `{
   "pages": [
     {
       "n": 1,
-      "text": "ISO/IEC 27001:2022(E)\nForeword\nThis document was prepared by Joint Technical Committee.\n"
+      "text": "ISO/IEC 27001:2022(E)\nForeword\nInvented foreword paragraph about the fictional committee.\n"
     },
     {
       "n": 5,
-      "text": "4 Context of the organization\nThe organization shall determine external and internal issues.\n4.1 Understanding the organization and its context\nThe organization shall determine relevant issues.\n4.2 Understanding the needs and expectations\nThe organization shall determine interested parties.\n"
+      "text": "4 Invented organizational scoping\nInvented requirement about scoping the fictional system.\n4.1 Invented scope determination\nInvented requirement about determining scope boundaries.\n4.2 Invented stakeholder analysis\nInvented requirement about analysing fictional stakeholders.\n"
     },
     {
       "n": 6,
-      "text": "5 Leadership\nTop management shall demonstrate leadership.\n5.1 Leadership and commitment\nTop management shall demonstrate commitment to the ISMS.\n5.2 Policy\nTop management shall establish an information security policy.\n5.3 Organizational roles and responsibilities\nTop management shall ensure responsibilities are assigned.\n"
+      "text": "5 Invented governance direction\nInvented requirement about governance oversight.\n5.1 Invented oversight requirement\nInvented requirement about executive oversight of the fictional system.\n5.2 Invented strategic direction\nInvented requirement about fictional strategic direction setting.\n5.3 Invented role allocation\nInvented requirement about assigning fictional roles.\n"
     },
     {
       "n": 7,
-      "text": "6 Planning\nThe organization shall plan actions.\n6.1 Actions to address risks and opportunities\nThe organization shall determine risks and opportunities.\n6.1.1 General\nWhen planning, the organization shall consider the issues.\n6.1.2 Information security risk assessment\nThe organization shall define a risk assessment process.\n"
+      "text": "6 Invented preparatory activities\nInvented requirement about preparatory measures.\n6.1 Invented risk-opportunity handling\nInvented requirement about identifying fictional risks.\n6.1.1 Invented general provisions\nInvented requirement about general fictional considerations.\n6.1.2 Invented threat evaluation\nInvented requirement about evaluating fictional threats.\n"
     },
     {
       "n": 8,
-      "text": "7 Support\nThe organization shall determine resources.\n"
+      "text": "7 Invented enablement resources\nInvented requirement about fictional resource allocation.\n"
     },
     {
       "n": 9,
-      "text": "8 Operation\nThe organization shall plan, implement and control processes.\n"
+      "text": "8 Invented execution controls\nInvented requirement about executing fictional processes.\n"
     },
     {
       "n": 10,
-      "text": "9 Performance evaluation\nThe organization shall monitor, measure, analyze and evaluate.\n"
+      "text": "9 Invented measurement activities\nInvented requirement about measuring fictional outcomes.\n"
     },
     {
       "n": 11,
-      "text": "10 Improvement\nThe organization shall continually improve.\n"
+      "text": "10 Invented enhancement cycle\nInvented requirement about fictional continual enhancement.\n"
     },
     {
       "n": 17,
-      "text": "ISO/IEC 27001:2022(E)\nAnnex A\n(normative)\nTable A.1\n5 Organizational controls\n5.1 Invented policies requirement Invented control text for organizational policy.\n5.2 Invented information security roles Invented control text for roles.\n6 People controls\n6.1 Invented screening Invented control text for screening.\nTable A.1 (continued) Table A.1 (continued)\n"
+      "text": "ISO/IEC 27001:2022(E)\nAnnex A\n(normative)\nTable A.1\n5 Invented governance safeguards\n5.1 Invented directive review Invented control about reviewing fictional directives.\n5.2 Invented duty assignments Invented control about assigning fictional duties.\n6 Invented workforce safeguards\n6.1 Invented vetting process Invented control about fictional vetting.\nTable A.1 (continued) Table A.1 (continued)\n"
     },
     {
       "n": 18,
-      "text": "ISO/IEC 27001:2022(E)\n7 Physical controls\n7.1 Invented physical security Invented control text for physical security.\n8 Technological controls\n8.1 Invented user endpoint devices Invented control text for endpoints.\n8.2 Invented privileged access Invented control text for access.\nTable A.1 (continued) Table A.1 (continued)\n"
+      "text": "ISO/IEC 27001:2022(E)\n7 Invented premises safeguards\n7.1 Invented boundary measures Invented control about fictional boundary protections.\n8 Invented technical safeguards\n8.1 Invented device hardening Invented control about fictional device hardening.\n8.2 Invented elevated privileges Invented control about fictional privilege restrictions.\nTable A.1 (continued) Table A.1 (continued)\n"
     }
   ]
 }`
@@ -210,19 +210,19 @@ const syntheticISO27002 = `{
     },
     {
       "n": 19,
-      "text": "5 Organizational controls\nThis clause contains organizational control measures.\n5.1 Invented policies for information security\nInvented implementation guidance for policies.\n5.2 Invented information security roles and responsibilities\nInvented guidance for roles.\n"
+      "text": "5 Invented governance safeguards\nInvented clause about governance-level safeguard measures.\n5.1 Invented directive management\nInvented guidance about managing fictional directives.\n5.2 Invented duty segregation\nInvented guidance about segregating fictional duties.\n"
     },
     {
       "n": 50,
-      "text": "6 People controls\nThis clause contains people control measures.\n6.1 Invented screening controls\nInvented guidance for screening.\n"
+      "text": "6 Invented workforce safeguards\nInvented clause about workforce-level safeguard measures.\n6.1 Invented candidate vetting\nInvented guidance about vetting fictional candidates.\n"
     },
     {
       "n": 100,
-      "text": "7 Physical controls\nThis clause contains physical control measures.\n7.1 Invented physical security perimeters\nInvented guidance for perimeters.\n"
+      "text": "7 Invented premises safeguards\nInvented clause about premises-level safeguard measures.\n7.1 Invented boundary zones\nInvented guidance about fictional boundary zones.\n"
     },
     {
       "n": 130,
-      "text": "8 Technological controls\nThis clause contains technological control measures.\n8.1 Invented user endpoint devices\nInvented guidance for endpoints.\n8.2 Invented privileged access rights\nInvented guidance for access.\n"
+      "text": "8 Invented technical safeguards\nInvented clause about technology-level safeguard measures.\n8.1 Invented device hardening\nInvented guidance about fictional device hardening.\n8.2 Invented elevated privileges\nInvented guidance about restricting fictional elevated privileges.\n"
     }
   ]
 }`
@@ -310,15 +310,15 @@ const syntheticISO27017 = `{
     },
     {
       "n": 16,
-      "text": "5 Information security policies\n5.1 Management direction for information security\nThe objective specified in clause 5.1 applies.\n5.1.1 Invented policies for information security\nInvented implementation guidance for cloud policies.\n5.1.2 Invented review of the policies\nInvented guidance for cloud policy review.\n"
+      "text": "5 Invented directive frameworks\n5.1 Invented executive guidance\nInvented objective reference sentence about fictional directives.\n5.1.1 Invented directive catalogue\nInvented cloud-specific guidance about fictional directive catalogues.\n5.1.2 Invented directive review cycle\nInvented cloud-specific guidance about fictional review cycles.\n"
     },
     {
       "n": 20,
-      "text": "6 Organization of information security\n6.1 Internal organization\nThe objective specified in clause 6.1 applies.\n6.1.1 Invented information security roles\nInvented cloud guidance for roles.\n"
+      "text": "6 Invented structural arrangements\n6.1 Invented internal structuring\nInvented objective reference sentence about fictional structure.\n6.1.1 Invented duty assignments\nInvented cloud-specific guidance about fictional duty assignments.\n"
     },
     {
       "n": 37,
-      "text": "CLD.6.3 Invented relationship between CSC and CSP\nInvented cloud-specific section.\nCLD.6.3.1 Invented shared roles in cloud\nInvented cloud control for shared roles.\nCLD.8.1 Invented responsibility for assets\nInvented cloud-specific asset section.\nCLD.8.1.5 Invented removal of cloud customer assets\nInvented cloud control for asset removal.\n"
+      "text": "CLD.6.3 Invented tenant-provider coordination\nInvented cloud-specific section about fictional coordination.\nCLD.6.3.1 Invented shared duties in fictional cloud\nInvented cloud control about shared fictional duties.\nCLD.8.1 Invented asset stewardship\nInvented cloud-specific section about fictional asset stewardship.\nCLD.8.1.5 Invented tenant asset retrieval\nInvented cloud control about retrieving fictional tenant assets.\n"
     }
   ]
 }`
@@ -411,11 +411,11 @@ const syntheticISO27018 = `{
     },
     {
       "n": 10,
-      "text": "5 Information security policies\n5.1 Management direction for information security\nThe objective applies.\n5.1.1 Invented policies for information security\nInvented PII guidance for policies.\n"
+      "text": "5 Invented directive frameworks\n5.1 Invented executive guidance\nInvented objective reference about fictional directives.\n5.1.1 Invented directive catalogue\nInvented fictional guidance about data-subject directives.\n"
     },
     {
       "n": 25,
-      "text": "A.2.1 Invented obligation to co-operate regarding PII\nInvented PII Annex control text.\nA.3.1 Invented public cloud PII processor purpose\nInvented PII processor control text.\nA.3.2 Invented commercial use restriction\nInvented restriction control text.\n"
+      "text": "A.2.1 Invented data-subject cooperation\nInvented annex control about fictional cooperation.\nA.3.1 Invented processor purpose limitation\nInvented annex control about fictional purpose limitation.\nA.3.2 Invented commercial restriction\nInvented annex control about fictional commercial restrictions.\n"
     }
   ]
 }`

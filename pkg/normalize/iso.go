@@ -45,6 +45,9 @@ var reISO27018Annex = regexp.MustCompile(`^(A\.\d+\.\d+)\s`)
 // reISOCLD matches CLD.x.y[.z] cloud control IDs in 27017.
 var reISOCLD = regexp.MustCompile(`^(CLD\.\d+\.\d+(?:\.\d+)?)\s`)
 
+// reISOBarePageNum matches bare page numbers (digits only) for skip-line filtering.
+var reISOBarePageNum = regexp.MustCompile(`^\d+$`)
+
 // --- 27001 (iso-ams scheme) ---
 
 // BuildISO27001Tree parses a pdf-pages-json capture for ISO/IEC 27001:2022
@@ -68,6 +71,7 @@ func BuildISO27001Tree(raw json.RawMessage, frameworkCode, versionLabel string) 
 		return nil, fmt.Errorf("no pages in capture")
 	}
 
+	// TODO: parameterize the title prefix when 27701/22301/42001 land on iso-ams.
 	result := &TreeResult{
 		Title: "ISO/IEC 27001 " + versionLabel,
 	}
@@ -388,7 +392,7 @@ func isISO27001SkipLine(line string) bool {
 		return true
 	}
 	// Page numbers at the end of lines.
-	if matched, _ := regexp.MatchString(`^\d+$`, line); matched {
+	if reISOBarePageNum.MatchString(line) {
 		return true
 	}
 	// Table-of-contents lines.
@@ -409,7 +413,7 @@ func isISO27001AnnexSkipLine(line string) bool {
 	if strings.HasPrefix(line, "Table A.1") {
 		return true
 	}
-	if matched, _ := regexp.MatchString(`^\d+$`, line); matched {
+	if reISOBarePageNum.MatchString(line) {
 		return true
 	}
 	return false
@@ -620,6 +624,9 @@ func parseISO27002Controls(pages []isoPage) (controls []isoControlItem, domains 
 }
 
 // buildISO27017Tree parses 27017:2015 — 27002:2013-keyed sections + CLD controls.
+// Inclusion rule: ALL numbered sections get rows (they are citable); sections
+// that merely reference 27002 get a row with that reference body; sections with
+// cloud-specific additions get their full guidance body.
 func buildISO27017Tree(cap isoCapture, versionLabel string) (*TreeResult, error) {
 	result := &TreeResult{
 		Title: "ISO/IEC 27017 " + versionLabel,
@@ -801,6 +808,9 @@ func parseISO27017Sections(pages []isoPage) (sections []isoControlItem, cldItems
 }
 
 // buildISO27018Tree parses 27018:2019 — 27002:2013-keyed sections + Annex A PII controls.
+// Inclusion rule: ALL numbered sections get rows (they are citable); sections
+// that merely reference 27002 get a row with that reference body; sections with
+// PII-specific additions get their full guidance body.
 func buildISO27018Tree(cap isoCapture, versionLabel string) (*TreeResult, error) {
 	result := &TreeResult{
 		Title: "ISO/IEC 27018 " + versionLabel,
@@ -989,7 +999,7 @@ func isISOControlCatalogSkipLine(line string) bool {
 		return true
 	}
 	// Bare page numbers.
-	if matched, _ := regexp.MatchString(`^\d+$`, line); matched {
+	if reISOBarePageNum.MatchString(line) {
 		return true
 	}
 	// Table-of-contents lines: heading followed by dots and page number.
