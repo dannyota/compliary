@@ -87,7 +87,9 @@ mappings, Secure Controls Framework (license check needed before use).
 ### v0.1.0 — fetch, corpus, serve (single scope)
 
 1. **M0 — repo bootstrap** — CLAUDE.md, PLAN.md, git + signing. **DONE 2026-07-19.**
-2. **M1 — `cmd/fetch` (one-shot downloader)** — prompt operator info once (name, title, company,
+2. **M1 — `cmd/fetch` (one-shot downloader)** — **DONE 2026-07-19** (validated live: 4 NIST files
+   downloaded, PCI DSS v4.0.1 fetched via accepted license, CIS form submitted with email-link
+   marker for idempotency). Spec: prompt operator info once (name, title, company,
    country, email), cache in **gitignored `.env`** (real identity — never commit); one run downloads
    everything automatable into `data/`: **NIST** direct; **PCI SSC / CIS** by filling the publisher
    form/click-through with the operator's identity — the operator is the accepting party. **Any
