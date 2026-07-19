@@ -99,10 +99,13 @@ Design settled in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) +
 [`docs/design/SCHEMA.md`](docs/design/SCHEMA.md); M0 (bootstrap) and M1 (`cmd/fetch`) done — see
 milestone history.
 
-1. **M2 — parse** (in progress; schema layer landed, parsers next):
-   ~~`sql/` schemas + migrations → seed CSVs (registry)~~ done — manifest scanner → parsers in
-   the SCHEMA.md order (NIST OSCAL first); bronze → silver → gold; golden-count gates; real rows
-   measured.
+1. **M2 — parse** (in progress; manifest/extract/normalize landed for 800-53 r5, XLSX/PDF parsers
+   next): ~~schema layer~~ done — ~~manifest scanner~~ done (26 files: 23 matched / 3 ignored via
+   `config.file_rule`) — ~~OSCAL extract~~ done — ~~NIST 800-53 r5 normalize~~ done (20 families,
+   324 controls, 872 enhancements = 1216 silver rows; 182 withdrawn; 200 publisher-catalog mapping
+   edges — 166 incorporated-into + 34 moved-to; golden-count tests pinned; validated on real rows).
+   **Next:** CSF 2.0 XLSX parser → remaining XLSX/PDF parsers per SCHEMA.md order; then Index +
+   LexIndex.
 2. **M3 — MCP evidence service** — `guide`, `corpus_status`, `quality_gaps`, `search`, `document`;
    citation-keyed golden set + eval gate with baseline floors.
 3. **M4 — deploy maintainer instance** — `compliary.danny.vn`: public landing, **authenticated
@@ -149,3 +152,11 @@ patch — new documents always cut v0.2.0+.
   `silver`/`gold`) + sqlc stores, Atlas→goose migrations, seeded registry (15 frameworks /
   28 versions / 12 control kinds / 5 mapping sources) validated against local Postgres;
   `cmd/migrate` + `cmd/seed`, Makefile, `deploy/compose/compliary.yaml`.
+- **2026-07-19** — **M2 manifest + extract + normalize (NIST SP 800-53 r5).** `config.file_rule`
+  registry (26 rules) seeded; manifest scanner classifies all 26 `data/` files (23 matched /
+  3 ignored). OSCAL JSON extract into `bronze.source_file` with file_rule-sourced license provenance
+  + `serve_gate`. NIST 800-53 r5 normalized to silver: 20 families, 324 controls,
+  872 enhancements = 1216 rows; 182 withdrawn; 200 publisher-catalog mapping edges (166
+  incorporated-into + 34 moved-to) resolved via `ResolveControlMappings`; golden-count tests
+  pinned; idempotent delete-and-rebuild. `cmd/pipeline` + `pkg/manifest` + `pkg/extract` +
+  `pkg/normalize` landed. XLSX/PDF extractors deferred (next parser wave: CSF 2.0 XLSX).

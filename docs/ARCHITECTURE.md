@@ -57,10 +57,15 @@ Full model in [`design/SCHEMA.md`](design/SCHEMA.md).
 ## Pipeline
 
 `cmd/pipeline` with direct stage calls (no orchestrator), reusing banhmi's stage shape minus
-crawling. Stages: **Manifest** (scan `data/`, hash, diff against `ingest`) → **Extract** (per file:
-OSCAL JSON / XLSX / PDF via go-fitz) → **Normalize** (per framework version: control tree, citations,
-version + mapping relations) → **Index** (chunks + embeddings; bulk embed on Kaggle T4 like banhmi)
-→ **LexIndex** (BM25 sparse vectors).
+crawling. Stages: **Manifest** (scan `data/`, hash, classify via `config.file_rule`, diff against
+`ingest`) → **Extract** (per file: OSCAL JSON / XLSX / PDF via go-fitz) → **Normalize** (per
+framework version: control tree, citations, version + mapping relations) → **Index** (chunks +
+embeddings; bulk embed on Kaggle T4 like banhmi) → **LexIndex** (BM25 sparse vectors).
+
+**Landed:** Manifest (all 26 corpus files classified — 23 matched / 3 ignored), Extract (OSCAL JSON),
+Normalize (NIST SP 800-53 r5: 20 families, 324 controls, 872 enhancements, 182 withdrawn,
+200 publisher-catalog mapping edges — validated on real rows). **Next:** XLSX/PDF extractors (CSF,
+CIS, CCM parsers), then Index/LexIndex.
 
 ```mermaid
 graph LR
@@ -89,27 +94,27 @@ stdio for local clients, Streamable HTTP for the deployed instance; evidence log
 packages, not surfaces. **Maintainer instance (`compliary.danny.vn/mcp`) requires auth** —
 licensed text is never served publicly (mechanism decided at M4; see PLAN.md open decisions).
 
-## Repository layout (target)
+## Repository layout
 
 ```text
 compliary/
 ├── cmd/
 │   ├── fetch/             # one-shot corpus downloader
 │   ├── pipeline/          # manifest/extract/normalize/index/lexindex stages
-│   ├── mcp/               # MCP server (stdio)
-│   ├── server/            # Streamable-HTTP /mcp (deployed surface)
+│   ├── mcp/               # MCP server (stdio)              [target]
+│   ├── server/            # Streamable-HTTP /mcp             [target]
 │   ├── migrate/           # DB migrations
 │   ├── seed/              # load config registry from deploy/seed/*.csv
-│   └── eval/              # retrieval eval (recall@k/MRR@k), no LLM
+│   └── eval/              # retrieval eval (recall@k/MRR@k)  [target]
 ├── pkg/
 │   ├── base/              # config, db, log
 │   ├── fetch/             # per-publisher fetchers
 │   ├── operator/          # operator identity (.env)
-│   ├── manifest/          # data/ scanner + registry matcher
-│   ├── extract/           # OSCAL / XLSX / PDF extractors (go-fitz; no OCR)
-│   ├── normalize/         # per-framework structure parsers → silver
-│   ├── rag/               # embed, hybrid retrieve
-│   ├── mcp/               # MCP tools over the shared query core
+│   ├── manifest/          # data/ scanner + file_rule matcher
+│   ├── extract/           # OSCAL JSON extractor (XLSX/PDF: target)
+│   ├── normalize/         # NIST 800-53 parser → silver (more parsers: target)
+│   ├── rag/               # embed, hybrid retrieve            [target]
+│   ├── mcp/               # MCP tools over the shared query core [target]
 │   └── store/             # generated sqlc (do not hand-edit)
 ├── sql/                   # sqlc schema.sql + queries.sql per schema
 ├── deploy/                # migrations, seed CSVs, Containerfiles
