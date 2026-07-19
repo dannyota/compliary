@@ -217,10 +217,11 @@ patch — new documents always cut v0.2.0+.
   (3402 chunks, 3402 embeddings, 3402 BM25 sparse vectors). Hybrid retriever (`pkg/rag/retrieve`):
   RRF fusion (dense cosine exact scan + BM25 sparsevec), version filters via
   `config.framework_version.is_current`, citation-shaped query routing (10 scheme regexes, direct
-  `citation_norm` lookup with pinned hits), non-current version pass. Constants: top_k=8,
-  vector_k=100, bm25_k=100, rrf_k=60, doc_cap=0. Dropped from banhmi: VN diacritics, rollup,
-  section-aggregate, HNSW, abbreviation expansion, identifier scope. First accepted baseline
-  (hybrid, ONNX Qwen3 query-time, 50 queries): **recall@8 57.8%, MRR@8 32.3%, current-version
-  100%, abstention 90%**. Eval floors: recall 0.55, MRR 0.30, current 0.98, abstain 0.88. Known
+  `citation_norm` lookup with pinned hits), non-current version pass, status='active' filter on
+  both arms (excludes 273 withdrawn controls). Tuned constants (v2): top_k=8, vector_k=50,
+  bm25_k=50, rrf_k=20, lex_weight=0.5, doc_cap=0. Dropped from banhmi: VN diacritics, rollup,
+  section-aggregate, HNSW, abbreviation expansion, identifier scope. Tuned baseline v2
+  (hybrid, ONNX Qwen3 query-time, 50 queries): **recall@8 57.8%, MRR@8 34.1%, current-version
+  100%, abstention 90%**. Eval floors: recall 0.55, MRR 0.32, current 0.98, abstain 0.88. Known
   gaps: no score-floor abstention (5 OOS cases return hits), short-chunk frameworks (ISO/SOC2/PCI)
-  weak in both arms. Tuning is eval-driven follow-up.
+  weak in both arms. Ancestor-title content enrichment tried and reverted (net-negative).

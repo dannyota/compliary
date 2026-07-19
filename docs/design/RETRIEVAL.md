@@ -10,7 +10,7 @@ Schema in [`SCHEMA.md`](SCHEMA.md); pipeline + stack in [`../ARCHITECTURE.md`](.
   ~2 ms; re-evaluate at 10k+).
 - **Sparse arm:** BM25 `sparsevec` (2^20 hashing trick), English citation-aware tokenizer
   (lowercase + alnum split; citation tokens like `AC-2(3)`, `A&A`, `I&S` kept intact).
-- **Fusion:** RRF (`rrf_k=60`); top_k=8, vector_k=100, bm25_k=100, doc_cap=0.
+- **Fusion:** RRF (`rrf_k=20`, `lex_weight=0.5`); top_k=8, vector_k=50, bm25_k=50, doc_cap=0.
 - **Version filter:** default `is_current` only; explicit version pin via `SearchOpts`.
 - **Citation routing:** 10 scheme regexes (from `config.framework.citation_scheme`); matched
   citations do a direct `citation_norm` DB lookup, returned as pinned hits (rank 0, score 1.0),
@@ -46,9 +46,24 @@ language- or jurisdiction-specific; compliary is English-only with citation-keye
 **Dropped scale machinery:** HNSW (exact scan wins at 3.4k), rollup/section-aggregate
 (1 chunk/control), SageMaker bulk embed, doc_cap (11 documents total).
 
-## First baseline
+## Baselines
 
 50-query golden set (citation-keyed, no licensed text), 10 citation schemes.
+
+### Tuned baseline (v2 — 2026-07-20)
+
+Accepted after eval-driven sweep: withdrawn-status filter on both arms, fusion constants
+tuned (`rrf_k=20`, `lex_weight=0.5`, `vector_k=50`, `bm25_k=50`). Ancestor-title content
+enrichment was tried and reverted (net-negative: diluted NIST signal).
+
+| Metric | Value | Floor |
+|--------|-------|-------|
+| recall@8 | 57.8% | 55% |
+| MRR@8 | 34.1% | 32% |
+| current-version | 100% | 98% |
+| abstention | 90% | 88% |
+
+### First baseline (v1 — 2026-07-20)
 
 | Metric | Value | Floor |
 |--------|-------|-------|
@@ -62,7 +77,7 @@ language- or jurisdiction-specific; compliary is English-only with citation-keye
 - **No score-floor abstention** — 5/5 OOS queries return hits instead of abstaining
   (no score threshold; M3 follow-up).
 - **Short-chunk framework recall weak** — ISO/SOC2/PCI one-liner controls lack signal for both
-  dense and sparse arms.
-- **RRF constants untuned** — starting values from port review, not eval-optimized.
+  dense and sparse arms. Ancestor-title enrichment attempted but net-negative; column-separation
+  (PCI body noise) and structured-title expansion remain as potential next steps.
 - **Bare-numeric citation ambiguity** — `5.1` matches 4+ schemes; resolved only by ranking
   when no framework filter is set.
