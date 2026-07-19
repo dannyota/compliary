@@ -168,4 +168,4 @@ patch — new documents always cut v0.2.0+.
   2732 `related` edges — nist80053/r5 747 (all resolved), csaccm/v4.0 657, pcidss/NULL 551,
   iso27001/2022 470, nistcsf/1.1 185, ciscontrols v8.1 62 + v8 60; 800-53 dual-release lines
   dedupe to r5; publisher typos recorded verbatim (surfaced as quality gaps). Corpus totals: 26
-  manifest / 5 bronze / 1441 silver controls / 3068 mapping edges (1030 resolved).
+  manifest / 5 bronze / 1441 silver controls / 3068 mapping edges (1083 resolved).
