@@ -369,47 +369,6 @@ func (q *Queries) ListCurrentFrameworkVersions(ctx context.Context) ([]ConfigFra
 	return items, nil
 }
 
-const listFileRules = `-- name: ListFileRules :many
-SELECT id, ordinal, pattern, framework_code, version_label, doc_role, qualifier, file_format, ignore, ignore_reason, license_kind, source_url, provenance_note, origin, created_at, updated_at FROM config.file_rule WHERE NOT ignore ORDER BY ordinal
-`
-
-func (q *Queries) ListFileRules(ctx context.Context) ([]ConfigFileRule, error) {
-	rows, err := q.db.Query(ctx, listFileRules)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ConfigFileRule
-	for rows.Next() {
-		var i ConfigFileRule
-		if err := rows.Scan(
-			&i.ID,
-			&i.Ordinal,
-			&i.Pattern,
-			&i.FrameworkCode,
-			&i.VersionLabel,
-			&i.DocRole,
-			&i.Qualifier,
-			&i.FileFormat,
-			&i.Ignore,
-			&i.IgnoreReason,
-			&i.LicenseKind,
-			&i.SourceUrl,
-			&i.ProvenanceNote,
-			&i.Origin,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listFrameworkVersions = `-- name: ListFrameworkVersions :many
 SELECT id, framework_code, version_label, published_on, is_current, edition_note, origin, created_at, updated_at FROM config.framework_version ORDER BY framework_code, version_label
 `

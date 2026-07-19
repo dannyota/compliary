@@ -68,6 +68,7 @@ type Summary struct {
 	Unrecognized int
 	Ambiguous    int
 	Demoted      int
+	Failed       int
 }
 
 // Scanner walks dataDir and classifies files against rules.
@@ -152,9 +153,34 @@ func (s *Scanner) Scan(ctx context.Context, q dbingest.Querier) (Summary, error)
 	for _, e := range entries {
 		seenPaths = append(seenPaths, e.relPath)
 
-		hash, err := sha256File(e.absPath)
-		if err != nil {
-			return summary, fmt.Errorf("sha256 %s: %w", e.relPath, err)
+		hash, hashErr := sha256File(e.absPath)
+		if hashErr != nil {
+			// Per-file error: record the file with empty hash so it is not
+			// falsely demoted, set stage_error, count as failed, continue.
+			s.Log.Error("cannot read file", "path", e.relPath, "err", hashErr)
+			m := Match(s.Rules, e.relPath)
+			params := dbingest.UpsertManifestFileParams{
+				RelPath:       e.relPath,
+				Sha256:        "",
+				SizeBytes:     e.sizeBytes,
+				FrameworkCode: m.frameworkCode,
+				VersionLabel:  m.versionLabel,
+				DocRole:       m.docRole,
+				Qualifier:     m.qualifier,
+				FileFormat:    m.fileFormat,
+				Ignored:       m.ignore,
+				IgnoreReason:  m.ignoreReason,
+			}
+			row, upsertErr := q.UpsertManifestFile(ctx, params)
+			if upsertErr != nil {
+				return summary, fmt.Errorf("upsert %s: %w", e.relPath, upsertErr)
+			}
+			_ = q.SetStageError(ctx, dbingest.SetStageErrorParams{
+				ID:         row.ID,
+				StageError: fmt.Sprintf("read error: %s", e.relPath),
+			})
+			summary.Failed++
+			continue
 		}
 
 		m := Match(s.Rules, e.relPath)
@@ -238,11 +264,16 @@ func (s *Scanner) Scan(ctx context.Context, q dbingest.Querier) (Summary, error)
 }
 
 // walkFiles walks DataDir deterministically (sorted), skipping .git.
+// File symlinks are followed for hashing (WalkDir follows symlinks to files);
+// broken symlinks surface as per-file errors in the scan loop (hash failure).
 func (s *Scanner) walkFiles() ([]fileEntry, error) {
 	var entries []fileEntry
 	err := filepath.WalkDir(s.DataDir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			// Per-file walk error (e.g. permission denied on a directory):
+			// skip this entry, don't abort the walk.
+			s.Log.Warn("walk error", "path", p, "err", err)
+			return nil
 		}
 		if d.Name() == ".git" {
 			if d.IsDir() {
@@ -255,13 +286,21 @@ func (s *Scanner) walkFiles() ([]fileEntry, error) {
 		}
 		rel, err := filepath.Rel(s.DataDir, p)
 		if err != nil {
-			return fmt.Errorf("rel path for %s: %w", p, err)
+			s.Log.Warn("rel path error", "path", p, "err", err)
+			return nil
 		}
 		// Normalize to forward slashes for cross-platform consistency.
 		rel = filepath.ToSlash(rel)
 		info, err := d.Info()
 		if err != nil {
-			return fmt.Errorf("stat %s: %w", p, err)
+			// Stat failure (e.g. broken symlink): record with size 0; the
+			// scan loop will handle the hash failure gracefully.
+			entries = append(entries, fileEntry{
+				relPath:   rel,
+				absPath:   p,
+				sizeBytes: 0,
+			})
+			return nil
 		}
 		entries = append(entries, fileEntry{
 			relPath:   rel,

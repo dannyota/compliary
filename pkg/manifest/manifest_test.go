@@ -165,6 +165,14 @@ func (f *fakeQuerier) DemoteMissingManifestFiles(_ context.Context, paths []stri
 
 func (f *fakeQuerier) SetStageError(_ context.Context, arg dbingest.SetStageErrorParams) error {
 	f.errors[arg.ID] = arg.StageError
+	// Also update the row so tests can check via fq.rows[path].StageError.
+	for k, r := range f.rows {
+		if r.ID == arg.ID {
+			r.StageError = arg.StageError
+			f.rows[k] = r
+			break
+		}
+	}
 	return nil
 }
 
@@ -405,6 +413,52 @@ func TestScan_Idempotent(t *testing.T) {
 	}
 	if sum1.Matched != sum2.Matched || sum1.Total != sum2.Total {
 		t.Errorf("scan not idempotent: %+v vs %+v", sum1, sum2)
+	}
+}
+
+func TestScan_UnreadableFileContinues(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("cannot test permission denied as root")
+	}
+	dir := makeTempDir(t)
+	writeFile(t, dir, "good.json", "good-content")
+	writeFile(t, dir, "bad.json", "bad-content")
+
+	// Make bad.json unreadable.
+	badPath := filepath.Join(dir, "bad.json")
+	if err := os.Chmod(badPath, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(badPath, 0o644) })
+
+	rules := []Rule{
+		{Ordinal: 100, Pattern: "bad.json", FrameworkCode: strPtr("test"), VersionLabel: strPtr("v1"), DocRole: strPtr("main"), FileFormat: strPtr("oscal-json")},
+		{Ordinal: 200, Pattern: "good.json", FrameworkCode: strPtr("test"), VersionLabel: strPtr("v1"), DocRole: strPtr("guide"), Qualifier: "x", FileFormat: strPtr("oscal-json")},
+	}
+
+	fq := newFakeQuerier()
+	scanner := &Scanner{DataDir: dir, Rules: rules, Log: testLogger()}
+	sum, err := scanner.Scan(context.Background(), fq)
+	// Scan must NOT return a fatal error — it continues past bad files.
+	if err != nil {
+		t.Fatalf("scan should not abort on unreadable file: %v", err)
+	}
+	// The good file must still be processed.
+	if sum.Matched != 1 {
+		t.Errorf("matched=%d, want 1 (good file)", sum.Matched)
+	}
+	// The bad file should be counted as failed.
+	if sum.Failed != 1 {
+		t.Errorf("failed=%d, want 1 (bad file)", sum.Failed)
+	}
+	// Bad file still in seenPaths (not falsely demoted).
+	if sum.Total != 2 {
+		t.Errorf("total=%d, want 2", sum.Total)
+	}
+	// Bad file should have a stage_error set.
+	badRow := fq.rows["bad.json"]
+	if badRow.StageError == "" {
+		t.Error("bad.json should have stage_error set")
 	}
 }
 

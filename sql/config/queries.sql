@@ -24,9 +24,6 @@ SELECT code FROM config.control_kind ORDER BY code;
 -- name: GetSetting :one
 SELECT value FROM config.setting WHERE key = $1;
 
--- name: ListFileRules :many
-SELECT * FROM config.file_rule WHERE NOT ignore ORDER BY ordinal;
-
 -- name: ListAllFileRules :many
 SELECT * FROM config.file_rule ORDER BY ordinal;
 

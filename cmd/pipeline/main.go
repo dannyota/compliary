@@ -119,10 +119,14 @@ func runManifest(ctx context.Context, cfg *config.Config, pool poolWrapper, log 
 		"unrecognized", sum.Unrecognized,
 		"ambiguous", sum.Ambiguous,
 		"demoted", sum.Demoted,
+		"failed", sum.Failed,
 	)
 
 	if sum.Ambiguous > 0 {
 		return fmt.Errorf("manifest: %d ambiguous files detected", sum.Ambiguous)
+	}
+	if sum.Failed > 0 {
+		return fmt.Errorf("manifest: %d files failed to read", sum.Failed)
 	}
 
 	return nil

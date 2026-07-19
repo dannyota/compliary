@@ -30,7 +30,6 @@ type Querier interface {
 	ListAllFileRules(ctx context.Context) ([]ConfigFileRule, error)
 	ListControlKinds(ctx context.Context) ([]string, error)
 	ListCurrentFrameworkVersions(ctx context.Context) ([]ConfigFrameworkVersion, error)
-	ListFileRules(ctx context.Context) ([]ConfigFileRule, error)
 	ListFrameworkVersions(ctx context.Context) ([]ConfigFrameworkVersion, error)
 	// Load queries (read the registry into the app at startup).
 	ListFrameworks(ctx context.Context) ([]ConfigFramework, error)
