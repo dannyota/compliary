@@ -118,6 +118,17 @@ func (n *Normalizer) Run(
 			} else {
 				sum.Succeeded++
 			}
+		case "ccm-workbook":
+			if err := n.normalizeCCM(ctx, f, ingQ, bronzeQ, silverQ); err != nil {
+				n.Log.Error("normalize failed", "path", f.RelPath, "err", err)
+				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{
+					ID:         f.ID,
+					StageError: fmt.Sprintf("normalize: %s: %s", f.RelPath, err.Error()),
+				})
+				sum.Failed++
+			} else {
+				sum.Succeeded++
+			}
 		default:
 			// Unimplemented citation scheme — skip as deferral.
 			sum.Skipped++
@@ -244,6 +255,53 @@ func (n *Normalizer) normalizeCSF(
 		for pfx, count := range tree.RefSkips.UnknownPfx {
 			n.Log.Info("ref-unknown-prefix", "prefix", pfx, "lines", count, "path", f.RelPath)
 		}
+	}
+
+	// Write tree to silver.
+	doc := DocIdentity{
+		ManifestID:    f.ID,
+		RelPath:       f.RelPath,
+		Sha256:        f.Sha256,
+		FrameworkCode: fwCode,
+		VersionLabel:  verLabel,
+		DocRole:       deref(f.DocRole),
+		Qualifier:     f.Qualifier,
+		ServeGate:     sf.ServeGate,
+	}
+	return n.writeTree(ctx, doc, tree, ingQ, silverQ)
+}
+
+func (n *Normalizer) normalizeCCM(
+	ctx context.Context,
+	f dbingest.IngestManifestFile,
+	ingQ IngestQuerier,
+	bronzeQ BronzeQuerier,
+	silverQ SilverQuerier,
+) error {
+	// Load source file from bronze.
+	sf, err := bronzeQ.GetSourceFile(ctx, dbbronze.GetSourceFileParams{
+		ManifestRelPath: f.RelPath,
+		Sha256:          f.Sha256,
+	})
+	if err != nil {
+		return fmt.Errorf("get source_file: %w", err)
+	}
+
+	// Load raw extract (workbook-rows-json capture).
+	re, err := bronzeQ.GetRawExtract(ctx, dbbronze.GetRawExtractParams{
+		SourceFileID: sf.ID,
+		Kind:         "workbook-rows-json",
+	})
+	if err != nil {
+		return fmt.Errorf("get raw_extract: %w", err)
+	}
+
+	// Parse the workbook into in-memory tree (pure function).
+	fwCode := deref(f.FrameworkCode)
+	verLabel := deref(f.VersionLabel)
+	tree, err := BuildCCMTree(json.RawMessage(re.ContentJsonb), fwCode, verLabel)
+	if err != nil {
+		return fmt.Errorf("build CCM tree: %w", err)
 	}
 
 	// Write tree to silver.
