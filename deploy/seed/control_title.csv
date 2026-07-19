@@ -638,7 +638,7 @@ pcidss,v4.0.1,11.4.4,Remediation of Penetration Test Findings
 pcidss,v4.0.1,11.4.5,Segmentation Control Penetration Validation
 pcidss,v4.0.1,11.4.6,SP: Semi-Annual Segmentation Penetration Tests
 pcidss,v4.0.1,11.4.7,SP: Multi-Tenant External Pentest Support
-pcidss,v4.0.1,11.5.1,Network Intrusion Detection and Prevention
+pcidss,v4.0.1,11.5.1,Monitoring networks for unauthorized entry attempts
 pcidss,v4.0.1,11.5.1.1,SP: Covert Malware Channel Detection
 pcidss,v4.0.1,11.5.2,Critical File Change Detection Deployment
 pcidss,v4.0.1,11.6.1,Payment Page Script and Header Monitoring
