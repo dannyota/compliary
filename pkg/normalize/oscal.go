@@ -15,7 +15,7 @@ import (
 type ControlRow struct {
 	Citation      string
 	CitationNorm  string
-	Kind          string // family, control, enhancement
+	Kind          string // config.control_kind vocab: family, control, enhancement, function, category, subcategory, domain, safeguard, …
 	Status        string // active, withdrawn
 	Title         string
 	TitleOriginal *string
@@ -59,7 +59,7 @@ type RefSkips struct {
 	UnknownPfx map[string]int // unregistered prefix → line count
 }
 
-// TreeResult holds the output of the pure OSCAL tree builder.
+// TreeResult holds the output of a pure tree builder (all schemes).
 type TreeResult struct {
 	Title           string // catalog title from metadata
 	Controls        []ControlRow

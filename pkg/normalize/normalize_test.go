@@ -134,9 +134,12 @@ func newFakeConfigQuerier() *fakeConfigQuerier {
 				CitationScheme: "csf-workbook",
 				ServePolicy:    "full",
 			},
-			"ciscontrols": {
-				Code:           "ciscontrols",
-				CitationScheme: "cis-xlsx",
+			// A genuinely unimplemented scheme for the skip-as-deferral test —
+			// deliberately NOT a real registry scheme, so it can never be
+			// accidentally dispatched to a parser.
+			"pcidss": {
+				Code:           "pcidss",
+				CitationScheme: "pdf-clauses",
 				ServePolicy:    "authenticated",
 			},
 		},
@@ -304,10 +307,10 @@ func TestNormalizer_SkipsUnimplementedScheme(t *testing.T) {
 	files := []dbingest.IngestManifestFile{
 		{
 			ID:            20,
-			RelPath:       "cis/controls.xlsx",
+			RelPath:       "pcissc/pci-dss.pdf",
 			Sha256:        "xxx",
-			FrameworkCode: strPtr("ciscontrols"),
-			VersionLabel:  strPtr("v8.1"),
+			FrameworkCode: strPtr("pcidss"),
+			VersionLabel:  strPtr("v4.0.1"),
 			DocRole:       strPtr("main"),
 		},
 	}

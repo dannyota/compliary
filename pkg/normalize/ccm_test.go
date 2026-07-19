@@ -176,13 +176,13 @@ func TestBuildCCMTree_Synthetic(t *testing.T) {
 	if sd01.Body == nil {
 		t.Fatal("SD-01 body is nil")
 	}
-	body_sd := *sd01.Body
-	if !strings.HasPrefix(body_sd, "Implement basic controls.") {
-		t.Errorf("SD-01 body should start with spec, got: %q", body_sd)
+	bodySD := *sd01.Body
+	if !strings.HasPrefix(bodySD, "Implement basic controls.") {
+		t.Errorf("SD-01 body should start with spec, got: %q", bodySD)
 	}
 	// No applicability lines (all empty).
-	if strings.Contains(body_sd, "IaaS:") {
-		t.Errorf("SD-01 body should have no IaaS line, got: %q", body_sd)
+	if strings.Contains(bodySD, "IaaS:") {
+		t.Errorf("SD-01 body should have no IaaS line, got: %q", bodySD)
 	}
 
 	// citation_norm uniqueness.

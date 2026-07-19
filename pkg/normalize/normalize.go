@@ -64,8 +64,9 @@ type Normalizer struct {
 }
 
 // Run processes the given manifest files (already filtered to normalize-eligible).
-// It dispatches by the framework's citation_scheme: only 'oscal-catalog' is
-// implemented; others are skipped as deferrals.
+// It dispatches by the framework's citation_scheme — implemented: 'oscal-catalog',
+// 'csf-workbook', 'cis-workbook', 'ccm-workbook'; other schemes and non-'main'
+// doc roles are skipped as deferrals.
 func (n *Normalizer) Run(
 	ctx context.Context,
 	files []dbingest.IngestManifestFile,
