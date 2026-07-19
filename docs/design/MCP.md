@@ -86,6 +86,11 @@ public clients and `"client_secret_post"` for DCR clients.
 
 **Auth-exempt paths:** `/healthz`, `/.well-known/*`, `/oauth/*` bypass bearer auth.
 
+**SSRF guard on CIMD fetch:** when the server fetches a client's metadata document URL, the
+resolved IPs are checked against a deny list (loopback, link-local incl. 169.254.0.0/16, private
+RFC 1918, ULA, multicast, unspecified). The HTTP client is pinned to vetted IPs (prevents DNS
+rebinding), redirects are refused, and the response body is capped at 64 KiB.
+
 ### Rate limiting and safety
 
 Body cap (1 MiB), cross-origin protection, panic recovery. Stateless: no session state -- all tools

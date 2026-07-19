@@ -7,13 +7,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/oauthex"
 	"golang.org/x/crypto/bcrypt"
@@ -118,43 +116,7 @@ func (s *Server) resolveClient(clientID string) *client {
 	return s.store.lookupClient(clientID)
 }
 
-// fetchClientMetadata fetches a Client ID Metadata Document from the given URL.
-func fetchClientMetadata(metadataURL string) (*oauthex.ClientRegistrationMetadata, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(metadataURL)
-	if err != nil {
-		return nil, fmt.Errorf("fetch: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("fetch: status %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	if err != nil {
-		return nil, fmt.Errorf("read: %w", err)
-	}
-
-	var doc struct {
-		oauthex.ClientRegistrationMetadata
-		ClientID string `json:"client_id"`
-	}
-	if err := json.Unmarshal(body, &doc); err != nil {
-		return nil, fmt.Errorf("decode: %w", err)
-	}
-
-	// The client_id in the document must match the URL.
-	if doc.ClientID != metadataURL {
-		return nil, fmt.Errorf("client_id mismatch: got %q, want %q", doc.ClientID, metadataURL)
-	}
-
-	if len(doc.RedirectURIs) == 0 {
-		return nil, fmt.Errorf("no redirect_uris in metadata document")
-	}
-
-	return &doc.ClientRegistrationMetadata, nil
-}
+// fetchClientMetadata is in safefetch.go (SSRF-guarded).
 
 func (s *Server) authorizeGet(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
@@ -462,6 +424,3 @@ var errorPageHTML = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>compliary — Access Denied</title>
 <style>body{font-family:system-ui,sans-serif;max-width:400px;margin:80px auto;padding:0 16px}</style>
 </head><body><h1>Access Denied</h1><p>Invalid operator password.</p></body></html>`
-
-// Ensure imports are used.
-var _ = strings.NewReader
