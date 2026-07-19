@@ -1,0 +1,4 @@
+[submodule "data"]
+	path = data
+	url = https://github.com/dannyota/compliary-private.git
+	update = none

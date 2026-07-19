@@ -63,7 +63,6 @@ var required = []struct{ key, hint string }{
 	{"COMPLIARY_COMPANY", "Company name"},
 	{"COMPLIARY_COUNTRY", "Country (e.g. Vietnam)"},
 	{"COMPLIARY_EMAIL", "Email"},
-	{"COMPLIARY_EMPLOYEES", `Company size range (e.g. "50 to 99", "250 to 499")`},
 }
 
 // Load reads the env file, prompts on in/out for any missing required keys,

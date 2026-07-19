@@ -48,8 +48,8 @@ func main() {
 		fail(err)
 	}
 
-	report("== CIS (registration form as operator; link arrives by email) ==")
-	if err := fetch.CIS(client, *dataDir, id, report); err != nil {
+	report("== CIS (public download page) ==")
+	if err := fetch.CIS(client, *dataDir, report); err != nil {
 		fail(err)
 	}
 

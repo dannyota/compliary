@@ -34,9 +34,9 @@ and verified license gates in [PLAN.md](PLAN.md).
 
 | Source access | Ingestion | Frameworks |
 |---|---|---|
-| **Public domain** | auto-fetch | NIST CSF 2.0 · NIST SP 800-53 r5 (OSCAL) |
-| **Free, form-gated** | `cmd/fetch` fills the form with the operator's identity | PCI DSS v4.0.1 · CIS Controls v8.1 · CSA CCM v4 |
-| **Sign-in / purchase / membership** | manual drop-in into `data/` | SOC 2 (AICPA TSC) · ISO/IEC 27001 · 27002 · 27017 · 27018 · 27701 · ISO 22301 · ISO/IEC 42001 · SWIFT CSCF · COBIT 2019 |
+| **Public / direct** | auto-fetch | NIST CSF 2.0 · NIST SP 800-53 r5 (OSCAL) · CIS Controls v8.1 |
+| **Free, form-gated** | `cmd/fetch` fills the click-through with the operator's identity | PCI DSS v4.0.1 |
+| **Sign-in / purchase / membership** | manual drop-in into `data/` | SOC 2 (AICPA TSC) · ISO/IEC 27001 · 27002 · 27017 · 27018 · 27701 · ISO 22301 · ISO/IEC 42001 · SWIFT CSCF · COBIT 2019 · CSA CCM v4 |
 
 ## Licensing model
 
@@ -44,8 +44,10 @@ Most sources are copyrighted publications; compliary never redistributes them.
 
 - **The repo ships code + metadata only** — never licensed document text.
 - **Each operator builds their own corpus** locally, under licenses they accepted themselves.
-- **Licensed text is served privately only** ("internal use") — the maintainer instance
-  `compliary.danny.vn` is a public landing page with an **authenticated private `/mcp`**.
+- **Licensed text is served privately only** ("internal use") — there is **no public MCP service**;
+  every operator self-deploys their own instance. The maintainer's `compliary.danny.vn` hosts a
+  public landing page (project info) and an `/mcp` endpoint **authenticated for the maintainer
+  alone** — it serves no other users.
 - **Official publisher sources only**, with license kind, source URL, and retrieval date recorded
   per document.
 
@@ -66,8 +68,9 @@ Mirrors the banhmi-proven stack — ported patterns, no code dependency:
 
 ## Status
 
-**Bootstrap** — plan and licensing model settled, no code yet. Next milestone: `cmd/fetch`, the
-one-shot source downloader. Roadmap, design questions, and milestones in [PLAN.md](PLAN.md).
+**M1 done** — `cmd/fetch` downloads every automatable source (validated live: NIST, PCI DSS
+v4.0.1, CIS v8.1.2). Next: design docs + NIST OSCAL parser (M2). Roadmap, design questions, and
+milestones in [PLAN.md](PLAN.md).
 
 ## License
 

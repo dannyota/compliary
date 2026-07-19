@@ -7,7 +7,6 @@ coverage.*
 *.env
 *.key
 *.pem
-/data/
 /samples/
 /tmp/
 *.pdf

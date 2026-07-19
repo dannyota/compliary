@@ -10,9 +10,10 @@ Cybersecurity control frameworks** organizations are audited against — **Vietn
 serving exact control citations, version lineage, cross-framework mappings, provenance, and explicit
 gaps.
 
-- **Operators build their own corpus** under licenses they accepted; the repo never ships licensed
-  document text. The maintainer's instance is **`compliary.danny.vn`** — public landing page,
-  **authenticated private `/mcp`**.
+- **Operators build their own corpus** under licenses they accepted and run their own instance; the
+  repo never ships licensed document text. The maintainer's instance at **`compliary.danny.vn`** is
+  **maintainer-only** — public landing page for project info, `/mcp` authenticated for the
+  maintainer alone, never serving other users.
 - **One corpus, one DB.** Framework is a registry dimension, not a deployment
   (unlike banhmi's corpus-per-country).
 - **The data is the product; the user brings the model.** No built-in answer LLM.
@@ -36,7 +37,7 @@ files) — one scope, built together. All **planned** — nothing ingested yet.
 | 3 | PCI DSS | v4.0.1 (2024-06; mandatory 2025-03-31) | PCI SSC | free download, restricted license | BYO (click-through) | Requirement (1–12, e.g. 8.3.6) |
 | 4 | NIST CSF | 2.0 (2024-02) | NIST | public domain | auto-fetch | Function.Category.Subcategory (PR.AA-01) |
 | 5 | NIST SP 800-53 | Rev 5 | NIST | public domain, OSCAL available | auto-fetch (OSCAL) | Control + enhancement (AC-2(3)); 20 families |
-| 6 | CIS Controls | v8.1 (2024) | CIS | free w/ registration, CC BY-NC-ND 4.0 | BYO (registration) | Control / Safeguard (5.1) |
+| 6 | CIS Controls | v8.1 (docs at v8.1.2, 2025-03) | CIS | free, CC BY-NC-ND 4.0 | auto-fetch | Control / Safeguard (5.1) |
 | 7 | ISO/IEC 27002 | 2022 | ISO/IEC JTC 1/SC 27 | paid, copyrighted | BYO (purchase) | Control (5.1–8.34) |
 | 8 | ISO/IEC 27017 | 2015 | ISO/IEC JTC 1/SC 27 | paid, copyrighted | BYO (purchase) | Control (27002:2013 numbering + CLD.x.x) |
 | 9 | ISO/IEC 27018 | 2019 | ISO/IEC JTC 1/SC 27 | paid, copyrighted | BYO (purchase) | Control (27002:2013 numbering + Annex A PII) |
@@ -87,12 +88,13 @@ mappings, Secure Controls Framework (license check needed before use).
 ### v0.1.0 — fetch, corpus, serve (single scope)
 
 1. **M0 — repo bootstrap** — CLAUDE.md, PLAN.md, git + signing. **DONE 2026-07-19.**
-2. **M1 — `cmd/fetch` (one-shot downloader)** — **DONE 2026-07-19** (validated live: 4 NIST files
-   downloaded, PCI DSS v4.0.1 fetched via accepted license, CIS form submitted with email-link
-   marker for idempotency). Spec: prompt operator info once (name, title, company,
+2. **M1 — `cmd/fetch` (one-shot downloader)** — **DONE 2026-07-19** (validated live: 4 NIST files,
+   PCI DSS v4.0.1 via accepted license, CIS v8.1.2 guide PDF + 2 Excel workbooks from the public
+   download page). Spec: prompt operator info once (name, title, company,
    country, email), cache in **gitignored `.env`** (real identity — never commit); one run downloads
-   everything automatable into `data/`: **NIST** direct; **PCI SSC / CIS** by filling the publisher
-   form/click-through with the operator's identity — the operator is the accepting party. **Any
+   everything automatable into `data/`: **NIST + CIS** direct (CIS serves the Controls from a
+   public page — no form needed); **PCI SSC** by filling the license click-through with the
+   operator's identity — the operator is the accepting party. **Any
    source requiring sign-in, an account, purchase, or membership is always manual drop-in** (AICPA
    TSC, ISO family, SWIFT CSCF, COBIT; CSA if its form needs an account) — print the official URL +
    `data/` target path. Idempotent — re-run
