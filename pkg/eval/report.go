@@ -7,10 +7,11 @@ import (
 	"strings"
 )
 
-// Aggregate is the corpus-level roll-up of per-case results. Each rate is a
-// micro-average (sum of numerators / sum of denominators across cases) so
-// larger cases are not over- or under-weighted. Cases with no denominator for a
-// metric are excluded from that metric's average, not counted as zero.
+// Aggregate is the corpus-level roll-up of per-case results. RecallAtK and
+// CurrentPrecision are micro-averages (sum of numerators / sum of denominators)
+// so larger cases are not over- or under-weighted. MRRAtK is a macro-average
+// (mean of per-case reciprocal ranks). Cases with no denominator for a metric
+// are excluded, not counted as zero.
 type Aggregate struct {
 	Cases           int
 	ExpectFailCases int

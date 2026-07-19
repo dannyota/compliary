@@ -1,21 +1,21 @@
 id,question,framework_code,version_label,citation_norm,expect_abstain,expect_fail,notes
-nist53-ac2,What controls cover user account management?,nist80053,r5,AC-2,false,false,NIST 800-53 r5 account management control
-nist53-ac2-3,What is the enhancement for disabling inactive accounts?,nist80053,r5,AC-2(3),false,false,Enhancement: disable accounts after inactivity period
-nist53-ia5,What controls address authenticator management?,nist80053,r5,IA-5,false,false,NIST 800-53 r5 authenticator management
+nist53-ac2,What controls cover user account management?,nist80053,r5,AC-02,false,false,NIST 800-53 r5 account management control
+nist53-ac2-3,What is the enhancement for disabling inactive accounts?,nist80053,r5,AC-02(03),false,false,Enhancement: disable accounts after inactivity period
+nist53-ia5,What controls address authenticator management?,nist80053,r5,IA-05,false,false,NIST 800-53 r5 authenticator management
 nist53-sa11,What control covers developer testing and evaluation?,nist80053,r5,SA-11,false,false,NIST 800-53 r5 developer testing
-nist53-sc7,What control establishes boundary protection requirements?,nist80053,r5,SC-7,false,false,NIST 800-53 r5 boundary protection
-nist53-si4,What control requires information system monitoring?,nist80053,r5,SI-4,false,false,NIST 800-53 r5 system monitoring
+nist53-sc7,What control establishes boundary protection requirements?,nist80053,r5,SC-07,false,false,NIST 800-53 r5 boundary protection
+nist53-si4,What control requires information system monitoring?,nist80053,r5,SI-04,false,false,NIST 800-53 r5 system monitoring
 csf-praa01,What subcategory covers identity management and authentication?,nistcsf,2.0,PR.AA-01,false,false,CSF 2.0 identity management subcategory
 csf-gvoc01,What subcategory addresses organizational context for cybersecurity?,nistcsf,2.0,GV.OC-01,false,false,CSF 2.0 organizational context
 csf-idam07,What subcategory covers asset vulnerability identification?,nistcsf,2.0,ID.AM-07,false,false,CSF 2.0 vulnerability identification
 csf-deae02,What subcategory addresses analysis of anomalies and events?,nistcsf,2.0,DE.AE-02,false,false,CSF 2.0 anomaly analysis
 cis-41,What safeguard addresses establishing and maintaining a secure configuration process?,ciscontrols,v8.1,4.1,false,false,CIS Controls v8.1 secure configuration
-cis-81,What safeguard covers establishing an access granting process?,ciscontrols,v8.1,8.1,false,false,CIS Controls v8.1 access management
+cis-61,What safeguard covers establishing an access granting process?,ciscontrols,v8.1,6.1,false,false,CIS Controls v8.1 access granting
 cis-13,What CIS control addresses network monitoring and defense?,ciscontrols,v8.1,13,false,false,CIS Controls v8.1 network monitoring control (parent)
-cis-161,What safeguard establishes a vulnerability management process?,ciscontrols,v8.1,16.1,false,false,CIS Controls v8.1 vulnerability management
+cis-71,What safeguard establishes a vulnerability management process?,ciscontrols,v8.1,7.1,false,false,CIS Controls v8.1 vulnerability management
 pcidss-836,What requirement addresses multi-factor authentication?,pcidss,v4.0.1,8.3.6,false,false,PCI DSS v4.0.1 MFA requirement
 pcidss-121,What requirement covers firewall and network security controls?,pcidss,v4.0.1,1.2.1,false,false,PCI DSS v4.0.1 network controls
-pcidss-634,What requirement addresses secure development practices?,pcidss,v4.0.1,6.3.4,false,false,PCI DSS v4.0.1 secure development (custom code reviews)
+pcidss-632,What requirement addresses reviewing custom code for vulnerabilities?,pcidss,v4.0.1,6.3.2,false,false,PCI DSS v4.0.1 custom code review
 pcidss-1234,What requirement covers restricting physical access to cardholder data?,pcidss,v4.0.1,12.3.4,false,false,PCI DSS v4.0.1 physical access restrictions
 soc2-cc61,What criterion addresses logical and physical access controls?,soc2tsc,2017,CC6.1,false,false,SOC 2 TSC CC6.1 logical and physical access
 soc2-cc72,What criterion covers system operations monitoring?,soc2tsc,2017,CC7.2,false,false,SOC 2 TSC CC7.2 monitoring
@@ -40,7 +40,7 @@ collision-51-iso27002,What ISO 27002 control covers threat intelligence?,iso2700
 collision-51-iso27017,What ISO 27017 control covers information security policies for cloud?,iso27017,2015,5.1,false,false,Bare-ID collision: 5.1 in ISO 27017 (cloud info-sec policy)
 collision-a51-iso27001,What ISO 27001 annex control covers policies for information security?,iso27001,2022,A.5.1,false,false,Bare-ID collision: A.5.1 is unique to ISO 27001 Annex A
 collision-11-multi,What ISO 27018 control numbered A.2.1 addresses PII handling?,iso27018,2019,A.2.1,false,false,Bare-ID collision: control identifiers that overlap numbering schemes across ISO family
-version-nist53-r5,What is the current revision of the NIST 800-53 access control family?,nist80053,r5,AC-1,false,false,Version pin: must return r5 not r4
+version-nist53-r5,What is the current revision of the NIST 800-53 access control family?,nist80053,r5,AC-01,false,false,Version pin: must return r5 not r4
 version-pcidss-v401,What is the current PCI DSS requirement for encryption of stored data?,pcidss,v4.0.1,3.5.1,false,false,Version pin: must return v4.0.1 not v4.0
 version-iso27001-2022,What are the current ISO 27001 requirements for risk assessment?,iso27001,2022,6.1.2,false,false,Version pin: must return 2022 not 2013
 version-csf-20,What CSF subcategory covers improvements to cybersecurity?,nistcsf,2.0,ID.IM-01,false,false,Version pin: must return 2.0 not 1.1

@@ -1,6 +1,8 @@
 package eval
 
 import (
+	"bufio"
+	"os"
 	"strings"
 	"testing"
 
@@ -40,9 +42,6 @@ func TestGoldenCSVNoLicensedText(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadGoldenEmbed: %v", err)
 	}
-	// Licensed text markers: "shall", "must" in prescriptive form are common in
-	// ISO/PCI normative text but unlikely in our paraphrased questions.
-	// This is a heuristic, not a guarantee.
 	for _, c := range cases {
 		q := strings.ToLower(c.Question)
 		if strings.Contains(q, "the organization shall") ||
@@ -127,9 +126,6 @@ func TestGoldenCSVCollisionCases(t *testing.T) {
 	}
 
 	// Verify bare-ID collision cases exist (same citation_norm, different framework).
-	type key struct {
-		citNorm string
-	}
 	normFrameworks := make(map[string]map[string]bool)
 	for _, c := range cases {
 		for _, ec := range c.ExpectedCitations {
@@ -166,5 +162,59 @@ func TestGoldenCSVVersionPinCases(t *testing.T) {
 	}
 	if versionPinCount == 0 {
 		t.Error("no version-pin cases found")
+	}
+}
+
+// TestGoldenCSVCorpusCoverage checks that every in-scope golden row's
+// (framework_code, version_label, citation_norm) exists in the corpus snapshot.
+// The snapshot file deploy/eval/corpus-citations.txt contains one
+// "framework|version|citation" per line, generated from the live DB. When the
+// file is absent the test skips (other operators without a populated DB).
+func TestGoldenCSVCorpusCoverage(t *testing.T) {
+	const snapshotPath = "corpus-citations.txt"
+	f, err := os.Open(snapshotPath)
+	if err != nil {
+		t.Skipf("corpus-citations.txt not found (generate with: PGPASSWORD=compliary psql ... \\copy): %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	// Load the snapshot into a set.
+	corpus := make(map[string]bool)
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" {
+			corpus[strings.ToLower(line)] = true
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("read corpus-citations.txt: %v", err)
+	}
+	if len(corpus) == 0 {
+		t.Fatal("corpus-citations.txt is empty")
+	}
+	t.Logf("corpus snapshot: %d citations", len(corpus))
+
+	cases, err := pkgeval.LoadGoldenEmbed(GoldenCSV, "golden.csv")
+	if err != nil {
+		t.Fatalf("LoadGoldenEmbed: %v", err)
+	}
+
+	var missing int
+	for _, c := range cases {
+		if c.ExpectAbstain {
+			continue
+		}
+		for _, ec := range c.ExpectedCitations {
+			key := strings.ToLower(ec.FrameworkCode + "|" + ec.VersionLabel + "|" + ec.CitationNorm)
+			if !corpus[key] {
+				t.Errorf("case %s: citation %s|%s|%s not found in corpus snapshot",
+					c.ID, ec.FrameworkCode, ec.VersionLabel, ec.CitationNorm)
+				missing++
+			}
+		}
+	}
+	if missing > 0 {
+		t.Errorf("%d golden citations missing from corpus snapshot", missing)
 	}
 }

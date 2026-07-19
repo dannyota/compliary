@@ -8,13 +8,12 @@
 // compliary is evidence-only: there is no answer model to score. The retrieval
 // mode flag compares bm25/vector/hybrid first-stage ranking (hybrid = default).
 //
-// Until Task 4 lands the live retriever (pkg/rag/retrieve), this command
-// compiles but prints a clear note and exits 0 when invoked without a
-// retriever, so `make eval` is safe to run against an empty stack.
+// When no retriever is configured (pre-Task-4), the command validates the
+// golden set and exercises the report pipeline in dry-run mode, exiting 0.
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -109,11 +108,19 @@ func run(o opts, log *slog.Logger) error {
 	}
 	log.Info("loaded golden set", "cases", len(cases))
 
-	// Until Task 4 lands the live retriever, skip cleanly.
-	// The retriever interface is defined in pkg/eval; the concrete
-	// implementation will be wired here once pkg/rag/retrieve is ported.
-	log.Warn("no retriever configured; running in dry-run mode (golden set validation only)")
-	return dryRun(o, cases, log)
+	// Wire the retriever here once Task 4 lands pkg/rag/retrieve. Until then,
+	// retriever is nil and the harness falls through to dry-run mode.
+	var retriever eval.Retriever // nil until Task 4
+
+	if retriever == nil {
+		log.Warn("no retriever configured; running in dry-run mode (golden set validation only)")
+		return dryRun(o, cases, log)
+	}
+
+	// Task 4 will supply a CurrentFn backed by the DB. For now this is
+	// unreachable but compiles as documentation of the wiring point.
+	isCurrent := func(h eval.Hit) bool { return h.IsCurrent }
+	return evaluate(context.Background(), o, cases, retriever, isCurrent, log)
 }
 
 // dryRun validates the golden set and reports what would be evaluated. This is
@@ -167,8 +174,8 @@ func dryRun(o opts, cases []eval.Case, log *slog.Logger) error {
 }
 
 // evaluate is the full eval loop, invoked when a Retriever is available.
-// Placeholder for Task 4.
 func evaluate(
+	ctx context.Context,
 	o opts,
 	cases []eval.Case,
 	r eval.Retriever,
@@ -185,7 +192,7 @@ func evaluate(
 			DocCap: o.docCap,
 			Mode:   eval.SearchMode(o.retrievalMode),
 		}
-		ev, err := r.SearchEvidence(nil, c.Question, searchOpts)
+		ev, err := r.SearchEvidence(ctx, c.Question, searchOpts)
 		if err != nil {
 			return fmt.Errorf("retrieve case %q: %w", c.ID, err)
 		}
@@ -201,7 +208,7 @@ func evaluate(
 				DocCap:  o.poolK,
 				Mode:    eval.SearchMode(o.retrievalMode),
 			}
-			poolEv, err := r.SearchEvidence(nil, c.Question, poolOpts)
+			poolEv, err := r.SearchEvidence(ctx, c.Question, poolOpts)
 			if err != nil {
 				return fmt.Errorf("pool probe case %q: %w", c.ID, err)
 			}
@@ -321,17 +328,3 @@ func writeJSONReportFile(path string, meta eval.JSONReportMeta, results []eval.C
 	}
 	return nil
 }
-
-// effectiveTopK resolves an override to a usable value.
-func effectiveTopK(override int) int {
-	if override > 0 {
-		return override
-	}
-	return 8
-}
-
-// Ensure evaluate uses effectiveTopK (avoid unused warning).
-var _ = effectiveTopK
-
-// Ensure json import is used (report writing).
-var _ = json.Marshal
