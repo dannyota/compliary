@@ -39,15 +39,52 @@ they are structural, not licensed text.
 | Transport | Entry point | Projection | Auth |
 |-----------|-------------|------------|------|
 | **stdio** | `cmd/mcp` | full always | none (local operator) |
-| **Streamable HTTP** | `cmd/server` `/mcp` | depends on auth | bearer token (`COMPLIARY_MCP_TOKEN`) |
+| **Streamable HTTP** | `cmd/server` `/mcp` | depends on auth | OAuth or bearer token |
 
-### HTTP auth boundary
+### HTTP auth (M4)
 
-- **Token unset** -- server starts in reduced-only mode with a startup warning; no auth required,
-  but body/title_original/content are stripped (safe for public exposure).
-- **Valid bearer** -- full projection (licensed text included; "internal use").
-- **Wrong/absent bearer (token required)** -- 401.
-- **/healthz** -- 200, bypasses auth.
+Three modes, selected by env vars (checked in order):
+
+1. **OAuth** (preferred): `COMPLIARY_PUBLIC_URL` + `COMPLIARY_OAUTH_OPERATOR_SECRET` both set. Full
+   MCP auth spec: RFC 9728 protected-resource metadata, RFC 8414 authorization-server metadata,
+   RFC 7591 dynamic client registration, authorization-code + PKCE (S256), Client ID Metadata
+   Documents (CIMD). Connects as a custom connector in **claude.ai** and **chatgpt.com**. Full
+   projection for authenticated callers. If `COMPLIARY_MCP_TOKEN` is also set, static bearer
+   tokens are accepted as a fallback (CLI/script backward compat).
+
+2. **Bearer-only**: only `COMPLIARY_MCP_TOKEN` set. Existing behavior -- full projection for
+   valid bearer, 401 otherwise.
+
+3. **No auth**: neither set. Projection = reduced (no body/title_original/chunk content).
+   `COMPLIARY_MCP_PUBLIC=true` serves the reduced surface anonymously; default (false) returns 401
+   on all `/mcp` requests.
+
+**OAuth endpoints** (served without bearer auth -- they ARE the auth mechanism):
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/.well-known/oauth-protected-resource` | GET | RFC 9728 protected resource metadata |
+| `/.well-known/oauth-authorization-server` | GET | RFC 8414 authorization server metadata |
+| `/oauth/register` | POST | RFC 7591 dynamic client registration |
+| `/oauth/authorize` | GET/POST | Authorization code flow (login form + consent) |
+| `/oauth/token` | POST | Token exchange (auth code + PKCE, refresh) |
+| `/oauth/jwks` | GET | Empty JWKS (opaque tokens, no signing keys) |
+
+**Token design:** opaque tokens with in-memory store. Single-user, single-process -- no JWT
+overhead, no key management. Access tokens 1h, refresh tokens 7d, auth codes 10min.
+
+**Client registration:** both DCR and CIMD supported. Claude.ai and ChatGPT prefer CIMD
+(`client_id_metadata_document_supported: true`). DCR clients get a secret (confidential); CIMD
+clients are public (no secret). Token endpoint supports `token_endpoint_auth_method: "none"` for
+public clients and `"client_secret_post"` for DCR clients.
+
+**PKCE:** required, S256 only.
+
+**Redirect URIs:** port-agnostic matching for localhost/127.0.0.1 (Claude Code uses varying ports).
+
+**`iss` in authorization response:** included per RFC 9207.
+
+**Auth-exempt paths:** `/healthz`, `/.well-known/*`, `/oauth/*` bypass bearer auth.
 
 ### Rate limiting and safety
 

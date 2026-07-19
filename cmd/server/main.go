@@ -2,14 +2,20 @@
 // (Streamable HTTP) for remote user-owned agents. It is the same evidence-only
 // MCP surface as cmd/mcp (stdio), served over HTTP.
 //
-// Auth boundary (COMPLIARY_MCP_TOKEN):
-//   - Token set + valid bearer → full projection (body, title_original, chunks).
-//   - Token set + wrong/absent bearer → 401 Unauthorized.
-//   - Token NOT set → reduced projection only (no body/title_original/content);
-//     the server starts and logs WHY, never silently downgrading — an operator
-//     who forgot the token sees the warning immediately.
+// Auth modes (checked in order):
 //
-// Endpoints: /mcp (MCP Streamable HTTP), /healthz (health check).
+//  1. OAuth (preferred): COMPLIARY_PUBLIC_URL + COMPLIARY_OAUTH_OPERATOR_SECRET
+//     both set → OAuth 2.0 authorization server with JWT tokens; full projection.
+//     If COMPLIARY_MCP_TOKEN is also set, static bearer tokens are accepted as
+//     a backward-compatible fallback.
+//  2. Bearer-only: only COMPLIARY_MCP_TOKEN set → static bearer auth; full
+//     projection (existing behavior).
+//  3. Reduced / no auth: neither set → reduced projection (no body,
+//     title_original, or chunk content). COMPLIARY_MCP_PUBLIC=true opts in to
+//     serving the reduced projection anonymously; default is 401 on /mcp.
+//
+// Endpoints: /mcp (MCP Streamable HTTP), /healthz (health check),
+// /.well-known/* and /oauth/* (OAuth, when enabled).
 package main
 
 import (
@@ -31,12 +37,14 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/modelcontextprotocol/go-sdk/auth"
 	"golang.org/x/time/rate"
 
 	"danny.vn/compliary/pkg/base/config"
 	"danny.vn/compliary/pkg/base/db"
 	clog "danny.vn/compliary/pkg/base/log"
 	"danny.vn/compliary/pkg/mcp"
+	"danny.vn/compliary/pkg/oauth"
 	"danny.vn/compliary/pkg/rag/embed"
 	"danny.vn/compliary/pkg/rag/embed/onnxembed"
 	"danny.vn/compliary/pkg/rag/retrieve"
@@ -100,12 +108,35 @@ func run(cfgPath, addrOverride string, log *slog.Logger) error {
 
 	// Auth + projection decision.
 	token := strings.TrimSpace(os.Getenv("COMPLIARY_MCP_TOKEN"))
+	publicURL := strings.TrimRight(os.Getenv("COMPLIARY_PUBLIC_URL"), "/")
+	operatorSecret := os.Getenv("COMPLIARY_OAUTH_OPERATOR_SECRET")
+	mcpPublic := envBool("COMPLIARY_MCP_PUBLIC", false)
+
 	projection := mcp.ProjectionFull
-	if token == "" {
-		log.Warn("COMPLIARY_MCP_TOKEN not set — serving REDUCED projection only (no body, title_original, or chunk content). Set the token to enable full projection for authenticated callers.")
+	var oauthSrv *oauth.Server
+
+	switch {
+	case publicURL != "" && operatorSecret != "":
+		// OAuth mode.
+		oauthSrv = oauth.New(publicURL, []byte(operatorSecret), log)
+		if token != "" {
+			log.Info("OAuth + bearer fallback enabled — both OAuth and static token accepted")
+		} else {
+			log.Info("OAuth auth enabled — MCP connector compatible (claude.ai + chatgpt.com)")
+		}
+
+	case token != "":
+		// Bearer-only mode (existing behavior).
+		log.Info("Bearer-only auth enabled")
+
+	default:
+		// Reduced / no-auth mode.
 		projection = mcp.ProjectionReduced
-	} else {
-		log.Info("MCP bearer-token auth enabled — authenticated callers get full projection")
+		if mcpPublic {
+			log.Warn("No auth configured — serving reduced projection only (no body, title_original, or chunk content). Set COMPLIARY_MCP_TOKEN or COMPLIARY_OAUTH_OPERATOR_SECRET to enable full projection.")
+		} else {
+			log.Warn("No auth configured and COMPLIARY_MCP_PUBLIC is false — /mcp will return 401. Set auth env vars or COMPLIARY_MCP_PUBLIC=true for anonymous reduced access.")
+		}
 	}
 
 	scoreFloor := loadScoreFloor(ctx, pool, log)
@@ -124,23 +155,28 @@ func run(cfgPath, addrOverride string, log *slog.Logger) error {
 	}
 	srv := mcp.NewServer(core, log, sopts...)
 
-	return serve(ctx, listenAddr, srv, token, log)
+	return serve(ctx, listenAddr, srv, oauthSrv, token, publicURL, mcpPublic, log)
 }
 
-func serve(ctx context.Context, addr string, srv *mcp.Server, token string, log *slog.Logger) error {
+func serve(ctx context.Context, addr string, srv *mcp.Server, oauthSrv *oauth.Server, token, publicURL string, mcpPublic bool, log *slog.Logger) error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
-	})
+	mux.HandleFunc("GET /healthz", healthzHandler)
 
 	// Mount MCP endpoint with cross-origin protection.
 	mcpHandler := crossOriginProtected(srv.HTTPHandler(), log)
 	mux.Handle("/mcp", mcpHandler)
 
+	// Mount OAuth endpoints (served without bearer auth).
+	if oauthSrv != nil {
+		oauthHandler := oauthSrv.Handler()
+		mux.Handle("GET /.well-known/oauth-protected-resource", oauthHandler)
+		mux.Handle("GET /.well-known/oauth-authorization-server", oauthHandler)
+		mux.Handle("/oauth/", oauthHandler)
+	}
+
 	// Security middleware stack.
-	handler, stopEvictor := secure(mux, token, log)
-	defer stopEvictor()
+	handler, stop := secure(mux, oauthSrv, token, publicURL, mcpPublic, log)
+	defer stop()
 
 	httpSrv := &http.Server{
 		Addr:              addr,
@@ -168,26 +204,91 @@ func serve(ctx context.Context, addr string, srv *mcp.Server, token string, log 
 	return nil
 }
 
+func healthzHandler(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("ok"))
+}
+
 // --- middleware ---------------------------------------------------------------
 
 const maxRequestBody = 1 << 20 // 1 MiB
 
-// secure wraps h with the public-facing defenses: rate limit → auth → body cap.
-// /healthz is exempt from auth.
-func secure(h http.Handler, token string, log *slog.Logger) (http.Handler, func()) {
+// secure wraps h with the public-facing defenses: panic recovery → security
+// headers → rate limit → auth → body cap. Auth applies to /mcp only; healthz,
+// OAuth, and well-known endpoints are exempt.
+func secure(h http.Handler, oauthSrv *oauth.Server, token, publicURL string, mcpPublic bool, log *slog.Logger) (http.Handler, func()) {
 	rl := newRateLimiter(
 		envFloat("COMPLIARY_MCP_RATE_RPS", 50),
 		envInt("COMPLIARY_MCP_RATE_BURST", 100),
 		envBool("COMPLIARY_TRUST_PROXY", false),
 	)
-	stop := rl.startEvictor(10 * time.Minute)
+	rlStop := rl.startEvictor(10 * time.Minute)
 
 	h = bodyLimit(h)
-	h = bearerAuth(h, token, log)
+
+	// Auth middleware — applied only to /mcp (other routes are public).
+	switch {
+	case oauthSrv != nil:
+		var verifier auth.TokenVerifier
+		if token != "" {
+			verifier = oauthSrv.BearerFallback(token)
+		} else {
+			verifier = oauthSrv.TokenVerifier()
+		}
+		resourceMetaURL := publicURL + "/.well-known/oauth-protected-resource"
+		bearerMW := auth.RequireBearerToken(verifier, &auth.RequireBearerTokenOptions{
+			ResourceMetadataURL: resourceMetaURL,
+			Scopes:              []string{"mcp:read"},
+		})
+		h = mcpOnly(bearerMW, h)
+
+	case token != "":
+		h = bearerAuth(h, token, log)
+
+	default:
+		if !mcpPublic {
+			// No auth, not public — reject /mcp with 401.
+			h = mcpReject(h)
+		}
+		// else: reduced projection served anonymously (mcpPublic=true).
+	}
+
 	h = rl.middleware(h)
 	h = securityHeaders(h)
 	h = recoverPanic(h, log)
+
+	stop := func() {
+		rlStop()
+		if oauthSrv != nil {
+			oauthSrv.StopEvictor()
+		}
+	}
 	return h, stop
+}
+
+// mcpOnly applies the bearer middleware only to /mcp; all other paths pass
+// through unprotected (healthz, OAuth endpoints, well-known metadata).
+func mcpOnly(bearerMW func(http.Handler) http.Handler, fallback http.Handler) http.Handler {
+	protectedMCP := bearerMW(fallback)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/mcp" {
+			protectedMCP.ServeHTTP(w, r)
+			return
+		}
+		fallback.ServeHTTP(w, r)
+	})
+}
+
+// mcpReject returns 401 on /mcp when no auth is configured and
+// COMPLIARY_MCP_PUBLIC is false. All other paths pass through.
+func mcpReject(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/mcp" {
+			http.Error(w, "unauthorized — set auth env vars or COMPLIARY_MCP_PUBLIC=true", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func securityHeaders(next http.Handler) http.Handler {
