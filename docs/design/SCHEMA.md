@@ -3,7 +3,6 @@
 compliary's PostgreSQL schema — banhmi's conventions ported (crawl machinery dropped): sqlc, no
 cross-schema FKs (cross-layer links are business-key `BIGINT`s), JSONB for non-queryable data,
 single-column surrogate PKs, natural keys as composite `UNIQUE`, named constraints ≤63 bytes.
-Reviewed 2026-07-19 (two-agent design review); fixes from that review are folded in below.
 
 Schemas: **`ingest`** (file manifest + pipeline state) → **`bronze`** (raw files + license
 provenance) → **`silver`** (frameworks/versions/documents/controls + relations + mappings) →

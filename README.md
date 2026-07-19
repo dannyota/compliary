@@ -10,7 +10,7 @@ mappings, provenance, and explicit gaps. compliance + library.**
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-Streamable_HTTP-6E40C9)](https://modelcontextprotocol.io)
-[![Status](https://img.shields.io/badge/status-bootstrap-orange.svg)](PLAN.md)
+[![Status](https://img.shields.io/badge/status-v0.1.0--dev-orange.svg)](PLAN.md)
 
 </div>
 
@@ -36,7 +36,7 @@ and verified license gates in [PLAN.md](PLAN.md).
 |---|---|---|
 | **Public / direct** | auto-fetch | NIST CSF 2.0 · NIST SP 800-53 r5 (OSCAL) · CIS Controls v8.1 |
 | **Free, form-gated** | `cmd/fetch` fills the click-through with the operator's identity | PCI DSS v4.0.1 |
-| **Sign-in / purchase / membership** | manual drop-in into `data/` | SOC 2 (AICPA TSC) · ISO/IEC 27001 · 27002 · 27017 · 27018 · 27701 · ISO 22301 · ISO/IEC 42001 · SWIFT CSCF · COBIT 2019 · CSA CCM v4 |
+| **Sign-in / purchase / membership** | manual drop-in into `data/` | SOC 2 (AICPA TSC) · ISO/IEC 27001 · 27002 · 27017 · 27018 · 27701 · ISO 22301 · ISO/IEC 42001 · SWIFT CSCF · COBIT 2019 · CSA CCM v4.1 |
 
 ## Licensing model
 
@@ -69,10 +69,9 @@ Mirrors the banhmi-proven stack — ported patterns, no code dependency. Full de
 
 ## Status
 
-**M1 done** — `cmd/fetch` downloads every automatable source (validated live: NIST, PCI DSS
-v4.0.1, CIS v8.1.2); corpus 12/15 frameworks acquired. **M2 in progress** — design docs drafted
-([docs/](docs/README.md)); next: NIST OSCAL parser. Roadmap, design questions, and milestones in
-[PLAN.md](PLAN.md).
+**v0.1.0 in development.** `cmd/fetch` ships and is validated live; corpus 12/15 frameworks
+acquired; design settled and reviewed ([docs/](docs/README.md)). Building now: schemas, the
+framework registry, and the NIST OSCAL parser. Roadmap and milestones in [PLAN.md](PLAN.md).
 
 ## License
 

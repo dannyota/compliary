@@ -87,14 +87,14 @@ edges (as relations, not text), license/provenance, and explicit gaps. Framework
 
 stdio for local clients, Streamable HTTP for the deployed instance; evidence logic in shared
 packages, not surfaces. **Maintainer instance (`compliary.danny.vn/mcp`) requires auth** —
-licensed text is never served publicly (mechanism decided at M4; see PLAN.md design question 4).
+licensed text is never served publicly (mechanism decided at M4; see PLAN.md open decisions).
 
 ## Repository layout (target)
 
 ```text
 compliary/
 ├── cmd/
-│   ├── fetch/             # one-shot corpus downloader (M1, done)
+│   ├── fetch/             # one-shot corpus downloader
 │   ├── pipeline/          # manifest/extract/normalize/index/lexindex stages
 │   ├── mcp/               # MCP server (stdio)
 │   ├── server/            # Streamable-HTTP /mcp (deployed surface)
@@ -103,8 +103,8 @@ compliary/
 │   └── eval/              # retrieval eval (recall@k/MRR@k), no LLM
 ├── pkg/
 │   ├── base/              # config, db, log
-│   ├── fetch/             # per-publisher fetchers (M1, done)
-│   ├── operator/          # operator identity (.env) (M1, done)
+│   ├── fetch/             # per-publisher fetchers
+│   ├── operator/          # operator identity (.env)
 │   ├── manifest/          # data/ scanner + registry matcher
 │   ├── extract/           # OSCAL / XLSX / PDF extractors (go-fitz; no OCR)
 │   ├── normalize/         # per-framework structure parsers → silver

@@ -53,8 +53,7 @@ files). **v0.1.0 builds on the 12 frameworks acquired; the 5 phase-2 documents l
 - **ISO cloud companion 27017 lags the 2022 renumbering:** still keyed to 27002:2013 control
   numbering (27018:2025 realigned to 27002:2022) — version-lineage relations must model
   cross-edition references.
-- **Build order (recommendation): NIST first** (auto-fetch + structured OSCAL = richest spike),
-  then CIS + PCI DSS + SOC 2 (free BYO), then the ISO family (purchased BYO) + mappings.
+- **Parser build order:** see [`docs/design/SCHEMA.md`](docs/design/SCHEMA.md) (OSCAL → XLSX → PDF).
 
 **License gates (verified against live publisher sources 2026-07-19):**
 
@@ -87,42 +86,27 @@ ACSC Essential Eight, UK Cyber Essentials, SOC 1 / SOC 3, FedRAMP Rev 5 baseline
 **Mapping data sources (cross-framework relations):** NIST OLIR, CIS↔ISO/NIST mappings, CSA CCM
 mappings, Secure Controls Framework (license check needed before use).
 
-## Design questions
+## Open decisions
 
-1. **Schema for versions + mappings** — **SETTLED 2026-07-19** in
-   [`docs/design/SCHEMA.md`](docs/design/SCHEMA.md): `version_relation` supersession edges,
-   version-aware business-keyed `control_mapping`, amendment patch linkage; two-agent review passed.
-2. **Registry shape** — **SETTLED 2026-07-19**: `config.framework`/`framework_version` +
-   vocabularies, CSV-seeded with `origin` overrides ([`docs/design/SCHEMA.md`](docs/design/SCHEMA.md)).
-3. **Reuse strategy** — **SETTLED 2026-07-19**: port banhmi patterns, no code dependency
-   ([`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)).
-4. **Maintainer `/mcp` auth mechanism** — OPEN: bearer token + CloudFront origin header (banhmi
+1. **Maintainer `/mcp` auth mechanism** — bearer token + CloudFront origin header (banhmi
    pattern) vs OAuth (needed for claude.ai custom connectors). Decide at M4 (deploy).
 
 ## Roadmap
 
-### v0.1.0 — fetch, corpus, serve (12 acquired frameworks)
+### v0.1.0 — corpus + serve (12 acquired frameworks)
 
-1. **M0 — repo bootstrap** — CLAUDE.md, PLAN.md, git + signing. **DONE 2026-07-19.**
-2. **M1 — `cmd/fetch` (one-shot downloader)** — **DONE 2026-07-19** (validated live: 4 NIST files,
-   PCI DSS v4.0.1 via accepted license, CIS v8.1.2 guide PDF + 2 Excel workbooks from the public
-   download page). Spec: prompt operator info once (name, title, company,
-   country, email), cache in **gitignored `.env`** (real identity — never commit); one run downloads
-   everything automatable into `data/`: **NIST + CIS** direct (CIS serves the Controls from a
-   public page — no form needed); **PCI SSC** by filling the license click-through with the
-   operator's identity — the operator is the accepting party. **Any
-   source requiring sign-in, an account, purchase, or membership is always manual drop-in** (AICPA
-   TSC, ISO family, SWIFT CSCF, COBIT; CSA if its form needs an account) — print the official URL +
-   `data/` target path. Idempotent — re-run
-   anytime in dev, `.env` reused. Industry/sector dropdowns: single `.env` preference
-   (`financial` | `technology` | `other`) matched to the closest option, fall back to Other — no
-   per-publisher taxonomy.
-3. **M2 — design + parse** — `docs/ARCHITECTURE.md` + `docs/design/SCHEMA.md`; NIST OSCAL first,
-   then per-framework PDF parsers; bronze → silver → gold; real rows measured.
-4. **M3 — MCP evidence service** — `guide`, `corpus_status`, `quality_gaps`, `search`, `document`;
-   golden set + eval gate with baseline floors.
-5. **M4 — deploy maintainer instance** — `compliary.danny.vn`: public landing, **authenticated
-   `/mcp`** (auth mechanism per design question 4). Reuse banhmi's AWS shape (CloudFront → ECS → RDS).
+Design settled in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) +
+[`docs/design/SCHEMA.md`](docs/design/SCHEMA.md); M0 (bootstrap) and M1 (`cmd/fetch`) done — see
+milestone history.
+
+1. **M2 — parse** (in progress; design docs done + two-agent review passed):
+   `sql/` schemas + migrations → seed CSVs (registry) → manifest scanner → parsers in the
+   SCHEMA.md order (NIST OSCAL first); bronze → silver → gold; golden-count gates; real rows
+   measured.
+2. **M3 — MCP evidence service** — `guide`, `corpus_status`, `quality_gaps`, `search`, `document`;
+   citation-keyed golden set + eval gate with baseline floors.
+3. **M4 — deploy maintainer instance** — `compliary.danny.vn`: public landing, **authenticated
+   `/mcp`** (auth per open decision 1). Reuse banhmi's AWS shape (CloudFront → ECS → RDS).
 
 ### v0.1.x — patch releases
 
@@ -155,14 +139,10 @@ patch — new documents always cut v0.2.0+.
 
 ## Milestone history
 
-- **2026-07-19 (later)** — Corpus acquisition: 12/15 frameworks landed in `data/` (NIST, PCI DSS,
-  CIS auto-fetched; AICPA TSC, CSA CCM v4.1, ISO 27001+Amd/27002/27017/27018:2019, 22301 Amd 1,
-  COBIT 2019 dropped in). Filenames normalized to kebab-case (fetchers aligned, validated live).
-  Version corrections verified: 27018 → :2025, 22301 + Amd 1:2024, CCM → v4.1. Remaining 5
-  acquisitions deferred to phase 2.
-- **2026-07-19** — Project bootstrapped: canonical guide, plan, git repo with signed commits.
-  License gates verified against live publisher sources (PCI SSC click-through, CIS CC licenses,
-  ISO copyright, AICPA T&C incl. anti-LLM clause, NIST §105). Distribution model settled:
-  open-source self-deploy, BYO ingestion for license-gated sources, authenticated private
-  maintainer instance. Plan simplified to a single scope (15 frameworks, no phasing) with the
-  one-shot `cmd/fetch` downloader as the first build step.
+- **2026-07-19** — **M0 + M1 + corpus + M2 design.** Bootstrap (guide, plan, signed git); license
+  gates verified against live publisher sources (verdicts above). `cmd/fetch` shipped + validated
+  live (NIST/PCI/CIS). Corpus acquisition: 12/15 frameworks in `data/`, filenames kebab-cased
+  (fetchers aligned, re-run validated), versions verified (27018 → :2025, 22301 + Amd 1:2024,
+  CCM → v4.1); 5 documents deferred to phase 2 (v0.2.0). M2 design docs written, two-agent
+  review passed, fixes folded in; design questions 1–3 (schema, registry, reuse) settled in
+  `docs/`.
