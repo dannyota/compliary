@@ -77,10 +77,17 @@ graph LR
 
 Same five-tool contract as banhmi: `guide`, `corpus_status`, `quality_gaps`, `search`, `document`.
 Each hit carries the exact control citation, framework + version (with superseded flag), mapping
-edges (as relations, not text), license/provenance, and explicit gaps. stdio for local clients,
-Streamable HTTP for the deployed instance; evidence logic in shared packages, not surfaces.
-**Maintainer instance (`compliary.danny.vn/mcp`) requires auth** — licensed text is never served
-publicly (mechanism decided at M4; see PLAN.md design question 4).
+edges (as relations, not text), license/provenance, and explicit gaps. Framework-domain additions:
+
+- **`search` takes an optional `framework` / `version` filter** — default searches current
+  versions only; superseded editions are queryable only by explicit pin (the version-lineage
+  promise, deliverable through MCP).
+- **`document` with a citation returns the control + its `control_mapping` edges** ("maps to:
+  ISO 27001:2022 A.5.15, CIS 6.5") — mapping traversal without a new tool.
+
+stdio for local clients, Streamable HTTP for the deployed instance; evidence logic in shared
+packages, not surfaces. **Maintainer instance (`compliary.danny.vn/mcp`) requires auth** —
+licensed text is never served publicly (mechanism decided at M4; see PLAN.md design question 4).
 
 ## Repository layout (target)
 
