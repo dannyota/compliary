@@ -39,7 +39,11 @@ type opts struct {
 	golden             string
 	topK               int
 	poolK              int
+	vectorK            int
+	bm25K              int
+	rrfK               int
 	docCap             int
+	lexWeight          float64
 	retrievalMode      string
 	review             bool
 	reviewHits         int
@@ -57,7 +61,11 @@ func main() {
 	flag.StringVar(&o.golden, "golden", "", "path to golden CSV (empty = use embedded)")
 	flag.IntVar(&o.topK, "top-k", 8, "retriever top-k")
 	flag.IntVar(&o.poolK, "pool-k", 0, "deep-probe candidate depth (0 = off)")
+	flag.IntVar(&o.vectorK, "vector-k", 0, "vector arm candidate depth (0 = default)")
+	flag.IntVar(&o.bm25K, "bm25-k", 0, "BM25 arm candidate depth (0 = default)")
+	flag.IntVar(&o.rrfK, "rrf-k", 0, "RRF fusion constant (0 = default)")
 	flag.IntVar(&o.docCap, "doc-cap", 0, "per-framework hit cap (0 = default)")
+	flag.Float64Var(&o.lexWeight, "lex-weight", 0, "BM25 arm RRF weight (0 = default)")
 	flag.StringVar(&o.retrievalMode, "retrieval-mode", "hybrid", "bm25, vector, or hybrid")
 	flag.BoolVar(&o.review, "review", false, "print per-case evidence review")
 	flag.IntVar(&o.reviewHits, "review-hits", 3, "top hits per case in review mode")
@@ -231,9 +239,13 @@ func evaluate(
 	var reviewRuns []reviewRun
 	for _, c := range cases {
 		searchOpts := eval.SearchOpts{
-			TopK:   o.topK,
-			DocCap: o.docCap,
-			Mode:   eval.SearchMode(o.retrievalMode),
+			TopK:      o.topK,
+			VectorK:   o.vectorK,
+			BM25K:     o.bm25K,
+			RRFK:      o.rrfK,
+			DocCap:    o.docCap,
+			LexWeight: o.lexWeight,
+			Mode:      eval.SearchMode(o.retrievalMode),
 		}
 		ev, err := r.SearchEvidence(ctx, c.Question, searchOpts)
 		if err != nil {

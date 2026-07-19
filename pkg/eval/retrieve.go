@@ -51,6 +51,9 @@ type SearchOpts struct {
 	BM25K   int        // BM25 candidates before fusion; 0 = config default
 	RRFK    int        // RRF constant; 0 = config default
 	DocCap  int        // max primary-pass hits per framework; 0 = config default
+	// LexWeight scales the BM25 arm's RRF contribution relative to the vector
+	// arm. 0 = config default (1.0). Values > 1 boost lexical; < 1 attenuate.
+	LexWeight float64
 
 	// Framework narrows retrieval to one framework code (e.g. "nist80053").
 	// Empty = all frameworks.

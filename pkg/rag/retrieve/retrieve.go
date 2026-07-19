@@ -32,11 +32,12 @@ import (
 // Defaults applied when a SearchOpts field is zero. A bare Search(ctx, q,
 // SearchOpts{}) call must be sensible.
 const (
-	defaultTopK    = 8
-	defaultVectorK = 100
-	defaultBM25K   = 100
-	defaultRRFK    = 60
-	defaultDocCap  = 0 // no cap — semantics differ from banhmi; eval decides
+	defaultTopK      = 8
+	defaultVectorK   = 50
+	defaultBM25K     = 50
+	defaultRRFK      = 20
+	defaultDocCap    = 0   // no cap — semantics differ from banhmi; eval decides
+	defaultLexWeight = 0.5 // BM25 arm RRF weight relative to vector arm
 )
 
 // Compile-time check: method drift against the eval harness contract must
@@ -99,6 +100,7 @@ type resolved struct {
 	bm25K             int
 	rrfK              int
 	docCap            int
+	lexWeight         float64
 	currentOnly       bool
 	surfaceNonCurrent bool
 	framework         string
@@ -136,6 +138,10 @@ func (r *Retriever) resolve(opts eval.SearchOpts) (resolved, error) {
 	if opts.Framework != "" || opts.VersionLabel != "" {
 		surfaceNonCurrent = false
 	}
+	lexWeight := opts.LexWeight
+	if lexWeight <= 0 {
+		lexWeight = defaultLexWeight
+	}
 	return resolved{
 		mode:              mode,
 		topK:              pick(opts.TopK, defaultTopK),
@@ -143,6 +149,7 @@ func (r *Retriever) resolve(opts eval.SearchOpts) (resolved, error) {
 		bm25K:             pick(opts.BM25K, defaultBM25K),
 		rrfK:              pick(opts.RRFK, defaultRRFK),
 		docCap:            pick(opts.DocCap, defaultDocCap),
+		lexWeight:         lexWeight,
 		currentOnly:       currentOnly,
 		surfaceNonCurrent: surfaceNonCurrent,
 		framework:         opts.Framework,
@@ -233,8 +240,8 @@ func (r *Retriever) searchHits(ctx context.Context, query string, opts eval.Sear
 
 	// Fusion. When we have citation pinned hits, boost the lexical weight
 	// so citation token overlap drives the supporting results.
-	lexWeight := 1.0
-	if len(pinnedHits) > 0 {
+	lexWeight := res.lexWeight
+	if len(pinnedHits) > 0 && lexWeight < 1.5 {
 		lexWeight = 1.5 // citation-led: boost lexical for related results
 	}
 	fused := fuseRRF(vectorList, bm25List, res.rrfK, lexWeight)
@@ -345,6 +352,7 @@ FROM gold.chunk_embedding e
 JOIN gold.chunk c ON c.id = e.chunk_id
 JOIN silver.control sc ON sc.id = c.control_id
 WHERE e.model = $2
+  AND sc.status = 'active'
   AND sc.document_id IN (SELECT document_id FROM version_filter)
 ORDER BY e.embedding <=> $1, c.id
 LIMIT $3`
@@ -362,7 +370,9 @@ LIMIT $3`
 SELECT c.id, (e.embedding <=> $1)::float8
 FROM gold.chunk_embedding e
 JOIN gold.chunk c ON c.id = e.chunk_id
+JOIN silver.control sc ON sc.id = c.control_id
 WHERE e.model = $2
+  AND sc.status = 'active'
 ORDER BY e.embedding <=> $1, c.id
 LIMIT $3`
 		} else {
@@ -415,6 +425,7 @@ SELECT c.id, (c.content_sparse <#> $1::sparsevec) AS neg_ip
 FROM gold.chunk c
 JOIN silver.control sc ON sc.id = c.control_id
 WHERE c.content_sparse IS NOT NULL
+  AND sc.status = 'active'
   AND (c.content_sparse <#> $1::sparsevec) < 0
   AND sc.document_id IN (SELECT document_id FROM version_filter)
 ORDER BY c.content_sparse <#> $1::sparsevec
@@ -426,7 +437,9 @@ LIMIT $2`
 		sql = `
 SELECT c.id, (c.content_sparse <#> $1::sparsevec) AS neg_ip
 FROM gold.chunk c
+JOIN silver.control sc ON sc.id = c.control_id
 WHERE c.content_sparse IS NOT NULL
+  AND sc.status = 'active'
   AND (c.content_sparse <#> $1::sparsevec) < 0
 ORDER BY c.content_sparse <#> $1::sparsevec
 LIMIT $2`
