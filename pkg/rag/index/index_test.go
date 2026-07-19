@@ -508,3 +508,39 @@ func TestEmbedMissing_nilEmbedderReturnsError(t *testing.T) {
 		t.Errorf("error = %q, want to contain 'no embedder'", err.Error())
 	}
 }
+
+// TestEmbedMissing_noNewChunksButMissingEmbeddings verifies that EmbedMissing
+// processes pre-existing chunks that have no embeddings — even when no new
+// BuildChunks call was made. This exercises the defect-fix contract:
+// the global embed phase must run when missing>0, regardless of file eligibility.
+func TestEmbedMissing_noNewChunksButMissingEmbeddings(t *testing.T) {
+	store := newFakeGoldStore()
+	// Directly insert chunks simulating a prior run that built chunks but
+	// crashed before embedding.
+	store.validControlIDs[10] = true
+	store.validControlIDs[20] = true
+	store.chunks[100] = dbgold.GoldChunk{
+		ID: 100, ControlID: 10, Citation: "AC-1", Content: "prior chunk 1",
+		ContextPrefix: ptrStr("nist80053 r5 > AC > Policy"),
+	}
+	store.chunks[200] = dbgold.GoldChunk{
+		ID: 200, ControlID: 20, Citation: "AC-2", Content: "prior chunk 2",
+		ContextPrefix: ptrStr("nist80053 r5 > AC > Account Mgmt"),
+	}
+
+	emb := &fakeEmbedder{dims: 4, model: "test-model"}
+	idx := &Indexer{
+		Embedder:  emb,
+		Log:       slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError})),
+		BatchSize: 10,
+	}
+
+	// No BuildChunks call — go straight to EmbedMissing.
+	upserted, err := idx.EmbedMissing(context.Background(), store)
+	if err != nil {
+		t.Fatalf("EmbedMissing: %v", err)
+	}
+	if upserted != 2 {
+		t.Errorf("upserted = %d, want 2 (should embed pre-existing chunks)", upserted)
+	}
+}

@@ -7,6 +7,7 @@
 //	pipeline -stage extract               # run extract stage only
 //	pipeline -stage normalize             # run normalize stage only
 //	pipeline -stage index                 # run index stage only
+//	pipeline -stage lexindex              # run lexindex stage only (BM25 sparse vectors)
 //	pipeline -config config/config.yaml   # custom config path
 //
 // Each stage iterates eligible rows, records per-row errors, continues on
@@ -36,6 +37,7 @@ import (
 	"danny.vn/compliary/pkg/rag/embed/kagglebatch"
 	"danny.vn/compliary/pkg/rag/embed/onnxembed"
 	ragindex "danny.vn/compliary/pkg/rag/index"
+	"danny.vn/compliary/pkg/rag/lexical"
 	dbbronze "danny.vn/compliary/pkg/store/bronze"
 	dbconfig "danny.vn/compliary/pkg/store/config"
 	dbgold "danny.vn/compliary/pkg/store/gold"
@@ -45,7 +47,7 @@ import (
 
 func main() {
 	cfgPath := flag.String("config", "config/config.yaml", "path to config file")
-	stage := flag.String("stage", "", "run a single stage: manifest, extract, normalize, index (default: run manifest+extract+normalize)")
+	stage := flag.String("stage", "", "run a single stage: manifest, extract, normalize, index, lexindex (default: run manifest+extract+normalize)")
 	flag.Parse()
 
 	log := clog.New(os.Getenv("COMPLIARY_LOG_LEVEL"))
@@ -73,10 +75,10 @@ func run(cfgPath, stage string, log *slog.Logger) error {
 	stages := []string{"manifest", "extract", "normalize"}
 	if stage != "" {
 		switch stage {
-		case "manifest", "extract", "normalize", "index":
+		case "manifest", "extract", "normalize", "index", "lexindex":
 			stages = []string{stage}
 		default:
-			return fmt.Errorf("unknown stage %q (want manifest, extract, normalize, or index)", stage)
+			return fmt.Errorf("unknown stage %q (want manifest, extract, normalize, index, or lexindex)", stage)
 		}
 	}
 
@@ -101,6 +103,11 @@ func run(cfgPath, stage string, log *slog.Logger) error {
 		case "index":
 			if err := runIndex(ctx, cfg, pool, log); err != nil {
 				log.Error("index stage failed", "err", err)
+				hasError = true
+			}
+		case "lexindex":
+			if err := runLexIndex(ctx, pool, log); err != nil {
+				log.Error("lexindex stage failed", "err", err)
 				hasError = true
 			}
 		}
@@ -292,48 +299,45 @@ func initONNXEmbedder(log *slog.Logger) (ragindex.Embedder, error) {
 }
 
 func runIndex(ctx context.Context, cfg *config.Config, pool poolWrapper, log *slog.Logger) error {
-	// List files eligible for indexing (normalized but not yet indexed).
 	ingQ := dbingest.New(pool)
-	files, err := ingQ.ListFilesToIndex(ctx)
-	if err != nil {
-		return fmt.Errorf("list files to index: %w", err)
-	}
-	log.Info("index: eligible files", "count", len(files))
-
-	if len(files) == 0 {
-		log.Info("index: nothing to do")
-		return nil
-	}
-
 	silverQ := dbsilver.New(pool)
 	goldQ := dbgold.New(pool)
 
-	// Chunk building needs no embedder — defer init to embed phase.
 	idx := &ragindex.Indexer{
 		Log:       log,
 		BatchSize: 32,
 	}
 
-	// Reap orphan chunks whose control_id no longer exists in silver.
+	// --- Phase 1: chunk building (file-driven) ---
+
+	files, err := ingQ.ListFilesToIndex(ctx)
+	if err != nil {
+		return fmt.Errorf("list files to index: %w", err)
+	}
+	log.Info("index: eligible files for chunk build", "count", len(files))
+
+	// Reap orphan chunks even when no new files are eligible — a prior
+	// re-normalize may have orphaned chunks from an already-indexed file.
 	if _, err := idx.ReapOrphans(ctx, goldQ); err != nil {
 		log.Error("index: reap orphans", "err", err)
 		return fmt.Errorf("index: reap orphans: %w", err)
 	}
 
-	// Collect distinct framework codes for the licensing warning.
 	frameworkSet := make(map[string]bool)
-	var totalChunks, totalEmbeddings int
-	var hasError bool
+	var totalChunks int
+	var chunkBuildError bool
+
+	// Track files whose chunks were built successfully; MarkIndexed is
+	// deferred until after the global embed + lexindex phases succeed.
+	var successFileIDs []int64
 
 	for _, f := range files {
 		fc := *f.FrameworkCode
 		vl := *f.VersionLabel
 		frameworkSet[fc] = true
 
-		// Per-file error flag — MarkIndexed only on full success.
 		fileErrored := false
 
-		// Find the silver document for this file.
 		docs, err := silverQ.ListDocumentsForVersion(ctx, dbsilver.ListDocumentsForVersionParams{
 			FrameworkCode: fc,
 			VersionLabel:  vl,
@@ -341,13 +345,13 @@ func runIndex(ctx context.Context, cfg *config.Config, pool poolWrapper, log *sl
 		if err != nil {
 			log.Error("index: list documents", "file", f.RelPath, "err", err)
 			_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{ID: f.ID, StageError: "index: " + err.Error()})
-			hasError = true
+			chunkBuildError = true
 			continue
 		}
 		if len(docs) == 0 {
 			log.Warn("index: no silver document", "file", f.RelPath, "framework", fc, "version", vl)
 			_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{ID: f.ID, StageError: "index: no silver document found"})
-			hasError = true
+			chunkBuildError = true
 			continue
 		}
 
@@ -357,7 +361,7 @@ func runIndex(ctx context.Context, cfg *config.Config, pool poolWrapper, log *sl
 				log.Error("index: list controls", "doc", doc.DocKey, "err", err)
 				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{ID: f.ID, StageError: "index: " + err.Error()})
 				fileErrored = true
-				hasError = true
+				chunkBuildError = true
 				continue
 			}
 			if len(controls) == 0 {
@@ -370,35 +374,35 @@ func runIndex(ctx context.Context, cfg *config.Config, pool poolWrapper, log *sl
 				log.Error("index: build chunks", "doc", doc.DocKey, "err", err)
 				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{ID: f.ID, StageError: "index: " + err.Error()})
 				fileErrored = true
-				hasError = true
+				chunkBuildError = true
 				continue
 			}
 			totalChunks += created
 			log.Info("index: chunks built", "doc", doc.DocKey, "chunks", created)
 		}
 
-		// Mark indexed only when every document for this file succeeded.
-		if fileErrored {
-			continue
-		}
-		if err := ingQ.MarkIndexed(ctx, f.ID); err != nil {
-			log.Error("index: mark indexed", "file", f.RelPath, "err", err)
-			hasError = true
+		if !fileErrored {
+			successFileIDs = append(successFileIDs, f.ID)
 		}
 	}
 
-	// Engine selection for the embed phase.
+	// --- Phase 2: dense embeddings (global, run-when-missing) ---
+	// Always check for missing embeddings regardless of whether new files
+	// were eligible — a prior run may have built chunks but failed during
+	// the embed phase, leaving missing embeddings with indexed_at still NULL.
+
 	const embedModel = "qwen3-embedding-0.6b"
 	const embedDims = 1024
+	var totalEmbeddings int
+	var embedError bool
 
 	engine := cfg.EmbedEngine()
 
-	// For "auto" with Kaggle token, check MinBatch threshold.
 	if engine == "kaggle" && cfg.Embed.Engine == "auto" {
 		missingCount, err := idx.CountMissing(ctx, goldQ, embedModel)
 		if err != nil {
 			log.Error("index: count missing embeddings", "err", err)
-			hasError = true
+			embedError = true
 		} else if missingCount < cfg.Embed.Kaggle.MinBatch {
 			log.Info("index: missing chunks below min_batch, falling back to local",
 				"missing", missingCount, "min_batch", cfg.Embed.Kaggle.MinBatch)
@@ -413,50 +417,97 @@ func runIndex(ctx context.Context, cfg *config.Config, pool poolWrapper, log *sl
 		frameworks = append(frameworks, fc)
 	}
 
-	switch engine {
-	case "kaggle":
-		batch, err := kagglebatch.New(kagglebatch.Options{
-			Owner:        cfg.Embed.Kaggle.Owner,
-			ModelDataset: cfg.Embed.Kaggle.ModelDataset,
-			Accelerator:  cfg.Embed.Kaggle.Accelerator,
-			Dims:         embedDims,
-			Token:        cfg.KaggleToken,
-		}, log)
-		if err != nil {
-			log.Error("index: kaggle embedder init", "err", err)
-			hasError = true
-		} else {
-			embedded, err := idx.EmbedMissingKaggle(ctx, goldQ, batch, embedModel, embedDims, frameworks)
+	if !embedError {
+		switch engine {
+		case "kaggle":
+			batch, err := kagglebatch.New(kagglebatch.Options{
+				Owner:        cfg.Embed.Kaggle.Owner,
+				ModelDataset: cfg.Embed.Kaggle.ModelDataset,
+				Accelerator:  cfg.Embed.Kaggle.Accelerator,
+				Dims:         embedDims,
+				Token:        cfg.KaggleToken,
+			}, log)
 			if err != nil {
-				log.Error("index: kaggle embed", "err", err)
-				hasError = true
+				log.Error("index: kaggle embedder init", "err", err)
+				embedError = true
+			} else {
+				embedded, err := idx.EmbedMissingKaggle(ctx, goldQ, batch, embedModel, embedDims, frameworks)
+				if err != nil {
+					log.Error("index: kaggle embed", "err", err)
+					embedError = true
+				}
+				totalEmbeddings += embedded
 			}
-			totalEmbeddings += embedded
-		}
 
-	default: // "local"
-		embedder, err := initONNXEmbedder(log)
-		if err != nil {
-			log.Error("index: embedder init deferred", "err", err)
-			hasError = true
-		} else {
-			idx.Embedder = embedder
-			embedded, err := idx.EmbedMissing(ctx, goldQ)
+		default: // "local"
+			embedder, err := initONNXEmbedder(log)
 			if err != nil {
-				log.Error("index: embed", "err", err)
-				hasError = true
+				log.Error("index: embedder init deferred", "err", err)
+				embedError = true
+			} else {
+				idx.Embedder = embedder
+				embedded, err := idx.EmbedMissing(ctx, goldQ)
+				if err != nil {
+					log.Error("index: embed", "err", err)
+					embedError = true
+				}
+				totalEmbeddings += embedded
 			}
-			totalEmbeddings += embedded
+		}
+	}
+
+	// --- Phase 3: BM25 sparse vectors (global, run-when-missing) ---
+	// Same principle: always check for missing sparse vectors even when
+	// no new files were eligible for chunk building.
+
+	var totalSparse int
+	var sparseError bool
+
+	sparseWritten, err := lexical.IndexCorpus(ctx, goldQ, 500, log)
+	if err != nil {
+		log.Error("index: lexindex", "err", err)
+		sparseError = true
+	}
+	totalSparse = sparseWritten
+
+	// --- MarkIndexed: only after chunks exist AND global phases succeeded ---
+	// A file is fully indexed only when its chunks are built AND no error
+	// occurred in the global embed/lexindex phases this run. This prevents
+	// marking a file as indexed when its vectors are still incomplete.
+
+	globalPhaseOK := !embedError && !sparseError
+	for _, fid := range successFileIDs {
+		if !globalPhaseOK {
+			break
+		}
+		if err := ingQ.MarkIndexed(ctx, fid); err != nil {
+			log.Error("index: mark indexed", "file_id", fid, "err", err)
+			chunkBuildError = true
 		}
 	}
 
 	log.Info("index complete",
 		"chunks_created", totalChunks,
 		"embeddings_upserted", totalEmbeddings,
+		"sparse_written", totalSparse,
 	)
 
-	if hasError {
+	if chunkBuildError || embedError || sparseError {
 		return fmt.Errorf("index: completed with errors")
 	}
+	return nil
+}
+
+// runLexIndex runs only the BM25 sparse vector phase. This is a convenience
+// entry point for `-stage lexindex` — it fills content_sparse for any chunks
+// that are missing sparse vectors, without touching embeddings or chunks.
+func runLexIndex(ctx context.Context, pool poolWrapper, log *slog.Logger) error {
+	goldQ := dbgold.New(pool)
+
+	written, err := lexical.IndexCorpus(ctx, goldQ, 500, log)
+	if err != nil {
+		return fmt.Errorf("lexindex: %w", err)
+	}
+	log.Info("lexindex complete", "sparse_written", written)
 	return nil
 }
