@@ -31,7 +31,7 @@ var pciDocs = []struct {
 	path string
 	dest string
 }{
-	{"/PCI%20DSS/Standard/PCI-DSS-v4_0_1.pdf", "pcissc/PCI-DSS-v4_0_1.pdf"},
+	{"/PCI%20DSS/Standard/PCI-DSS-v4_0_1.pdf", "pcissc/pci-dss-v4.0.1.pdf"},
 }
 
 var csrfRe = regexp.MustCompile(`csrf_token="([0-9a-f]+)"`)

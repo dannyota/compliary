@@ -14,10 +14,10 @@ var nistFiles = []struct {
 	dest  string
 	magic []byte
 }{
-	{"https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf", "nist/NIST.CSWP.29-csf-2.0.pdf", pdfMagic},
-	{"https://csrc.nist.gov/extensions/nudp/services/json/csf/download?olirids=all", "nist/csf-2.0.xlsx", []byte("PK")},
-	{"https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf", "nist/NIST.SP.800-53r5.pdf", pdfMagic},
-	{"https://raw.githubusercontent.com/usnistgov/oscal-content/main/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json", "nist/NIST_SP-800-53_rev5_catalog.json", []byte(`{`)},
+	{"https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf", "nist/nist-csf-2.0.pdf", pdfMagic},
+	{"https://csrc.nist.gov/extensions/nudp/services/json/csf/download?olirids=all", "nist/nist-csf-2.0.xlsx", []byte("PK")},
+	{"https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf", "nist/nist-sp-800-53r5.pdf", pdfMagic},
+	{"https://raw.githubusercontent.com/usnistgov/oscal-content/main/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json", "nist/nist-sp-800-53r5-oscal-catalog.json", []byte(`{`)},
 }
 
 // NIST downloads the NIST CSF 2.0 and SP 800-53 r5 documents into dataDir.

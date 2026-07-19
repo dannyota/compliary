@@ -26,7 +26,16 @@ var (
 	anchorRe     = regexp.MustCompile(`(?s)<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>`)
 	embedRe      = regexp.MustCompile(`(?:src|href)='([^']+\.pdf)'`)
 	tagOrSpaceRe = regexp.MustCompile(`<[^>]+>|\s+`)
+	separatorRe  = regexp.MustCompile(`[_\s]+`)
+	dashRunRe    = regexp.MustCompile(`-{2,}`)
 )
+
+// kebabName normalizes a publisher filename to the data/ naming convention:
+// lowercase kebab-case, no underscores or spaces.
+func kebabName(name string) string {
+	name = separatorRe.ReplaceAllString(strings.ToLower(name), "-")
+	return strings.Trim(dashRunRe.ReplaceAllString(name, "-"), "-")
+}
 
 // anchorText flattens anchor inner HTML to comparable plain text.
 func anchorText(inner string) string {
@@ -83,7 +92,8 @@ func CIS(c *http.Client, dataDir string, report func(string)) error {
 }
 
 // saveByFinalName downloads u and names the file after the redirect-resolved
-// URL's basename (the CIS links resolve to versioned storage filenames).
+// URL's basename (the CIS links resolve to versioned storage filenames),
+// normalized to the data/ kebab-case convention.
 func saveByFinalName(c *http.Client, u, destDir string, magic []byte, report func(string)) error {
 	req, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
@@ -103,6 +113,7 @@ func saveByFinalName(c *http.Client, u, destDir string, magic []byte, report fun
 	if err != nil || name == "" || name == "/" || name == "." {
 		return fmt.Errorf("get %s: no usable filename in %s", u, final)
 	}
+	name = kebabName(name)
 	dest := filepath.Join(destDir, name)
 	if exists(dest) {
 		report("skip (exists): cis/" + name)
