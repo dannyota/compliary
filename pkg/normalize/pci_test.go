@@ -312,6 +312,67 @@ func TestBuildPCITree_Depth5(t *testing.T) {
 	}
 }
 
+func TestBuildPCITree_MidLineCollision(t *testing.T) {
+	// Verify that a requirement ID appearing mid-line (due to go-fitz column
+	// concatenation) is still captured. This reproduces the 10.2.1.4 pattern:
+	// guidance text from a prior column runs into the requirement text on the
+	// same line.
+	fixture := `{
+  "pages": [
+    {
+      "n": 1,
+      "text": "Requirement 10: Invented Audit Logging\n10.2 Invented audit events.\n10.2.1 Invented audit details.\n10.2.1.3 Invented audit log access tracking.\n10.2.1.3 Invented testing procedure for audit log access.\n"
+    },
+    {
+      "n": 2,
+      "text": "Some guidance about attackers trying multiple times. 10.2.1.4 Invented audit log invalid access tracking.\n"
+    },
+    {
+      "n": 3,
+      "text": "Customized Approach Objective 10.2.1.4 Invented testing for invalid access.\n10.2.1.5 Invented audit log privilege changes.\n"
+    }
+  ]
+}`
+	tree, err := BuildPCITree(json.RawMessage(fixture), "pcidss", "v4.0.1")
+	if err != nil {
+		t.Fatalf("BuildPCITree: %v", err)
+	}
+
+	// Expected: Req 10, 10.2, 10.2.1, 10.2.1.3, 10.2.1.4, 10.2.1.5 = 6
+	if len(tree.Controls) != 6 {
+		t.Fatalf("controls=%d, want 6; got: %v", len(tree.Controls), controlIDs(tree.Controls))
+	}
+
+	// Verify 10.2.1.4 is present with correct parent.
+	var found1014 bool
+	for _, c := range tree.Controls {
+		if c.Citation == "10.2.1.4" {
+			found1014 = true
+			if c.Body == nil {
+				t.Errorf("10.2.1.4 body is nil")
+			}
+			// Parent should be 10.2.1.
+			parentIdx := c.ParentIdx
+			if parentIdx < 0 || tree.Controls[parentIdx].Citation != "10.2.1" {
+				t.Errorf("10.2.1.4 parent=%d (citation=%s), want 10.2.1",
+					parentIdx, tree.Controls[parentIdx].Citation)
+			}
+		}
+	}
+	if !found1014 {
+		t.Error("10.2.1.4 not found in tree — mid-line collision dropped it")
+	}
+
+	// citation_norm uniqueness.
+	norms := map[string]bool{}
+	for _, c := range tree.Controls {
+		if norms[c.CitationNorm] {
+			t.Errorf("duplicate citation_norm: %s", c.CitationNorm)
+		}
+		norms[c.CitationNorm] = true
+	}
+}
+
 func TestBuildPCITree_Golden(t *testing.T) {
 	const pdfPath = "../../data/pcissc/pci-dss-v4.0.1.pdf"
 	raw, err := extract.CapturePDFFile(pdfPath)
@@ -327,10 +388,12 @@ func TestBuildPCITree_Golden(t *testing.T) {
 	// --- Golden count pins ---
 
 	// Total controls: 15 roots (12 requirement headers + 3 appendix groups)
-	// + 350 requirement IDs = 365.
+	// + 351 requirement IDs = 366.
+	// 351 = 350 line-start IDs + 1 mid-line ID (10.2.1.4, recovered from
+	// go-fitz column concatenation).
 	totalControls := len(tree.Controls)
-	if totalControls != 365 {
-		t.Errorf("total controls=%d, want 365", totalControls)
+	if totalControls != 366 {
+		t.Errorf("total controls=%d, want 366", totalControls)
 	}
 
 	// Count roots (parentIdx == -1).
@@ -359,8 +422,8 @@ func TestBuildPCITree_Golden(t *testing.T) {
 	if depthCounts[3] != 230 {
 		t.Errorf("X.Y.Z depth=%d, want 230", depthCounts[3])
 	}
-	if depthCounts[4] != 48 {
-		t.Errorf("X.Y.Z.W depth=%d, want 48", depthCounts[4])
+	if depthCounts[4] != 49 {
+		t.Errorf("X.Y.Z.W depth=%d, want 49", depthCounts[4])
 	}
 	if depthCounts[5] != 1 {
 		t.Errorf("depth-5=%d, want 1", depthCounts[5])

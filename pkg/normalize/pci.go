@@ -35,6 +35,12 @@ var reAppHeader = regexp.MustCompile(`^Appendix\s+(A\d+):`)
 // Handles regular (1.1, 1.1.1, 1.1.1.1) and appendix (A1.1, A1.1.1, A3.2.5.1) forms.
 var rePCIReqID = regexp.MustCompile(`^(A?\d+(?:\.\d+)+)\s`)
 
+// rePCIMidLineID matches a requirement ID appearing mid-line (after other text).
+// go-fitz sometimes concatenates text from adjacent PDF columns on a single line,
+// causing a requirement ID to appear mid-line rather than at position 0.
+// Requires a space before the ID.
+var rePCIMidLineID = regexp.MustCompile(`\s(A?\d+\.\d+(?:\.\d+)+)\s`)
+
 // rePCITestProc matches testing procedure lines (.a, .b, .a.1, etc.).
 var rePCITestProc = regexp.MustCompile(`^(A?\d+(?:\.\d+)+\.[a-z](?:\.\d+)?)\s`)
 
@@ -54,7 +60,6 @@ func isPCIBodyLabel(line string) bool {
 		if strings.EqualFold(strings.TrimSpace(line), label) {
 			return true
 		}
-		// Also match with trailing colon.
 		if strings.EqualFold(strings.TrimSpace(line), label+":") {
 			return true
 		}
@@ -62,16 +67,15 @@ func isPCIBodyLabel(line string) bool {
 	return false
 }
 
-// isPCISkipLine checks if a line should be excluded from body text.
-// These are structural artifacts from the 3-column layout that aren't
-// part of the Defined Approach Requirement content.
+// rePCISkipLine matches structural artifacts from the 3-column layout that
+// are not part of the Defined Approach Requirement content.
 var rePCISkipLine = regexp.MustCompile(`^(Defined Approach (Requirements|Testing Procedures)|Requirements and Testing Procedures|Good Practice|Purpose|Definitions|Examples|Further Information|Guidance)\s*$`)
 
 // BuildPCITree parses a pdf-pages-json capture for PCI DSS and returns the
 // normalized control tree. This is a pure function with no side effects.
 //
 // Tree shape per design decision 3: kind 'requirement' at every level.
-// Roots: citations 1–12 (from "Requirement N:" headers) plus A1, A2, A3
+// Roots: citations 1-12 (from "Requirement N:" headers) plus A1, A2, A3
 // (from "Appendix AN:" headers). Children by numeric nesting.
 // Title = generated "Requirement <citation>" (no licensed text).
 // title_original = nil. Body = Defined Approach Requirement text with
@@ -103,24 +107,40 @@ func BuildPCITree(raw json.RawMessage, frameworkCode, versionLabel string) (*Tre
 //
 // The PCI DSS document repeats IDs in three contexts:
 //  1. Summary listing on the requirement section's intro page
-//  2. Defined Approach Requirement (the normative text — what we want)
+//  2. Defined Approach Requirement (the normative text - what we want)
 //  3. Testing Procedure description (same ID, different text)
 //
-// The 3-column layout (Requirements | Testing Procedures | Guidance) is
-// extracted by go-fitz as sequential text. The requirement text, its labeled
-// sections (Customized Approach Objective, Applicability Notes), the testing
-// procedure text, and guidance text all appear as consecutive lines.
-//
-// Strategy: keep the first occurrence of each citation ID. Its body is the
-// text between the first-line and the next NEW (first-seen) structural item,
-// filtered to keep only lines that are:
-//   - Plain text (not a duplicate ID or testing procedure letter)
-//   - Structural labels (CAO, Applicability Notes)
-//
-// Lines that are duplicate IDs, testing procedures, or guidance-column
-// artifacts are filtered out.
+// go-fitz sometimes concatenates text from adjacent PDF columns onto a single
+// line. This causes a requirement ID to appear mid-line rather than at line
+// start. The parser detects this by doing a pre-scan to inventory all IDs at
+// line-start, then splitting lines that contain IDs not in that inventory.
 func parsePCIPages(pages []pciPage) ([]pciParsedItem, error) {
-	// Classify every line.
+	// Pre-scan: build inventory of all IDs that appear at line-start.
+	// Any ID NOT in this set that appears mid-line is a candidate for
+	// line-splitting (it was missed because go-fitz concatenated columns).
+	lineStartIDs := make(map[string]bool)
+	for _, page := range pages {
+		for _, line := range strings.Split(page.Text, "\n") {
+			stripped := strings.TrimSpace(line)
+			if stripped == "" {
+				continue
+			}
+			if rePCITestProc.MatchString(stripped) {
+				continue
+			}
+			if rePCIContinued.MatchString(stripped) {
+				continue
+			}
+			if m := rePCIReqID.FindStringSubmatch(stripped); m != nil {
+				lineStartIDs[m[1]] = true
+			}
+		}
+	}
+
+	// Classify every line, splitting mid-line IDs that are NOT in the
+	// line-start inventory. This handles the go-fitz column concatenation
+	// case where a requirement ID appears mid-line because the preceding
+	// guidance/testing text didn't end with a newline.
 	type lineInfo struct {
 		page     int
 		text     string
@@ -132,36 +152,45 @@ func parsePCIPages(pages []pciPage) ([]pciParsedItem, error) {
 	for _, page := range pages {
 		for _, line := range strings.Split(page.Text, "\n") {
 			stripped := strings.TrimSpace(line)
-			li := lineInfo{page: page.N, text: stripped}
 
 			if stripped == "" {
-				allLines = append(allLines, li)
+				allLines = append(allLines, lineInfo{page: page.N, text: ""})
 				continue
 			}
 
-			if m := reReqHeader.FindStringSubmatch(stripped); m != nil {
-				li.lineType = "header"
-				li.citation = m[1]
-			} else if m := reAppHeader.FindStringSubmatch(stripped); m != nil {
-				li.lineType = "header"
-				li.citation = m[1]
-			} else if m := rePCIContinued.FindStringSubmatch(stripped); m != nil {
-				li.lineType = "continued"
-				li.citation = m[1]
-			} else if m := rePCITestProc.FindStringSubmatch(stripped); m != nil {
-				li.lineType = "testproc"
-				li.citation = m[1]
-			} else if m := rePCIReqID.FindStringSubmatch(stripped); m != nil {
-				li.lineType = "id"
-				li.citation = m[1]
+			// Check for mid-line IDs that are NOT in the line-start inventory.
+			// Only split for IDs that:
+			// 1. Do NOT appear at line-start anywhere (missed by go-fitz)
+			// 2. Have at least one sibling in the line-start inventory
+			//    (same parent, different last segment) — this filters out
+			//    external standard references and version numbers
+			split := false
+			if loc := rePCIMidLineID.FindStringIndex(stripped); loc != nil {
+				candidate := rePCIMidLineID.FindStringSubmatch(stripped)[1]
+				if loc[0] > 0 && !lineStartIDs[candidate] &&
+					hasSiblingInSet(candidate, lineStartIDs) &&
+					!isInsideBrackets(stripped, loc[0]) {
+					// This ID never appears at line-start, has siblings,
+					// and is not inside brackets (external standard ref) —
+					// it's a missed requirement due to column concatenation.
+					before := strings.TrimSpace(stripped[:loc[0]])
+					after := strings.TrimSpace(stripped[loc[0]+1:]) // +1 to skip space
+					if before != "" {
+						allLines = append(allLines, classifyLine(page.N, before))
+					}
+					allLines = append(allLines, classifyLine(page.N, after))
+					split = true
+				}
 			}
 
-			allLines = append(allLines, li)
+			if !split {
+				allLines = append(allLines, classifyLine(page.N, stripped))
+			}
 		}
 	}
 
 	// Pass 1: identify which citation IDs are "new" (first occurrence)
-	// and record their line positions. Build a set of all first-seen positions.
+	// and record their line positions.
 	seen := make(map[string]bool)
 	type itemStart struct {
 		lineIdx  int
@@ -185,23 +214,7 @@ func parsePCIPages(pages []pciPage) ([]pciParsedItem, error) {
 		}
 	}
 
-	// Pass 2: for each first-seen item, collect its body. The body extends
-	// from the line after the item until the next first-seen item. Within
-	// that range, filter out:
-	// - Lines matching duplicate IDs (already-seen headers/IDs)
-	// - Testing procedure lines
-	// - "(continued)" markers for this item (handle separately)
-	// - Lines that are structural skip patterns (column headers, guidance labels)
-	// Include:
-	// - Plain text lines
-	// - Structural body labels (Customized Approach Objective, Applicability Notes)
-
-	// Build a set of first-seen line indices for quick boundary lookup.
-	firstSeenSet := make(map[int]bool, len(firstSeen))
-	for _, fs := range firstSeen {
-		firstSeenSet[fs.lineIdx] = true
-	}
-
+	// Pass 2: for each first-seen item, collect its body.
 	var items []pciParsedItem
 	for fsIdx, fs := range firstSeen {
 		// Find end boundary: next first-seen item.
@@ -225,26 +238,13 @@ func parsePCIPages(pages []pciPage) ([]pciParsedItem, error) {
 		}
 
 		// Collect remaining lines until the next first-seen item.
-		inBody := true
-		for j := fs.lineIdx + 1; j < endIdx && inBody; j++ {
+		for j := fs.lineIdx + 1; j < endIdx; j++ {
 			nxt := allLines[j]
 
 			switch nxt.lineType {
-			case "header":
-				// Should not happen (end boundary is next first-seen).
-				continue
-			case "id":
-				// Duplicate ID — skip its text but continue scanning.
-				continue
-			case "testproc":
-				// Testing procedure — skip.
-				continue
-			case "continued":
-				// "(continued)" for this citation — skip the marker, body
-				// lines follow and will be collected as plain text.
+			case "header", "id", "testproc", "continued":
 				continue
 			default:
-				// Plain text line.
 				text := nxt.text
 
 				// Skip structural column-header artifacts.
@@ -254,7 +254,6 @@ func parsePCIPages(pages []pciPage) ([]pciParsedItem, error) {
 
 				// Include body labels and regular text.
 				if isPCIBodyLabel(text) {
-					// Add as "Label:" format.
 					bodyParts = append(bodyParts, text+":")
 				} else {
 					bodyParts = append(bodyParts, text)
@@ -280,21 +279,45 @@ func parsePCIPages(pages []pciPage) ([]pciParsedItem, error) {
 	return items, nil
 }
 
-// buildPCIBody assembles the body text from the first-line remainder and
-// subsequent lines. Trims trailing empty lines.
-func buildPCIBody(firstLine string, lines []string) string {
-	var parts []string
-	if firstLine != "" {
-		parts = append(parts, firstLine)
+// classifyLine determines the type of a text line.
+func classifyLine(page int, text string) struct {
+	page     int
+	text     string
+	lineType string
+	citation string
+} {
+	type lineInfo struct {
+		page     int
+		text     string
+		lineType string
+		citation string
 	}
-	parts = append(parts, lines...)
 
-	// Trim trailing empty entries.
-	for len(parts) > 0 && parts[len(parts)-1] == "" {
-		parts = parts[:len(parts)-1]
+	li := lineInfo{page: page, text: text}
+
+	if m := reReqHeader.FindStringSubmatch(text); m != nil {
+		li.lineType = "header"
+		li.citation = m[1]
+	} else if m := reAppHeader.FindStringSubmatch(text); m != nil {
+		li.lineType = "header"
+		li.citation = m[1]
+	} else if m := rePCIContinued.FindStringSubmatch(text); m != nil {
+		li.lineType = "continued"
+		li.citation = m[1]
+	} else if m := rePCITestProc.FindStringSubmatch(text); m != nil {
+		li.lineType = "testproc"
+		li.citation = m[1]
+	} else if m := rePCIReqID.FindStringSubmatch(text); m != nil {
+		li.lineType = "id"
+		li.citation = m[1]
 	}
 
-	return strings.Join(parts, "\n")
+	return struct {
+		page     int
+		text     string
+		lineType string
+		citation string
+	}(li)
 }
 
 // buildPCIControlTree converts parsed items into the TreeResult.
@@ -303,7 +326,7 @@ func buildPCIControlTree(items []pciParsedItem, _, versionLabel string) (*TreeRe
 		Title: "PCI DSS " + versionLabel,
 	}
 
-	// Track citation → index for parent resolution.
+	// Track citation -> index for parent resolution.
 	citationToIdx := make(map[string]int)
 
 	var ordinal int32
@@ -316,7 +339,7 @@ func buildPCIControlTree(items []pciParsedItem, _, versionLabel string) (*TreeRe
 			Kind:          "requirement",
 			Status:        "active",
 			Title:         "Requirement " + citation,
-			TitleOriginal: nil, // licensed framework, no original title
+			TitleOriginal: nil,
 			Ordinal:       ordinal,
 		}
 
@@ -344,9 +367,46 @@ func buildPCIControlTree(items []pciParsedItem, _, versionLabel string) (*TreeRe
 	return result, nil
 }
 
+// isInsideBrackets checks whether position pos in text falls between
+// an opening '[' and closing ']'. Used to filter out external standard
+// references that appear inside bracketed text.
+func isInsideBrackets(text string, pos int) bool {
+	// Scan backward from pos for '[' without hitting ']'.
+	for i := pos - 1; i >= 0; i-- {
+		if text[i] == '[' {
+			return true
+		}
+		if text[i] == ']' {
+			return false
+		}
+	}
+	return false
+}
+
+// hasSiblingInSet checks whether a citation has at least one sibling (same
+// parent, different last segment) in the provided set. This is used to
+// validate that a mid-line ID is a real requirement and not an external
+// standard reference or version number.
+// "10.2.1.4" siblings: "10.2.1.3", "10.2.1.5", etc.
+func hasSiblingInSet(citation string, ids map[string]bool) bool {
+	parent := pciParentCitation(citation)
+	if parent == "" {
+		return false
+	}
+	prefix := parent + "."
+	for id := range ids {
+		if id != citation && strings.HasPrefix(id, prefix) {
+			// Verify it's a direct child (no additional dots after prefix).
+			rest := id[len(prefix):]
+			if !strings.Contains(rest, ".") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // pciParentCitation returns the parent citation for a PCI DSS citation.
-// "1.1" → "1", "1.1.1" → "1.1", "A1.1.1" → "A1.1", "A1.1" → "A1",
-// "1" → "", "A1" → "".
 func pciParentCitation(citation string) string {
 	lastDot := strings.LastIndex(citation, ".")
 	if lastDot < 0 {
