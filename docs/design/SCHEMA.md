@@ -96,7 +96,7 @@ authoritative file per document, no reconcile); validity collapses into `version
 `framework_version.is_current` (frameworks don't get partially repealed — a version is current or
 superseded; amendments are `amends` edges with their own document).
 
-## `gold` — chunks + vectors
+## `gold` — chunks + vectors (retrieval design: [`RETRIEVAL.md`](RETRIEVAL.md))
 
 | Table | Role | Notes |
 |-------|------|-------|

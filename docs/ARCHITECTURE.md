@@ -62,13 +62,14 @@ crawling. Stages: **Manifest** (scan `data/`, hash, classify via `config.file_ru
 framework version: control tree, citations, version + mapping relations) → **Index** (chunks +
 embeddings; bulk embed on Kaggle T4 like banhmi) → **LexIndex** (BM25 sparse vectors).
 
-**Landed:** Manifest (all 26 corpus files classified — 23 matched / 3 ignored), Extract (OSCAL JSON
-+ XLSX + PDF via go-fitz purego — all 9 eligible PDFs captured as `pdf-pages-json`), Normalize (all
-8 v0.1.0 parsers landed: NIST SP 800-53 r5, NIST CSF 2.0 + informative-reference mappings, CIS
-Controls v8.1, CSA CCM v4.1, PCI DSS v4.0.1, AICPA TSC, ISO 27001/27002/27017/27018, COBIT 2019;
-see PLAN.md milestone history for validated numbers). Deferred: amendments (27001+22301 amd1-2024)
-role-guarded; CAIQ (non-main doc role); 27001 Annex A bodies table-shallow; column-separation
-(PCI body noise). **Next:** Index + LexIndex.
+**All M2 pipeline stages landed.** Manifest (26 files, 23 matched / 3 ignored), Extract (OSCAL JSON
++ XLSX + PDF via go-fitz purego), Normalize (8 parsers: 800-53/CSF/CIS/CCM/PCI/TSC/ISO/COBIT;
+11 docs / 3402 controls / 3068 edges / 1870 resolved), Index (3402 chunks + 3402 Qwen3 dense
+embeddings — bulk via Kaggle T4 GPU engine, auto-selected when `KAGGLE_API_TOKEN` set + >=200
+missing; local ONNX for queries), LexIndex (3402 BM25 sparse vectors, English citation-aware
+tokenizer). Retrieval design in [`design/RETRIEVAL.md`](design/RETRIEVAL.md). Deferred: amendments
+(27001+22301 amd1-2024) role-guarded; CAIQ; 27001 Annex A bodies table-shallow; column-separation
+(PCI body noise); retrieval tuning. **Next:** MCP service (M3).
 
 ```mermaid
 graph LR
@@ -128,8 +129,9 @@ compliary/
 
 Same as banhmi except where noted: Go (module `danny.vn/compliary`), PostgreSQL 17 + pgvector
 (single `compliary` DB), sqlc, Atlas→goose migrations, go-fitz v1.28.2 extraction (**purego, no
-cgo**; no OCR engine at all), Qwen3-Embedding-0.6B ONNX (Kaggle bulk / in-process queries),
-official Go MCP SDK, Apache 2.0 (code only — corpus stays operator-local).
+cgo**; no OCR engine at all), Qwen3-Embedding-0.6B ONNX (Kaggle T4 bulk when `KAGGLE_API_TOKEN`
+set + >=200 missing, local ONNX in-process for queries — CPU bulk explicitly rejected for laptop
+load), official Go MCP SDK, Apache 2.0 (code only — corpus stays operator-local).
 
 **Embedder strategy (settled):** the maintainer's deployed instance **shares banhmi's
 embedder** (same Qwen3 model + infra, one embedding service for both products — wiring decided
