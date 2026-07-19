@@ -1,6 +1,7 @@
 package retrieve
 
 import (
+	"strings"
 	"testing"
 
 	"danny.vn/compliary/pkg/eval"
@@ -128,7 +129,7 @@ func TestBuildVersionFilterCTE_CurrentOnly(t *testing.T) {
 	if len(args) != 0 {
 		t.Errorf("expected 0 args, got %d", len(args))
 	}
-	if !containsSubstring(cte, "fv.is_current = true") {
+	if !strings.Contains(cte, "fv.is_current = true") {
 		t.Errorf("CTE should filter on is_current: %s", cte)
 	}
 }
@@ -154,7 +155,7 @@ func TestBuildVersionFilterCTE_VersionPin(t *testing.T) {
 		t.Errorf("expected 2 args, got %d", len(args))
 	}
 	// When versionLabel is set, is_current should NOT appear.
-	if containsSubstring(cte, "is_current") {
+	if strings.Contains(cte, "is_current") {
 		t.Error("version pin should not filter on is_current")
 	}
 }
@@ -168,10 +169,6 @@ func TestBuildVersionFilterCTE_NoFilter(t *testing.T) {
 	if len(args) != 0 {
 		t.Errorf("expected 0 args, got %d", len(args))
 	}
-}
-
-func containsSubstring(s, sub string) bool {
-	return len(s) >= len(sub) && (s == sub || len(s) > 0 && findSubstring(s, sub))
 }
 
 func findSubstring(s, sub string) bool {

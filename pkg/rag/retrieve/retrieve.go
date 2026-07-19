@@ -39,6 +39,10 @@ const (
 	defaultDocCap  = 0 // no cap — semantics differ from banhmi; eval decides
 )
 
+// Compile-time check: method drift against the eval harness contract must
+// fail here, not at the cmd/eval wiring point.
+var _ eval.Retriever = (*Retriever)(nil)
+
 // Retriever runs hybrid retrieval over the compliary corpus. It satisfies
 // eval.Retriever.
 type Retriever struct {

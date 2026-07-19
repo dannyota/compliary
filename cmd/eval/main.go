@@ -138,6 +138,10 @@ func run(o opts, log *slog.Logger) error {
 		filepath.Join(os.Getenv("HOME"), ".cache/banhmi/qwen3-embedding/tokenizer.json"))
 	onnxLib := os.Getenv("COMPLIARY_ONNX_LIB")
 
+	// Build seam: this file has no onnx build tag — under !onnx the disabled
+	// stub's New(Config) returns an error and the retriever degrades to
+	// BM25-only. Config must therefore never gain fields typed from
+	// ONNX-only dependencies.
 	embedder, err = onnxembed.New(onnxembed.Config{
 		ModelPath:     onnxModel,
 		TokenizerPath: onnxTokenizer,
