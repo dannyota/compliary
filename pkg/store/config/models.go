@@ -17,6 +17,17 @@ type ConfigControlKind struct {
 	UpdatedAt time.Time
 }
 
+type ConfigControlTitle struct {
+	ID            int64
+	FrameworkCode string
+	VersionLabel  string
+	CitationNorm  string
+	Title         string
+	Origin        string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
 type ConfigFileRule struct {
 	ID             int64
 	Ordinal        int32

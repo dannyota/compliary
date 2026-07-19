@@ -10,6 +10,7 @@ import (
 
 type Querier interface {
 	DeleteSeedControlKinds(ctx context.Context) error
+	DeleteSeedControlTitles(ctx context.Context) error
 	DeleteSeedFileRules(ctx context.Context) error
 	DeleteSeedFrameworkVersions(ctx context.Context) error
 	// Seed queries (cmd/seed). Each re-seed deletes the managed ('seed') rows and
@@ -19,10 +20,12 @@ type Querier interface {
 	DeleteSeedMappingSources(ctx context.Context) error
 	DeleteSeedReferenceSources(ctx context.Context) error
 	DeleteSeedSettings(ctx context.Context) error
+	GetControlTitle(ctx context.Context, arg GetControlTitleParams) (string, error)
 	GetFramework(ctx context.Context, code string) (ConfigFramework, error)
 	GetFrameworkVersion(ctx context.Context, arg GetFrameworkVersionParams) (ConfigFrameworkVersion, error)
 	GetSetting(ctx context.Context, key string) (string, error)
 	InsertSeedControlKind(ctx context.Context, arg InsertSeedControlKindParams) error
+	InsertSeedControlTitle(ctx context.Context, arg InsertSeedControlTitleParams) error
 	InsertSeedFileRule(ctx context.Context, arg InsertSeedFileRuleParams) error
 	InsertSeedFramework(ctx context.Context, arg InsertSeedFrameworkParams) error
 	InsertSeedFrameworkVersion(ctx context.Context, arg InsertSeedFrameworkVersionParams) error
@@ -31,6 +34,7 @@ type Querier interface {
 	InsertSeedSetting(ctx context.Context, arg InsertSeedSettingParams) error
 	ListAllFileRules(ctx context.Context) ([]ConfigFileRule, error)
 	ListControlKinds(ctx context.Context) ([]string, error)
+	ListControlTitles(ctx context.Context, arg ListControlTitlesParams) ([]ConfigControlTitle, error)
 	ListCurrentFrameworkVersions(ctx context.Context) ([]ConfigFrameworkVersion, error)
 	ListFrameworkVersions(ctx context.Context) ([]ConfigFrameworkVersion, error)
 	// Load queries (read the registry into the app at startup).

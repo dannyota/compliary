@@ -1,0 +1,729 @@
+framework_code,version_label,citation_norm,title
+iso27001,2022,A.5.1,Establishing and Reviewing Security Policy Documents
+iso27001,2022,A.5.2,Assigning Organizational Security Functions and Duties
+iso27001,2022,A.5.3,Separating Conflicting Tasks and Privileges
+iso27001,2022,A.5.4,Leadership Enforcement of Staff Security Compliance
+iso27001,2022,A.5.5,Liaison with Regulatory and Law Enforcement Bodies
+iso27001,2022,A.5.6,Engaging External Security Forums and Groups
+iso27001,2022,A.5.7,Gathering and Analyzing Cyber Threat Data
+iso27001,2022,A.5.8,Embedding Protective Controls in Project Delivery
+iso27001,2022,A.5.9,Asset Register for Data and Supporting Resources
+iso27001,2022,A.5.10,Permitted Usage Rules for Organizational Assets
+iso27001,2022,A.5.11,Recovering Organizational Property at Departure
+iso27001,2022,A.5.12,Categorizing Data by Sensitivity and Impact
+iso27001,2022,A.5.13,Marking Assets with Sensitivity Designations
+iso27001,2022,A.5.14,Secure Exchange of Data Between Parties
+iso27001,2022,A.5.15,Enforcing Authorized Resource Access Decisions
+iso27001,2022,A.5.16,Lifecycle Governance of User Identities
+iso27001,2022,A.5.17,Safeguarding Credentials and Login Secrets
+iso27001,2022,A.5.18,Provisioning and Revoking User Entitlements
+iso27001,2022,A.5.19,Supplier Due Diligence for Security Posture
+iso27001,2022,A.5.20,Security Clauses in Third-Party Contracts
+iso27001,2022,A.5.21,Oversight of Technology Supply Chain Risks
+iso27001,2022,A.5.23,Securing Workloads Hosted by Cloud Providers
+iso27001,2022,A.5.24,Preparing the Incident Response Framework
+iso27001,2022,A.5.25,Classifying Events as Potential Incidents
+iso27001,2022,A.5.26,Coordinated Actions During Active Incidents
+iso27001,2022,A.5.27,Post-Incident Review and Lessons Learned
+iso27001,2022,A.5.28,Preserving Digital and Forensic Evidence
+iso27001,2022,A.5.29,Maintaining Protective Controls During Crises
+iso27001,2022,A.5.30,Technology Recovery Preparedness for Continuity
+iso27001,2022,A.5.31,Identifying Applicable Legal and Regulatory Obligations
+iso27001,2022,A.5.32,Safeguarding Copyrights and Licensed Material
+iso27001,2022,A.5.33,Retention and Integrity of Organizational Records
+iso27001,2022,A.5.34,Handling Personal Data Under Privacy Regulations
+iso27001,2022,A.5.35,Independent Reviews of the Security Program
+iso27001,2022,A.5.36,Verifying Adherence to Internal Security Standards
+iso27001,2022,A.5.37,Formalizing and Maintaining Operations Runbooks
+iso27001,2022,A.6.1,Pre-Employment Background Verification
+iso27001,2022,A.6.2,Security Obligations in Employment Contracts
+iso27001,2022,A.6.3,Staff Security Competence and Awareness Programs
+iso27001,2022,A.6.4,Sanctions for Security Policy Violations
+iso27001,2022,A.6.5,Duties Upon Role Change or Exit
+iso27001,2022,A.6.6,Non-Disclosure and Secrecy Commitments
+iso27001,2022,A.6.7,Securing Off-Site and Telework Arrangements
+iso27001,2022,A.6.8,Reporting Suspected Security Anomalies
+iso27001,2022,A.7.1,Defining Controlled Physical Boundaries
+iso27001,2022,A.7.2,Controlling Facility Ingress and Egress
+iso27001,2022,A.7.3,Securing Office and Facility Layouts
+iso27001,2022,A.7.4,Surveillance and Intrusion Detection for Sites
+iso27001,2022,A.7.5,Mitigating Natural and Environmental Hazards
+iso27001,2022,A.7.6,Conduct Rules Within Restricted Zones
+iso27001,2022,A.7.7,Unattended Workspace and Display Hygiene
+iso27001,2022,A.7.8,Placement and Shielding of IT Hardware
+iso27001,2022,A.7.9,Safeguarding Portable and Off-Site Equipment
+iso27001,2022,A.7.10,Handling and Sanitizing Removable Media
+iso27001,2022,A.7.11,Resilience of Power and Environmental Services
+iso27001,2022,A.7.12,Protecting Data and Power Cabling Infrastructure
+iso27001,2022,A.7.13,Preventive and Corrective Hardware Servicing
+iso27001,2022,A.7.14,Decommissioning and Sanitizing Retired Hardware
+iso27001,2022,A.8.1,Governing Laptops and Mobile Device Security
+iso27001,2022,A.8.2,Restricting and Monitoring Elevated System Accounts
+iso27001,2022,A.8.3,Limiting Data Visibility by Need-to-Know
+iso27001,2022,A.8.4,Controlling Repository and Code Access
+iso27001,2022,A.8.5,Robust Login and Verification Mechanisms
+iso27001,2022,A.8.6,Planning and Scaling System Resource Demand
+iso27001,2022,A.8.7,Defending Endpoints Against Malicious Software
+iso27001,2022,A.8.8,Tracking and Remediating Known Vulnerabilities
+iso27001,2022,A.8.9,Baseline Hardening and Settings Governance
+iso27001,2022,A.8.10,Timely Erasure and Purging of Stored Data
+iso27001,2022,A.8.11,Masking and Anonymizing Sensitive Data Fields
+iso27001,2022,A.8.12,Preventing Unauthorized Outbound Data Exfiltration
+iso27001,2022,A.8.13,Scheduled Copies and Restoration of Critical Data
+iso27001,2022,A.8.14,Failover and High Availability for Processing Sites
+iso27001,2022,A.8.15,Recording System and User Activity Trails
+iso27001,2022,A.8.16,Continuous Observation of Networks and Systems
+iso27001,2022,A.8.17,Consistent Time Source Across Infrastructure
+iso27001,2022,A.8.18,Controlling Powerful System Utilities and Tools
+iso27001,2022,A.8.19,Governing Software Deployment to Live Environments
+iso27001,2022,A.8.20,Safeguarding Network Infrastructure and Traffic
+iso27001,2022,A.8.21,Securing Managed and Third-Party Network Offerings
+iso27001,2022,A.8.22,Partitioning Network Zones by Trust Level
+iso27001,2022,A.8.23,Restricting Access to Harmful Web Content
+iso27001,2022,A.8.24,Applying Encryption and Key Governance
+iso27001,2022,A.8.25,Integrating Security into the Development Pipeline
+iso27001,2022,A.8.26,Defining Protective Needs for Applications
+iso27001,2022,A.8.28,Applying Secure Coding Practices and Standards
+iso27001,2022,A.8.29,Verification and Validation Before Release
+iso27001,2022,A.8.30,Governing Externally Contracted Code Production
+iso27001,2022,A.8.31,Isolating Dev and Test from Live Workloads
+iso27001,2022,A.8.32,Controlled Modification of Production Systems
+iso27001,2022,A.8.33,Safeguarding Datasets Used in Quality Assurance
+iso27001,2022,A.8.34,Shielding Live Systems During Compliance Assessments
+iso27017,2015,5,Cloud security governance foundations
+iso27017,2015,5.1,Strategic cloud security direction
+iso27017,2015,5.1.1,Cloud-tailored security policy framework
+iso27017,2015,5.1.2,Periodic cloud policy reassessment
+iso27017,2015,6,Organizing cloud security functions
+iso27017,2015,6.1,Internal cloud security structure
+iso27017,2015,6.1.1,Cloud security roles and accountability
+iso27017,2015,6.1.2,Segregating cloud operational duties
+iso27017,2015,6.1.3,Regulatory and authority liaison for cloud
+iso27017,2015,6.1.4,Cloud security community engagement
+iso27017,2015,6.1.5,Cloud project security integration
+iso27017,2015,6.2,Remote and mobile cloud access
+iso27017,2015,6.2.1,Mobile device cloud access governance
+iso27017,2015,6.2.2,Remote worker cloud connectivity
+iso27017,2015,7,Personnel security for cloud operations
+iso27017,2015,7.1,Pre-hire cloud personnel vetting
+iso27017,2015,7.1.1,Cloud staff background verification
+iso27017,2015,7.1.2,Cloud role employment conditions
+iso27017,2015,7.2,Active cloud workforce safeguards
+iso27017,2015,7.2.1,Leadership accountability for cloud staff
+iso27017,2015,7.2.2,Cloud security awareness and competence
+iso27017,2015,7.2.3,Cloud personnel disciplinary measures
+iso27017,2015,7.3,Cloud staff departure procedures
+iso27017,2015,7.3.1,Post-employment cloud access revocation
+iso27017,2015,8,Cloud asset lifecycle governance
+iso27017,2015,8.1,Cloud asset accountability framework
+iso27017,2015,8.1.1,Cloud resource inventory tracking
+iso27017,2015,8.1.2,Cloud asset ownership assignment
+iso27017,2015,8.1.3,Permitted cloud resource usage
+iso27017,2015,8.1.4,Cloud asset retrieval upon exit
+iso27017,2015,8.2,Cloud data classification practices
+iso27017,2015,8.2.1,Cloud data sensitivity categorization
+iso27017,2015,8.2.2,Cloud resource labelling conventions
+iso27017,2015,8.2.3,Cloud data handling procedures
+iso27017,2015,8.3,Cloud media lifecycle controls
+iso27017,2015,8.3.1,Portable media in cloud environments
+iso27017,2015,8.3.2,Cloud media secure destruction
+iso27017,2015,8.3.3,Cloud media transit protection
+iso27017,2015,9,Cloud access governance framework
+iso27017,2015,9.1,Cloud access business requirements
+iso27017,2015,9.1.1,Cloud access entitlement policy
+iso27017,2015,9.1.2,Cloud network service access rules
+iso27017,2015,9.2,Cloud user identity lifecycle
+iso27017,2015,9.2.1,Cloud account provisioning and removal
+iso27017,2015,9.2.2,Cloud entitlement granting process
+iso27017,2015,9.2.3,Cloud privileged account controls
+iso27017,2015,9.2.4,Cloud credential distribution safeguards
+iso27017,2015,9.2.5,Cloud access rights periodic audit
+iso27017,2015,9.2.6,Cloud access withdrawal on change
+iso27017,2015,9.3,Cloud user credential obligations
+iso27017,2015,9.3.1,Cloud secret credential handling duties
+iso27017,2015,9.4,Cloud application access restrictions
+iso27017,2015,9.4.1,Cloud data access boundary enforcement
+iso27017,2015,9.4.2,Cloud service secure sign-on methods
+iso27017,2015,9.4.3,Cloud password strength and lifecycle
+iso27017,2015,9.4.4,Cloud privileged utility restrictions
+iso27017,2015,9.4.5,Cloud source code access safeguards
+iso27017,2015,10,Cloud cryptographic protections
+iso27017,2015,10.1,Cloud cryptography governance objective
+iso27017,2015,10.1.1,Cloud encryption policy and standards
+iso27017,2015,10.1.2,Cloud cryptographic key lifecycle
+iso27017,2015,11,Cloud facility physical safeguards
+iso27017,2015,11.1,Cloud datacenter secure zones
+iso27017,2015,11.1.1,Cloud facility boundary protection
+iso27017,2015,11.1.2,Cloud datacenter entry governance
+iso27017,2015,11.1.3,Cloud office and room security
+iso27017,2015,11.1.4,Cloud facility environmental threats
+iso27017,2015,11.1.5,Cloud secure area work procedures
+iso27017,2015,11.1.6,Cloud loading dock access controls
+iso27017,2015,11.2,Cloud hardware protection measures
+iso27017,2015,11.2.1,Cloud equipment placement and shielding
+iso27017,2015,11.2.2,Cloud infrastructure power and utilities
+iso27017,2015,11.2.3,Cloud facility cabling protection
+iso27017,2015,11.2.4,Cloud hardware maintenance schedules
+iso27017,2015,11.2.5,Cloud asset off-premises movement
+iso27017,2015,11.2.6,Off-site cloud equipment safeguards
+iso27017,2015,11.2.7,Cloud storage media sanitization
+iso27017,2015,11.2.8,Unattended cloud terminal lockdown
+iso27017,2015,11.2.9,Cloud workspace clear desk practices
+iso27017,2015,12,Cloud operations security baseline
+iso27017,2015,12.1,Cloud operational procedure governance
+iso27017,2015,12.1.1,Cloud operations documented workflows
+iso27017,2015,12.1.2,Cloud service change governance
+iso27017,2015,12.1.3,Cloud capacity planning and thresholds
+iso27017,2015,12.1.4,Cloud environment tier separation
+iso27017,2015,12.2,Cloud anti-malware strategy
+iso27017,2015,12.2.1,Cloud malware detection and prevention
+iso27017,2015,12.3,Cloud data backup strategy
+iso27017,2015,12.3.1,Cloud backup scope and scheduling
+iso27017,2015,12.4,Cloud audit trail governance
+iso27017,2015,12.4.1,Cloud event recording practices
+iso27017,2015,12.4.2,Cloud log integrity protection
+iso27017,2015,12.4.3,Cloud administrator activity logging
+iso27017,2015,12.4.4,Cloud time source synchronization
+iso27017,2015,12.5,Cloud operational software governance
+iso27017,2015,12.5.1,Cloud platform software installation rules
+iso27017,2015,12.6,Cloud vulnerability management practices
+iso27017,2015,12.6.1,Cloud vulnerability identification and remediation
+iso27017,2015,12.6.2,Cloud software installation restrictions
+iso27017,2015,12.7,Cloud audit impact minimization
+iso27017,2015,12.7.1,Cloud audit planning and constraints
+iso27017,2015,13,Cloud communications protection
+iso27017,2015,13.1,Cloud network defense measures
+iso27017,2015,13.1.1,Cloud network segmentation and controls
+iso27017,2015,13.1.2,Cloud network service level security
+iso27017,2015,13.1.3,Cloud network tenant isolation
+iso27017,2015,13.2,Cloud data transfer safeguards
+iso27017,2015,13.2.1,Cloud data exchange governance
+iso27017,2015,13.2.2,Cloud transfer contractual terms
+iso27017,2015,13.2.3,Cloud messaging channel protection
+iso27017,2015,13.2.4,Cloud confidentiality agreement terms
+iso27017,2015,14,Cloud system development safeguards
+iso27017,2015,14.1,Cloud application security requirements
+iso27017,2015,14.1.1,Cloud system security needs analysis
+iso27017,2015,14.1.2,Cloud-facing public network application security
+iso27017,2015,14.1.3,Cloud transaction integrity assurance
+iso27017,2015,14.2,Cloud development lifecycle governance
+iso27017,2015,14.2.1,Cloud secure development policy
+iso27017,2015,14.2.2,Cloud platform change control procedures
+iso27017,2015,14.2.3,Post-change cloud application validation
+iso27017,2015,14.2.4,Cloud software modification limits
+iso27017,2015,14.2.5,Cloud systems engineering principles
+iso27017,2015,14.2.6,Cloud development environment safeguards
+iso27017,2015,14.2.7,Outsourced cloud development oversight
+iso27017,2015,14.2.8,Cloud security validation testing
+iso27017,2015,14.2.9,Cloud system acceptance gate criteria
+iso27017,2015,14.3,Cloud test data governance
+iso27017,2015,14.3.1,Cloud test data protection measures
+iso27017,2015,15,Cloud supply chain security
+iso27017,2015,15.1,Cloud supplier security expectations
+iso27017,2015,15.1.1,Cloud vendor security policy terms
+iso27017,2015,15.1.2,Cloud supplier contractual security clauses
+iso27017,2015,15.1.3,Cloud ICT supply chain risk governance
+iso27017,2015,15.2,Cloud supplier performance oversight
+iso27017,2015,15.2.1,Cloud vendor continuous monitoring
+iso27017,2015,15.2.2,Cloud supplier change impact assessment
+iso27017,2015,16,Cloud incident handling framework
+iso27017,2015,16.1,Cloud incident response governance
+iso27017,2015,16.1.1,Cloud incident roles and escalation paths
+iso27017,2015,16.1.2,Cloud security event reporting channels
+iso27017,2015,16.1.3,Cloud weakness reporting obligations
+iso27017,2015,16.1.4,Cloud event triage and classification
+iso27017,2015,16.1.5,Cloud incident coordinated response
+iso27017,2015,16.1.6,Cloud incident post-mortem analysis
+iso27017,2015,16.1.7,Cloud forensic evidence preservation
+iso27017,2015,17,Cloud continuity planning
+iso27017,2015,17.1,Cloud resilience planning objective
+iso27017,2015,17.1.1,Cloud continuity preparation and scope
+iso27017,2015,17.1.2,Cloud continuity capability deployment
+iso27017,2015,17.1.3,Cloud continuity drill and validation
+iso27017,2015,17.2,Cloud service availability assurance
+iso27017,2015,17.2.1,Cloud processing redundancy design
+iso27017,2015,18,Cloud regulatory and policy alignment
+iso27017,2015,18.1,Cloud legal obligation fulfillment
+iso27017,2015,18.1.1,Cloud legal and contractual obligation mapping
+iso27017,2015,18.1.2,Cloud intellectual property compliance
+iso27017,2015,18.1.3,Cloud record retention governance
+iso27017,2015,18.1.4,Cloud personal data privacy safeguards
+iso27017,2015,18.1.5,Cloud encryption regulatory compliance
+iso27017,2015,18.2,Cloud security posture evaluation
+iso27017,2015,18.2.1,Cloud security independent assessment
+iso27017,2015,18.2.2,Cloud policy adherence verification
+iso27017,2015,18.2.3,Cloud technical compliance validation
+iso27017,2015,CLD.6.3,Shared cloud responsibility delineation
+iso27017,2015,CLD.6.3.1,Provider-customer security role allocation
+iso27017,2015,CLD.8.1,Cloud tenant asset stewardship
+iso27017,2015,CLD.8.1.5,Tenant asset extraction on termination
+iso27017,2015,CLD.9.5,Multi-tenant environment security
+iso27017,2015,CLD.9.5.1,Tenant workload isolation enforcement
+iso27017,2015,CLD.9.5.2,Virtual machine security hardening
+iso27017,2015,CLD.12.1,Cloud platform operations governance
+iso27017,2015,CLD.12.1.5,Cloud administration procedural safeguards
+iso27017,2015,CLD.12.4,Cloud observability and audit trails
+iso27017,2015,CLD.12.4.5,Cloud monitoring capability provisioning
+iso27017,2015,CLD.13.1,Cloud virtual network defense
+iso27017,2015,CLD.13.1.4,Virtual network alignment with policy
+iso27018,2019,5,Information Security Policies for Cloud PII
+iso27018,2019,6,Organizing PII Protection Responsibilities
+iso27018,2019,7,Personnel Security for PII Handlers
+iso27018,2019,8,Asset Management in PII Cloud Processing
+iso27018,2019,9,PII-Related Access Governance for Cloud
+iso27018,2019,10,Cryptographic Safeguards for Personal Data
+iso27018,2019,11,Facility and Equipment Protections for PII
+iso27018,2019,12,Operational Safeguards in PII Processing
+iso27018,2019,13,Network and Transfer Controls for PII
+iso27018,2019,14,Development Lifecycle With No PII Additions
+iso27018,2019,15,Vendor Oversight With No PII Additions
+iso27018,2019,16,PII Breach and Incident Governance
+iso27018,2019,17,Continuity Planning With No PII Additions
+iso27018,2019,18,Regulatory and Audit Compliance for PII
+iso27018,2019,5.1,Directive Framework for PII Protection
+iso27018,2019,5.1.1,Extending Policies for PII Legal Compliance
+iso27018,2019,5.1.2,Scheduled Review of PII Protection Policies
+iso27018,2019,6.1,Cloud Processor Internal PII Organization
+iso27018,2019,6.1.1,Appointing a PII Liaison for Cloud Customers
+iso27018,2019,6.1.2,Separating PII Processing Duties
+iso27018,2019,6.1.3,Engaging Regulators on PII Obligations
+iso27018,2019,6.1.4,Industry Forums for Cloud PII Practices
+iso27018,2019,6.1.5,Embedding PII Safeguards in Projects
+iso27018,2019,6.2,Remote Work Controls for PII Access
+iso27018,2019,7.1,Pre-Employment Vetting for PII Roles
+iso27018,2019,7.2,PII Awareness During Employment
+iso27018,2019,7.2.1,Leadership Duties for PII Staff Compliance
+iso27018,2019,7.2.2,Staff Awareness of PII Breach Consequences
+iso27018,2019,7.2.3,Sanctions for PII Security Violations
+iso27018,2019,7.3,Revoking PII Access at Termination
+iso27018,2019,9.1,Business Rules for PII Access Decisions
+iso27018,2019,9.2,Lifecycle Management of PII User Accounts
+iso27018,2019,9.2.2,Provisioning Cloud User PII Entitlements
+iso27018,2019,9.2.3,Managing Privileged Accounts in PII Systems
+iso27018,2019,9.2.4,Controlling PII System Authentication Secrets
+iso27018,2019,9.2.5,Periodic Review of PII Access Entitlements
+iso27018,2019,9.2.6,Withdrawing PII Access on Role Change
+iso27018,2019,9.3,PII User Credential Responsibilities
+iso27018,2019,9.3.1,Safeguarding PII Login Credentials
+iso27018,2019,9.4,Restricting PII Application-Level Access
+iso27018,2019,9.4.1,Restricting PII Access Per Control Policy
+iso27018,2019,9.4.2,Secure Cloud Tenant Sign-On Procedures
+iso27018,2019,9.4.3,Strength Requirements for PII System Passwords
+iso27018,2019,9.4.4,Restricting PII Exposure via Utility Programs
+iso27018,2019,9.4.5,Protecting Source Code Handling PII Logic
+iso27018,2019,10.1,Cryptographic Controls for PII at Rest
+iso27018,2019,10.1.1,Transparency on PII Cryptographic Protections
+iso27018,2019,10.1.2,Key Lifecycle for PII Encryption
+iso27018,2019,11.1,Restricting Physical Entry to PII Facilities
+iso27018,2019,11.2,Protecting Equipment Holding Personal Data
+iso27018,2019,11.2.1,Siting PII Processing Hardware Securely
+iso27018,2019,11.2.2,Resilient Power and Connectivity for PII Systems
+iso27018,2019,11.2.3,Securing Cables Carrying Personal Data
+iso27018,2019,11.2.4,Servicing PII Equipment Under Controlled Conditions
+iso27018,2019,11.2.5,Authorization for Removing PII Assets Off-Site
+iso27018,2019,11.2.6,Safeguarding PII on Off-Premises Devices
+iso27018,2019,11.2.7,Secure Disposal or Reuse of PII Equipment
+iso27018,2019,11.2.8,Locking Unattended PII Workstations
+iso27018,2019,11.2.9,Minimizing PII Exposure at Workspaces
+iso27018,2019,12.1,Documented Procedures for PII Operations
+iso27018,2019,12.1.2,Capacity Planning for PII Cloud Services
+iso27018,2019,12.2,Anti-Malware Controls for PII Systems
+iso27018,2019,12.3,Backup Practices for Cloud-Held PII
+iso27018,2019,12.3.1,Supplementary Cloud Backup for Personal Data
+iso27018,2019,12.4,Audit Trail Governance for PII Events
+iso27018,2019,12.4.1,PII Event Logging Review and Access Controls
+iso27018,2019,12.4.2,Protecting and Purging PII in Log Data
+iso27018,2019,12.4.3,Centralizing Admin and Operator PII Logs
+iso27018,2019,12.4.4,Synchronizing Clocks for PII Audit Trails
+iso27018,2019,12.5,Controlling Software on PII Production Systems
+iso27018,2019,12.6,Patching Vulnerabilities in PII Infrastructure
+iso27018,2019,12.7,Scoping Audits to Minimize PII Disruption
+iso27018,2019,13.1,Network Defenses for PII Transport Paths
+iso27018,2019,13.2,Governing PII Transfers Between Parties
+iso27018,2019,13.2.1,PII Transfer Policies Including Media Tracking
+iso27018,2019,13.2.2,Contractual Terms for PII Data Exchange
+iso27018,2019,13.2.3,Protecting PII in Transit via Messaging
+iso27018,2019,13.2.4,Binding PII Obligations in Confidentiality Pacts
+iso27018,2019,16.1,Coordinating PII Incident Response Roles
+iso27018,2019,16.1.1,Incident-Triggered PII Breach Assessment
+iso27018,2019,16.1.5,Containing and Resolving PII Breaches
+iso27018,2019,16.1.6,Applying Lessons from PII Breach Cases
+iso27018,2019,16.1.7,Preserving PII Incident Evidence for Audit
+iso27018,2019,18.1,Legal and Contractual PII Obligations
+iso27018,2019,18.2,Independent Reviews of PII Cloud Controls
+iso27018,2019,18.2.1,Commissioning Audits of Cloud PII Handling
+iso27018,2019,18.2.2,Verifying Adherence to PII Protection Standards
+iso27018,2019,18.2.3,Inspecting PII Systems Against Technical Baselines
+iso27018,2019,A.2.1,Enabling PII Principal Access and Correction Rights
+iso27018,2019,A.3.1,Purpose Limitation to Customer Instructions Only
+iso27018,2019,A.3.2,Prohibiting Unsanctioned Marketing of PII
+iso27018,2019,A.5.1,Timely Erasure of Temporary PII Files
+iso27018,2019,A.6.1,Notifying Customers of Law-Enforcement Demands
+iso27018,2019,A.6.2,Recording Who Received Disclosed PII
+iso27018,2019,A.8.1,Transparency on Sub-Contractor PII Processing
+iso27018,2019,A.10.2,Retaining Superseded Security Policy Copies
+iso27018,2019,A.10.3,PII Return Transfer and Disposal Policy
+iso27018,2019,A.11.1,Binding Confidentiality for PII-Accessing Staff
+iso27018,2019,A.11.2,Limiting Printed Copies Displaying PII
+iso27018,2019,A.11.3,Logging PII Data Restoration Attempts
+iso27018,2019,A.11.4,Encrypting PII on Media Leaving Premises
+iso27018,2019,A.11.5,Prohibiting Unencryptable Portable PII Devices
+iso27018,2019,A.11.6,Encrypting PII Before Public Network Transit
+iso27018,2019,A.11.7,Shredding or Pulping PII Paper Records
+iso27018,2019,A.11.8,Unique User IDs for Shared PII Stores
+iso27018,2019,A.11.9,Maintaining Authorized PII Access Registers
+iso27018,2019,A.11.10,Preventing Reassignment of Deactivated PII IDs
+iso27018,2019,A.11.11,Minimum Security Measures in PII Contracts
+iso27018,2019,A.11.12,Sub-Contractor PII Processing Safeguard Terms
+iso27018,2019,A.11.13,Clearing Prior-Tenant PII from Cloud Storage
+iso27018,2019,A.12.1,Documenting PII Storage Country Locations
+iso27018,2019,A.12.2,Ensuring PII Reaches Intended Network Destination
+pcidss,v4.0.1,1.1,NSC Governance and Oversight
+pcidss,v4.0.1,1.2,NSC Configuration and Upkeep
+pcidss,v4.0.1,1.3,CDE Ingress and Egress Filtering
+pcidss,v4.0.1,1.4,Trusted-Untrusted Boundary Controls
+pcidss,v4.0.1,1.5,Dual-Homed Device Risk Mitigation
+pcidss,v4.0.1,1.1.1,Documented Policies for Network Security
+pcidss,v4.0.1,1.1.2,Assigned Roles for Network Security
+pcidss,v4.0.1,1.2.1,NSC Ruleset Configuration Standards
+pcidss,v4.0.1,1.2.2,Change Control for Network Connections
+pcidss,v4.0.1,1.2.3,CDE Network Diagram Accuracy
+pcidss,v4.0.1,1.2.4,Account Data Flow Diagrams
+pcidss,v4.0.1,1.2.5,Approved Services and Port Inventory
+pcidss,v4.0.1,1.2.6,Mitigating Insecure Protocol Risks
+pcidss,v4.0.1,1.2.7,Periodic NSC Configuration Review
+pcidss,v4.0.1,1.2.8,NSC Configuration File Protection
+pcidss,v4.0.1,1.3.1,CDE Inbound Traffic Restriction
+pcidss,v4.0.1,1.3.2,CDE Outbound Traffic Restriction
+pcidss,v4.0.1,1.3.3,Wireless-to-CDE Segmentation Controls
+pcidss,v4.0.1,1.4.1,NSCs at Trust Boundary Perimeters
+pcidss,v4.0.1,1.4.2,Inbound Filtering from Untrusted Networks
+pcidss,v4.0.1,1.4.3,Source IP Anti-Spoofing Measures
+pcidss,v4.0.1,1.4.4,Cardholder Data Isolation from Untrusted Access
+pcidss,v4.0.1,1.4.5,Internal Address Disclosure Limits
+pcidss,v4.0.1,1.5.1,Endpoint Security for Dual-Network Devices
+pcidss,v4.0.1,2.1,Configuration Hardening Governance
+pcidss,v4.0.1,2.2,Secure Component Configuration Management
+pcidss,v4.0.1,2.3,Wireless Environment Hardening
+pcidss,v4.0.1,2.1.1,Documented Policies for Secure Configuration
+pcidss,v4.0.1,2.1.2,Assigned Roles for Secure Configuration
+pcidss,v4.0.1,2.2.1,System Hardening Standards Maintenance
+pcidss,v4.0.1,2.2.2,Vendor Default Account Management
+pcidss,v4.0.1,2.2.3,Function Separation by Security Level
+pcidss,v4.0.1,2.2.4,Disabling Unnecessary Services and Functions
+pcidss,v4.0.1,2.2.5,Justified Use of Insecure Services
+pcidss,v4.0.1,2.2.6,Security Parameter Misconfiguration Prevention
+pcidss,v4.0.1,2.2.7,Encrypted Remote Administration Channels
+pcidss,v4.0.1,2.3.1,Wireless Vendor Default Replacement
+pcidss,v4.0.1,2.3.2,Event-Driven Wireless Key Changes
+pcidss,v4.0.1,3.1,Stored Data Protection Governance
+pcidss,v4.0.1,3.2,Minimizing Retained Account Data
+pcidss,v4.0.1,3.3,Post-Authorization SAD Prohibition
+pcidss,v4.0.1,3.4,PAN Display and Copy Restrictions
+pcidss,v4.0.1,3.5,PAN Storage Security
+pcidss,v4.0.1,3.6,Cryptographic Key Security for Stored Data
+pcidss,v4.0.1,3.7,Key Lifecycle Management Procedures
+pcidss,v4.0.1,3.1.1,Documented Policies for Stored Data Protection
+pcidss,v4.0.1,3.1.2,Assigned Roles for Stored Data Protection
+pcidss,v4.0.1,3.2.1,Minimizing Stored Data Through Lifecycle Rules
+pcidss,v4.0.1,3.3.1,SAD Irrecoverability After Authorization
+pcidss,v4.0.1,3.3.1.1,Track Data Non-Retention
+pcidss,v4.0.1,3.3.1.2,Card Verification Code Non-Retention
+pcidss,v4.0.1,3.3.1.3,PIN and PIN Block Non-Retention
+pcidss,v4.0.1,3.3.2,Pre-Authorization SAD Encryption
+pcidss,v4.0.1,3.3.3,Issuer SAD Storage Safeguards
+pcidss,v4.0.1,3.4.1,PAN Masking on Display
+pcidss,v4.0.1,3.4.2,Remote-Access PAN Copy Prevention
+pcidss,v4.0.1,3.5.1,PAN Rendered Unreadable at Rest
+pcidss,v4.0.1,3.5.1.1,Keyed Hashing for PAN Protection
+pcidss,v4.0.1,3.5.1.2,Disk-Level Encryption Constraints for PAN
+pcidss,v4.0.1,3.5.1.3,Disk Encryption Logical Access Separation
+pcidss,v4.0.1,3.6.1,Cryptographic Key Disclosure Safeguards
+pcidss,v4.0.1,3.6.1.1,Service Provider Cryptographic Architecture
+pcidss,v4.0.1,3.6.1.2,Secret and Private Key Storage Forms
+pcidss,v4.0.1,3.6.1.3,Cleartext Key Component Access Limits
+pcidss,v4.0.1,3.6.1.4,Minimized Key Storage Locations
+pcidss,v4.0.1,3.7.1,Strong Key Generation Practices
+pcidss,v4.0.1,3.7.2,Secure Key Distribution Methods
+pcidss,v4.0.1,3.7.3,Secure Key Storage Practices
+pcidss,v4.0.1,3.7.4,Cryptoperiod Expiration Key Rotation
+pcidss,v4.0.1,3.7.5,"Key Retirement, Replacement, and Destruction"
+pcidss,v4.0.1,3.7.6,Manual Key Handling by Segregated Custodians
+pcidss,v4.0.1,3.7.7,Unauthorized Key Substitution Prevention
+pcidss,v4.0.1,3.7.8,Key Custodian Acknowledgement Requirement
+pcidss,v4.0.1,3.7.9,Service Provider Key Sharing Guidance
+pcidss,v4.0.1,4.1,Public-Network Encryption Governance
+pcidss,v4.0.1,4.2,PAN Encryption During Transmission
+pcidss,v4.0.1,4.1.1,Documented Policies for Transmission Security
+pcidss,v4.0.1,4.1.2,Assigned Roles for Transmission Security
+pcidss,v4.0.1,4.2.1,Strong Cryptography on Public Networks
+pcidss,v4.0.1,4.2.1.1,Trusted Key and Certificate Inventory
+pcidss,v4.0.1,4.2.1.2,Wireless Transmission Cryptography Standards
+pcidss,v4.0.1,4.2.2,End-User Messaging PAN Protection
+pcidss,v4.0.1,5.1,Anti-malware governance framework
+pcidss,v4.0.1,5.2,Malware prevention and detection capabilities
+pcidss,v4.0.1,5.3,Ongoing anti-malware operation and monitoring
+pcidss,v4.0.1,5.4,Phishing countermeasures for personnel
+pcidss,v4.0.1,5.1.1,Documented policies for malware protection
+pcidss,v4.0.1,5.1.2,Assigned roles for malware protection
+pcidss,v4.0.1,5.2.1,Anti-malware deployment on system components
+pcidss,v4.0.1,5.2.2,Detection and containment of known malware
+pcidss,v4.0.1,5.2.3,Periodic risk review for exempt components
+pcidss,v4.0.1,5.2.3.1,Risk-based frequency for exemption reviews
+pcidss,v4.0.1,5.3.1,Automatic updates for anti-malware definitions
+pcidss,v4.0.1,5.3.2,Scheduled or continuous malware scanning
+pcidss,v4.0.1,5.3.2.1,Risk-based frequency for malware scans
+pcidss,v4.0.1,5.3.3,Scanning removable media for malware
+pcidss,v4.0.1,5.3.4,Anti-malware audit log retention
+pcidss,v4.0.1,5.3.5,Tamper protection for anti-malware controls
+pcidss,v4.0.1,5.4.1,Automated phishing detection and prevention
+pcidss,v4.0.1,6.1,Secure development governance framework
+pcidss,v4.0.1,6.2,Security in custom software development
+pcidss,v4.0.1,6.3,Vulnerability identification and remediation
+pcidss,v4.0.1,6.4,Web application attack prevention
+pcidss,v4.0.1,6.5,Secure change management practices
+pcidss,v4.0.1,6.1.1,Documented policies for secure development
+pcidss,v4.0.1,6.1.2,Assigned roles for secure development
+pcidss,v4.0.1,6.2.1,Secure coding standards for custom software
+pcidss,v4.0.1,6.2.2,Developer training on software security
+pcidss,v4.0.1,6.2.3,Pre-release code review for vulnerabilities
+pcidss,v4.0.1,6.2.3.1,Independent reviewer for manual code reviews
+pcidss,v4.0.1,6.2.4,Mitigating common software attack vectors
+pcidss,v4.0.1,6.3.1,"Vulnerability intake, ranking, and tracking"
+pcidss,v4.0.1,6.3.2,Software component inventory for patch management
+pcidss,v4.0.1,6.3.3,Timely installation of security patches
+pcidss,v4.0.1,6.4.1,Ongoing threat response for web applications
+pcidss,v4.0.1,6.4.2,Automated web attack detection and blocking
+pcidss,v4.0.1,6.4.3,Payment page script integrity controls
+pcidss,v4.0.1,6.5.1,Formal change control procedures
+pcidss,v4.0.1,6.5.2,PCI DSS validation after significant changes
+pcidss,v4.0.1,6.5.3,Separation of pre-production and production
+pcidss,v4.0.1,6.5.4,Role separation across environment tiers
+pcidss,v4.0.1,6.5.5,Live PAN exclusion from test environments
+pcidss,v4.0.1,6.5.6,Removal of test data before production
+pcidss,v4.0.1,7.1,Access control governance framework
+pcidss,v4.0.1,7.2,Appropriate access definition and assignment
+pcidss,v4.0.1,7.3,Technical access control enforcement
+pcidss,v4.0.1,7.1.1,Documented policies for access restriction
+pcidss,v4.0.1,7.1.2,Assigned roles for access restriction
+pcidss,v4.0.1,7.2.1,Access control model with need-to-know basis
+pcidss,v4.0.1,7.2.2,Least-privilege assignment for all users
+pcidss,v4.0.1,7.2.3,Documented approval for granted privileges
+pcidss,v4.0.1,7.2.4,Semi-annual user access review
+pcidss,v4.0.1,7.2.5,Least-Privilege for App and Service Accounts
+pcidss,v4.0.1,7.2.5.1,Periodic review of system account privileges
+pcidss,v4.0.1,7.2.6,Restricted queries to stored cardholder data
+pcidss,v4.0.1,7.3.1,Need-to-know enforcement via access control system
+pcidss,v4.0.1,7.3.2,Permission enforcement by role and function
+pcidss,v4.0.1,7.3.3,Default-deny access control posture
+pcidss,v4.0.1,8.1,Authentication governance framework
+pcidss,v4.0.1,8.2,User account lifecycle management
+pcidss,v4.0.1,8.3,Strong authentication controls
+pcidss,v4.0.1,8.4,Multi-factor authentication for CDE access
+pcidss,v4.0.1,8.5,MFA system integrity safeguards
+pcidss,v4.0.1,8.6,Application and system account credential governance
+pcidss,v4.0.1,8.1.1,Documented policies for authentication
+pcidss,v4.0.1,8.1.2,Assigned roles for authentication
+pcidss,v4.0.1,8.2.1,Unique user identification requirement
+pcidss,v4.0.1,8.2.2,Restrictions on shared and group accounts
+pcidss,v4.0.1,8.2.3,Unique credentials per service provider customer
+pcidss,v4.0.1,8.2.4,Controlled credential lifecycle changes
+pcidss,v4.0.1,8.2.5,Immediate revocation upon user termination
+pcidss,v4.0.1,8.2.6,Disabling inactive accounts within ninety days
+pcidss,v4.0.1,8.2.7,Vendor Remote-Session Account Controls
+pcidss,v4.0.1,8.2.8,Session timeout after fifteen minutes idle
+pcidss,v4.0.1,8.3.1,Authentication factor type requirements
+pcidss,v4.0.1,8.3.2,Cryptographic protection of authentication factors
+pcidss,v4.0.1,8.3.3,Identity verification before credential changes
+pcidss,v4.0.1,8.3.4,Account lockout after failed login attempts
+pcidss,v4.0.1,8.3.5,Initial password and reset handling
+pcidss,v4.0.1,8.3.6,Password minimum length and complexity
+pcidss,v4.0.1,8.3.7,Password history enforcement
+pcidss,v4.0.1,8.3.8,Authentication guidance communicated to users
+pcidss,v4.0.1,8.3.9,Single-factor password rotation or posture checks
+pcidss,v4.0.1,8.3.10,Customer password guidance for service providers
+pcidss,v4.0.1,8.3.10.1,Customer Password Posture for Service Providers
+pcidss,v4.0.1,8.3.11,Physical and logical token assignment controls
+pcidss,v4.0.1,8.4.2,MFA for Non-Console CDE Access
+pcidss,v4.0.1,8.4.3,MFA for remote network access to CDE
+pcidss,v4.0.1,8.5.1,MFA implementation integrity requirements
+pcidss,v4.0.1,8.6.1,Interactive login controls for system accounts
+pcidss,v4.0.1,8.6.2,No hard-coded credentials in source or config
+pcidss,v4.0.1,8.6.3,System account credential rotation and complexity
+pcidss,v4.0.1,9.1,Physical Access Governance Framework
+pcidss,v4.0.1,9.2,Facility Entry Controls for CDE Systems
+pcidss,v4.0.1,9.3,Personnel and Visitor Access Authorization
+pcidss,v4.0.1,9.4,Cardholder Data Media Lifecycle Security
+pcidss,v4.0.1,9.5,POI Device Tamper Protection
+pcidss,v4.0.1,9.1.1,Documented Policies for Physical Access
+pcidss,v4.0.1,9.1.2,Assigned Roles for Physical Access
+pcidss,v4.0.1,9.2.1,CDE Facility Entry Restrictions
+pcidss,v4.0.1,9.2.1.1,Sensitive Area Physical Monitoring
+pcidss,v4.0.1,9.2.2,Public Network Jack Usage Controls
+pcidss,v4.0.1,9.2.3,Wireless and Network Hardware Access Limits
+pcidss,v4.0.1,9.2.4,Console Locking in Sensitive Areas
+pcidss,v4.0.1,9.3.1,Personnel CDE Access Authorization Procedures
+pcidss,v4.0.1,9.3.1.1,Job-Based Sensitive Area Entry Controls
+pcidss,v4.0.1,9.3.2,Visitor Authorization and Escort Procedures
+pcidss,v4.0.1,9.3.3,Visitor Badge Surrender at Departure
+pcidss,v4.0.1,9.3.4,Visitor Activity Logging Requirements
+pcidss,v4.0.1,9.4.1,Physical Security of Cardholder Media
+pcidss,v4.0.1,9.4.1.1,Offline Backup Storage Location Security
+pcidss,v4.0.1,9.4.1.2,Annual Backup Location Security Review
+pcidss,v4.0.1,9.4.2,Media Sensitivity Classification
+pcidss,v4.0.1,9.4.3,Secure Transport of Offsite Media
+pcidss,v4.0.1,9.4.4,Management Approval for Media Removal
+pcidss,v4.0.1,9.4.5,Electronic Media Inventory Logs
+pcidss,v4.0.1,9.4.5.1,Annual Electronic Media Inventory Audit
+pcidss,v4.0.1,9.4.6,Hard-Copy Destruction When Unneeded
+pcidss,v4.0.1,9.4.7,Electronic Media Destruction or Erasure
+pcidss,v4.0.1,9.5.1,POI Device Tamper Prevention Controls
+pcidss,v4.0.1,9.5.1.1,POI Device Inventory with Identifiers
+pcidss,v4.0.1,9.5.1.2,Periodic POI Surface Tamper Inspections
+pcidss,v4.0.1,9.5.1.2.1,Risk-Based POI Inspection Frequency
+pcidss,v4.0.1,9.5.1.3,POI Environment Staff Awareness Training
+pcidss,v4.0.1,10.1,Logging and Monitoring Governance Framework
+pcidss,v4.0.1,10.2,Audit Log Implementation for Event Detection
+pcidss,v4.0.1,10.3,Audit Log Integrity Safeguards
+pcidss,v4.0.1,10.4,Audit Log Review for Anomalies
+pcidss,v4.0.1,10.5,Audit Log Retention and Availability
+pcidss,v4.0.1,10.6,System Clock Synchronization Controls
+pcidss,v4.0.1,10.7,Security Control Failure Detection and Response
+pcidss,v4.0.1,10.1.1,Documented Policies for Logging Activities
+pcidss,v4.0.1,10.1.2,Assigned Roles for Logging Activities
+pcidss,v4.0.1,10.2.1,Active Audit Logging on All Components
+pcidss,v4.0.1,10.2.1.1,Logging Individual Cardholder Data Access
+pcidss,v4.0.1,10.2.1.2,Administrative Action Audit Trails
+pcidss,v4.0.1,10.2.1.3,Audit Log Access Tracking
+pcidss,v4.0.1,10.2.1.4,Failed Logical Access Attempt Logging
+pcidss,v4.0.1,10.2.1.5,Credential Change Event Logging
+pcidss,v4.0.1,10.2.1.6,Audit Log Start and Stop Event Capture
+pcidss,v4.0.1,10.2.1.7,System-Level Object Creation and Deletion Logs
+pcidss,v4.0.1,10.2.2,Required Fields in Audit Log Entries
+pcidss,v4.0.1,10.3.1,Read Access Restrictions on Log Files
+pcidss,v4.0.1,10.3.2,Audit Log Modification Prevention
+pcidss,v4.0.1,10.3.3,Centralized Secure Log Backup
+pcidss,v4.0.1,10.3.4,File Integrity Monitoring for Logs
+pcidss,v4.0.1,10.4.1,Daily Security Event Log Review
+pcidss,v4.0.1,10.4.1.1,Automated Audit Log Review Mechanisms
+pcidss,v4.0.1,10.4.2,Periodic Review of Remaining System Logs
+pcidss,v4.0.1,10.4.2.1,Risk-Based Log Review Frequency
+pcidss,v4.0.1,10.4.3,Addressing Review Exceptions and Anomalies
+pcidss,v4.0.1,10.5.1,Twelve-Month Audit Log Retention Period
+pcidss,v4.0.1,10.6.1,Time Synchronization Technology Deployment
+pcidss,v4.0.1,10.6.2,Designated Time Server Configuration
+pcidss,v4.0.1,10.6.3,Time Data Access and Change Protections
+pcidss,v4.0.1,10.7.1,SP: Critical Control Failure Alerting
+pcidss,v4.0.1,10.7.2,Critical Security Control Failure Detection
+pcidss,v4.0.1,10.7.3,Security Control Failure Response Procedures
+pcidss,v4.0.1,11.1,Security Testing Governance Framework
+pcidss,v4.0.1,11.2,Wireless Access Point Detection and Monitoring
+pcidss,v4.0.1,11.3,Vulnerability Identification and Remediation
+pcidss,v4.0.1,11.4,Penetration Testing and Weakness Correction
+pcidss,v4.0.1,11.5,Intrusion and File Change Detection
+pcidss,v4.0.1,11.6,Payment Page Tamper Detection
+pcidss,v4.0.1,11.1.1,Documented Policies for Security Testing
+pcidss,v4.0.1,11.1.2,Assigned Roles for Security Testing
+pcidss,v4.0.1,11.2.1,Wireless Access Point Discovery and Management
+pcidss,v4.0.1,11.2.2,Authorized Wireless Access Point Inventory
+pcidss,v4.0.1,11.3.1,Quarterly Internal Vulnerability Scanning
+pcidss,v4.0.1,11.3.1.2,Authenticated Internal Vulnerability Scanning
+pcidss,v4.0.1,11.3.1.3,Post-Change Internal Vulnerability Scanning
+pcidss,v4.0.1,11.3.2,Quarterly External ASV Vulnerability Scanning
+pcidss,v4.0.1,11.3.2.1,Post-Change External Vulnerability Scanning
+pcidss,v4.0.1,11.4.1,Penetration Testing Methodology Definition
+pcidss,v4.0.1,11.4.2,Annual Internal Penetration Testing
+pcidss,v4.0.1,11.4.3,Annual External Penetration Testing
+pcidss,v4.0.1,11.4.4,Remediation of Penetration Test Findings
+pcidss,v4.0.1,11.4.5,Segmentation Control Penetration Validation
+pcidss,v4.0.1,11.4.6,SP: Semi-Annual Segmentation Penetration Tests
+pcidss,v4.0.1,11.4.7,SP: Multi-Tenant External Pentest Support
+pcidss,v4.0.1,11.5.1,Network Intrusion Detection and Prevention
+pcidss,v4.0.1,11.5.1.1,SP: Covert Malware Channel Detection
+pcidss,v4.0.1,11.5.2,Critical File Change Detection Deployment
+pcidss,v4.0.1,11.6.1,Payment Page Script and Header Monitoring
+pcidss,v4.0.1,12.1,Information Security Policy Maintenance
+pcidss,v4.0.1,12.2,End-User Technology Acceptable Use Rules
+pcidss,v4.0.1,12.3,Cardholder Data Risk Assessment Program
+pcidss,v4.0.1,12.4,PCI DSS Compliance Program Management
+pcidss,v4.0.1,12.5,PCI DSS Scope Documentation and Validation
+pcidss,v4.0.1,12.6,Ongoing Security Awareness Education
+pcidss,v4.0.1,12.7,Personnel Screening for Insider Risk
+pcidss,v4.0.1,12.8,Governing Risk from External Service Partners
+pcidss,v4.0.1,12.9,TPSP Customer Compliance Support Obligations
+pcidss,v4.0.1,12.10,Security Incident Response Readiness
+pcidss,v4.0.1,12.1.1,Enterprise Security Policy Publication
+pcidss,v4.0.1,12.1.2,Annual Security Policy Review Cycle
+pcidss,v4.0.1,12.1.3,Security Roles Defined for All Personnel
+pcidss,v4.0.1,12.1.4,Executive Ownership of Information Security
+pcidss,v4.0.1,12.2.1,End-User Technology Acceptable Use Policies
+pcidss,v4.0.1,12.3.1,Targeted Risk Analysis Documentation
+pcidss,v4.0.1,12.3.2,Customized Approach Risk Analysis
+pcidss,v4.0.1,12.3.3,Cryptographic Cipher Suite Inventory Review
+pcidss,v4.0.1,12.3.4,Technology Currency and Support Review
+pcidss,v4.0.1,12.4.1,SP: Executive Compliance Accountability
+pcidss,v4.0.1,12.4.2,SP: Quarterly Security Task Compliance Reviews
+pcidss,v4.0.1,12.4.2.1,SP: Documented Quarterly Review Results
+pcidss,v4.0.1,12.5.1,In-Scope System Component Inventory
+pcidss,v4.0.1,12.5.2,Annual PCI DSS Scope Confirmation
+pcidss,v4.0.1,12.5.2.1,SP: Semi-Annual Scope Confirmation
+pcidss,v4.0.1,12.5.3,SP: Organizational Change Scope Impact Review
+pcidss,v4.0.1,12.6.1,Structured Staff Awareness Training Program
+pcidss,v4.0.1,12.6.2,Annual Security Awareness Program Review
+pcidss,v4.0.1,12.6.3,Periodic Security Awareness Training Delivery
+pcidss,v4.0.1,12.6.3.1,Threat-Specific Security Awareness Content
+pcidss,v4.0.1,12.6.3.2,Acceptable Use Training for End-User Tech
+pcidss,v4.0.1,12.7.1,Pre-Hire Background Screening for CDE Staff
+pcidss,v4.0.1,12.8.1,TPSP Inventory with Service Descriptions
+pcidss,v4.0.1,12.8.2,Written TPSP Security Agreements
+pcidss,v4.0.1,12.8.3,TPSP Due Diligence Before Engagement
+pcidss,v4.0.1,12.8.4,Annual TPSP Compliance Status Monitoring
+pcidss,v4.0.1,12.8.5,TPSP Requirement Ownership Mapping
+pcidss,v4.0.1,12.9.1,SP: Written Customer Security Acknowledgments
+pcidss,v4.0.1,12.9.2,SP: Customer Compliance Information Support
+pcidss,v4.0.1,12.10.1,Incident Response Plan Readiness
+pcidss,v4.0.1,12.10.2,Annual Incident Response Plan Testing
+pcidss,v4.0.1,12.10.3,Around-the-Clock Incident Response Coverage
+pcidss,v4.0.1,12.10.4,Incident Response Personnel Training
+pcidss,v4.0.1,12.10.4.1,Risk-Based Incident Training Frequency
+pcidss,v4.0.1,12.10.5,Incident Plan Integration with Security Alerts
+pcidss,v4.0.1,12.10.6,Lessons Learned Applied to Incident Plan
+pcidss,v4.0.1,12.10.7,Unexpected PAN Discovery Response Procedures
+pcidss,v4.0.1,A1.1,Customer Environment Isolation and Data Separation
+pcidss,v4.0.1,A1.2,Tenant Logging and Incident Support
+pcidss,v4.0.1,A1.1.1,Bidirectional Logical Access Barriers
+pcidss,v4.0.1,A1.1.2,Tenant-Scoped Cardholder Data Permissions
+pcidss,v4.0.1,A1.1.3,Per-Customer Resource Allocation Boundaries
+pcidss,v4.0.1,A1.1.4,Periodic Penetration Testing of Tenant Segmentation
+pcidss,v4.0.1,A1.2.1,Per-Tenant Audit Log Enablement
+pcidss,v4.0.1,A1.2.2,Forensic Investigation Readiness for Tenants
+pcidss,v4.0.1,A1.2.3,Tenant Security Incident Reporting Channels
+pcidss,v4.0.1,A2.1,POI Terminal SSL/TLS Exploit Resilience
+pcidss,v4.0.1,A2.1.1,POI Terminal Exploit Non-Susceptibility
+pcidss,v4.0.1,A2.1.2,Service Provider Migration and Risk Plan
+pcidss,v4.0.1,A2.1.3,Secure Service Offering by Providers
+pcidss,v4.0.1,A3.1,Structured Compliance Program Oversight
+pcidss,v4.0.1,A3.2,Scope Documentation and Ongoing Validation
+pcidss,v4.0.1,A3.3,Embedding PCI DSS into Daily Operations
+pcidss,v4.0.1,A3.4,Cardholder Environment Logical Access Governance
+pcidss,v4.0.1,A3.5,Suspicious Activity Detection and Response
+pcidss,v4.0.1,A3.1.1,Executive Ownership of Compliance Program
+pcidss,v4.0.1,A3.1.2,Formal Compliance Program Structure and Activities
+pcidss,v4.0.1,A3.1.3,Designated Roles for Ongoing Compliance Duties
+pcidss,v4.0.1,A3.1.4,Annual Training for Compliance Personnel
+pcidss,v4.0.1,A3.2.1,Quarterly Scope Accuracy Confirmation
+pcidss,v4.0.1,A3.2.2,Scope Impact Analysis for System Changes
+pcidss,v4.0.1,A3.2.2.1,Post-Change Requirement Verification
+pcidss,v4.0.1,A3.2.3,Organizational Restructure Scope Review
+pcidss,v4.0.1,A3.2.4,Segmentation Validation via Penetration Testing
+pcidss,v4.0.1,A3.2.5,Cleartext PAN Discovery Methodology
+pcidss,v4.0.1,A3.2.5.1,Data Discovery Effectiveness Testing
+pcidss,v4.0.1,A3.2.5.2,Response When Cleartext PAN Found Outside CDE
+pcidss,v4.0.1,A3.2.6,Outbound Cleartext PAN Leakage Prevention
+pcidss,v4.0.1,A3.2.6.1,Response to Unauthorized PAN Exfiltration Attempts
+pcidss,v4.0.1,A3.3.1,Critical Security Control Failure Alerting
+pcidss,v4.0.1,A3.3.1.1,Prompt Remediation of Control Failures
+pcidss,v4.0.1,A3.3.2,Annual Technology Suitability Review
+pcidss,v4.0.1,A3.3.3,Quarterly BAU Activity Compliance Verification
+pcidss,v4.0.1,A3.4.1,Semi-Annual User Access Privilege Review
+pcidss,v4.0.1,A3.5.1,Behavioral Anomaly and Attack Pattern Detection

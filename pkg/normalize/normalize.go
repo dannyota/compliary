@@ -44,6 +44,7 @@ type SilverQuerier interface {
 type ConfigQuerier interface {
 	GetFramework(ctx context.Context, code string) (dbconfig.ConfigFramework, error)
 	ListReferenceSources(ctx context.Context) ([]dbconfig.ConfigReferenceSource, error)
+	ListControlTitles(ctx context.Context, arg dbconfig.ListControlTitlesParams) ([]dbconfig.ConfigControlTitle, error)
 }
 
 // DocIdentity carries the manifest-derived fields needed by writeTree.
@@ -60,7 +61,8 @@ type DocIdentity struct {
 
 // Normalizer runs the normalize stage over a set of manifest rows.
 type Normalizer struct {
-	Log *slog.Logger
+	Log  *slog.Logger
+	cfgQ ConfigQuerier // set during Run for title lookups
 }
 
 // Run processes the given manifest files (already filtered to normalize-eligible).
@@ -76,6 +78,7 @@ func (n *Normalizer) Run(
 	silverQ SilverQuerier,
 	cfgQ ConfigQuerier,
 ) (Summary, error) {
+	n.cfgQ = cfgQ
 	var sum Summary
 
 	for _, f := range files {
@@ -588,9 +591,37 @@ func (n *Normalizer) normalizeCOBIT(
 	return n.writeTree(ctx, doc, tree, ingQ, silverQ)
 }
 
+// titleMap maps citation_norm → curated title for a specific framework/version.
+type titleMap map[string]string
+
+// loadTitleMap loads curated titles for the given framework+version from the
+// config.control_title seed table. Returns nil if no titles are available.
+func loadTitleMap(ctx context.Context, cfgQ ConfigQuerier, fwCode, verLabel string) (titleMap, error) {
+	if cfgQ == nil {
+		return nil, nil
+	}
+	rows, err := cfgQ.ListControlTitles(ctx, dbconfig.ListControlTitlesParams{
+		FrameworkCode: fwCode,
+		VersionLabel:  verLabel,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list control titles: %w", err)
+	}
+	if len(rows) == 0 {
+		return nil, nil
+	}
+	m := make(titleMap, len(rows))
+	for _, r := range rows {
+		m[r.CitationNorm] = r.Title
+	}
+	return m, nil
+}
+
 // writeTree writes a TreeResult to silver: upsert document, delete+insert
 // controls, upsert mapping edges, resolve mappings, mark normalized. This is
 // the shared DB-writer extracted from normalizeOSCAL and normalizeCSF.
+// Controls whose citation_norm has a curated title in config.control_title
+// get it as silver.control.title (title_original stays unchanged).
 func (n *Normalizer) writeTree(
 	ctx context.Context,
 	doc DocIdentity,
@@ -598,6 +629,16 @@ func (n *Normalizer) writeTree(
 	ingQ IngestQuerier,
 	silverQ SilverQuerier,
 ) error {
+	// Load curated titles for this framework/version.
+	tm, err := loadTitleMap(ctx, n.cfgQ, doc.FrameworkCode, doc.VersionLabel)
+	if err != nil {
+		n.Log.Warn("curated titles unavailable, using parser titles",
+			"framework", doc.FrameworkCode, "version", doc.VersionLabel, "err", err)
+	}
+	if tm != nil {
+		n.Log.Info("applying curated titles",
+			"framework", doc.FrameworkCode, "version", doc.VersionLabel, "count", len(tm))
+	}
 	// Build doc_key: <framework_code>|<version_label>|<doc_role>
 	docKey := doc.FrameworkCode + "|" + doc.VersionLabel + "|" + doc.DocRole
 	if doc.Qualifier != "" {
@@ -635,6 +676,14 @@ func (n *Normalizer) writeTree(
 			parentID = &pid
 		}
 
+		// Apply curated title when available (title_original stays unchanged).
+		title := cr.Title
+		if tm != nil {
+			if curated, ok := tm[cr.CitationNorm]; ok {
+				title = curated
+			}
+		}
+
 		id, err := silverQ.InsertControl(ctx, dbsilver.InsertControlParams{
 			DocumentID:      sdoc.ID,
 			ParentControlID: parentID,
@@ -642,7 +691,7 @@ func (n *Normalizer) writeTree(
 			CitationNorm:    cr.CitationNorm,
 			Kind:            cr.Kind,
 			Status:          cr.Status,
-			Title:           cr.Title,
+			Title:           title,
 			TitleOriginal:   cr.TitleOriginal,
 			Body:            cr.Body,
 			Ordinal:         cr.Ordinal,

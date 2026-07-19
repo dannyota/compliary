@@ -184,6 +184,22 @@ func run(cfgPath string, log *slog.Logger) error {
 	}
 	counts["reference_source"] = len(rows)
 
+	if err := q.DeleteSeedControlTitles(ctx); err != nil {
+		return fmt.Errorf("clear control_title seed: %w", err)
+	}
+	rows, err = readSeedCSV("control_title.csv")
+	if err != nil {
+		return err
+	}
+	for _, r := range rows {
+		if err := q.InsertSeedControlTitle(ctx, dbconfig.InsertSeedControlTitleParams{
+			FrameworkCode: r[0], VersionLabel: r[1], CitationNorm: r[2], Title: r[3],
+		}); err != nil {
+			return fmt.Errorf("insert control_title %s/%s/%s: %w", r[0], r[1], r[2], err)
+		}
+	}
+	counts["control_title"] = len(rows)
+
 	if err := q.DeleteSeedFileRules(ctx); err != nil {
 		return fmt.Errorf("clear file_rule seed: %w", err)
 	}
@@ -230,6 +246,7 @@ func run(cfgPath string, log *slog.Logger) error {
 		"control_kind", counts["control_kind"],
 		"setting", counts["setting"],
 		"reference_source", counts["reference_source"],
+		"control_title", counts["control_title"],
 		"file_rule", counts["file_rule"],
 	)
 	return nil

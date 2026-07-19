@@ -138,6 +138,25 @@ CREATE TABLE config.reference_source (
     CONSTRAINT chk_config_reference_source_origin CHECK (origin IN ('seed', 'user'))
 );
 
+-- config.control_title: curated paraphrased titles for controls in licensed
+-- frameworks. Seeds carry our own topical summaries — never verbatim publisher
+-- headings. The normalizer looks up (framework_code, version_label,
+-- citation_norm) at write time and uses the curated title as silver.control.title
+-- when present, falling back to the parser's neutral label otherwise.
+-- origin='seed' rows are replaced by re-seed; origin='user' survive.
+CREATE TABLE config.control_title (
+    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    framework_code  TEXT NOT NULL,
+    version_label   TEXT NOT NULL,
+    citation_norm   TEXT NOT NULL,
+    title           TEXT NOT NULL,
+    origin          TEXT NOT NULL DEFAULT 'seed',
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_config_control_title UNIQUE (framework_code, version_label, citation_norm),
+    CONSTRAINT chk_config_control_title_origin CHECK (origin IN ('seed', 'user'))
+);
+
 -- config.setting: generic key/value store for operator-tunable gates.
 CREATE TABLE config.setting (
     id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

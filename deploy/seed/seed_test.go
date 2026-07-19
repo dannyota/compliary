@@ -1,9 +1,12 @@
 package seed
 
 import (
+	"bufio"
 	"encoding/csv"
+	"os"
 	"path"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -176,6 +179,88 @@ func TestReferenceSourceSeed(t *testing.T) {
 		if _, err := strconv.ParseBool(r[4]); err != nil {
 			t.Errorf("reference_source %q: bad enabled %q", prefix, r[4])
 		}
+	}
+}
+
+func TestControlTitleSeed(t *testing.T) {
+	// Load frameworks + versions for cross-reference.
+	frameworks := map[string]bool{}
+	for _, r := range readCSV(t, "framework.csv")[1:] {
+		frameworks[r[0]] = true
+	}
+	versions := map[string]bool{}
+	for _, r := range readCSV(t, "framework_version.csv")[1:] {
+		versions[r[0]+"|"+r[1]] = true
+	}
+
+	rows := readCSV(t, "control_title.csv")[1:]
+	if len(rows) < 700 {
+		t.Fatalf("control_title.csv: want >=700 rows, got %d", len(rows))
+	}
+
+	seen := map[string]bool{}
+	for _, r := range rows {
+		fw, ver, cite, title := r[0], r[1], r[2], r[3]
+		key := fw + "|" + ver + "|" + cite
+		if seen[key] {
+			t.Errorf("control_title %s: duplicate", key)
+		}
+		seen[key] = true
+		if !frameworks[fw] {
+			t.Errorf("control_title %s: unknown framework_code %q", key, fw)
+		}
+		if !versions[fw+"|"+ver] {
+			t.Errorf("control_title %s: unknown framework_version", key)
+		}
+		if title == "" {
+			t.Errorf("control_title %s: empty title", key)
+		}
+		if cite == "" {
+			t.Errorf("control_title %s: empty citation_norm", key)
+		}
+	}
+}
+
+// TestControlTitleCorpusCoverage validates that every curated title targets
+// a citation that exists in the corpus. The corpus-citations snapshot is
+// deploy/eval/corpus-citations.txt (framework|version|citation per line).
+// Verbatim verification was done upstream during title authoring —
+// no spot-check needed here (noted per task spec).
+func TestControlTitleCorpusCoverage(t *testing.T) {
+	const snapshotName = "corpus-citations.txt"
+	// The snapshot lives in deploy/eval/, not deploy/seed/. Open via os.
+	f, err := os.Open("../eval/" + snapshotName)
+	if err != nil {
+		t.Skipf("corpus-citations.txt not found: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	corpus := map[string]bool{}
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line != "" {
+			corpus[strings.ToLower(line)] = true
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("read corpus-citations.txt: %v", err)
+	}
+	if len(corpus) == 0 {
+		t.Fatal("corpus-citations.txt is empty")
+	}
+
+	rows := readCSV(t, "control_title.csv")[1:]
+	var missing int
+	for _, r := range rows {
+		key := strings.ToLower(r[0] + "|" + r[1] + "|" + r[2])
+		if !corpus[key] {
+			t.Errorf("control_title %s|%s|%s: not in corpus snapshot", r[0], r[1], r[2])
+			missing++
+		}
+	}
+	if missing > 0 {
+		t.Errorf("%d control_title citations missing from corpus snapshot", missing)
 	}
 }
 

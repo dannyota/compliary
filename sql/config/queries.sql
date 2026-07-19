@@ -76,6 +76,22 @@ DELETE FROM config.reference_source WHERE origin = 'seed';
 INSERT INTO config.reference_source (prefix, to_framework_code, to_version_label, mapping_source_code, enabled, origin)
 VALUES ($1, $2, $3, $4, $5, 'seed') ON CONFLICT (prefix) DO NOTHING;
 
+-- name: GetControlTitle :one
+SELECT title FROM config.control_title
+WHERE framework_code = $1 AND version_label = $2 AND citation_norm = $3;
+
+-- name: ListControlTitles :many
+SELECT * FROM config.control_title
+WHERE framework_code = $1 AND version_label = $2
+ORDER BY citation_norm;
+
+-- name: DeleteSeedControlTitles :exec
+DELETE FROM config.control_title WHERE origin = 'seed';
+
+-- name: InsertSeedControlTitle :exec
+INSERT INTO config.control_title (framework_code, version_label, citation_norm, title, origin)
+VALUES ($1, $2, $3, $4, 'seed') ON CONFLICT (framework_code, version_label, citation_norm) DO NOTHING;
+
 -- name: DeleteSeedFileRules :exec
 DELETE FROM config.file_rule WHERE origin = 'seed';
 

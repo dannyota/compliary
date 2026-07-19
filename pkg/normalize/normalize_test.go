@@ -120,6 +120,7 @@ func (f *fakeSilverQuerier) ResolveControlMappings(_ context.Context) (int64, er
 
 type fakeConfigQuerier struct {
 	frameworks map[string]dbconfig.ConfigFramework
+	titles     map[string][]dbconfig.ConfigControlTitle // key: "fw|ver"
 }
 
 func newFakeConfigQuerier() *fakeConfigQuerier {
@@ -160,6 +161,14 @@ func (f *fakeConfigQuerier) GetFramework(_ context.Context, code string) (dbconf
 
 func (f *fakeConfigQuerier) ListReferenceSources(_ context.Context) ([]dbconfig.ConfigReferenceSource, error) {
 	return nil, nil
+}
+
+func (f *fakeConfigQuerier) ListControlTitles(_ context.Context, arg dbconfig.ListControlTitlesParams) ([]dbconfig.ConfigControlTitle, error) {
+	if f.titles == nil {
+		return nil, nil
+	}
+	key := arg.FrameworkCode + "|" + arg.VersionLabel
+	return f.titles[key], nil
 }
 
 // --- Tests ---
@@ -509,6 +518,67 @@ func TestWriteTree_QualifierInDocKey(t *testing.T) {
 	}
 	if silverQ.doc.DocKey != "fw|v1|main:amendment-1" {
 		t.Errorf("doc_key=%q, want fw|v1|main:amendment-1", silverQ.doc.DocKey)
+	}
+}
+
+// TestWriteTree_CuratedTitleLookup verifies that writeTree applies curated
+// titles from config.control_title when available, falling back to the
+// parser's title otherwise. title_original is never changed.
+func TestWriteTree_CuratedTitleLookup(t *testing.T) {
+	silverQ := newFakeSilverQuerier()
+	ingestQ := newFakeIngestQuerier()
+
+	tree := &TreeResult{
+		Title: "Test Doc",
+		Controls: []ControlRow{
+			{Citation: "A.5.1", CitationNorm: "A.5.1", Kind: "annex-control", Status: "active", Title: "Parser Label A.5.1", TitleOriginal: strPtr("Original A.5.1"), ParentIdx: -1},
+			{Citation: "A.5.2", CitationNorm: "A.5.2", Kind: "annex-control", Status: "active", Title: "Parser Label A.5.2", TitleOriginal: strPtr("Original A.5.2"), ParentIdx: -1},
+		},
+	}
+
+	doc := DocIdentity{
+		ManifestID:    1,
+		RelPath:       "test.pdf",
+		Sha256:        "s",
+		FrameworkCode: "iso27001",
+		VersionLabel:  "2022",
+		DocRole:       "main",
+		ServeGate:     "auth-only",
+	}
+
+	// ConfigQuerier with one curated title for A.5.1 only.
+	cfgQ := &fakeConfigQuerier{
+		frameworks: map[string]dbconfig.ConfigFramework{
+			"iso27001": {Code: "iso27001", CitationScheme: "iso-ams", ServePolicy: "auth-text-only"},
+		},
+	}
+	cfgQ.titles = map[string][]dbconfig.ConfigControlTitle{
+		"iso27001|2022": {
+			{FrameworkCode: "iso27001", VersionLabel: "2022", CitationNorm: "A.5.1", Title: "Curated Policy Title"},
+		},
+	}
+
+	norm := &Normalizer{Log: testLogger(), cfgQ: cfgQ}
+	if err := norm.writeTree(context.Background(), doc, tree, ingestQ, silverQ); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(silverQ.controls) != 2 {
+		t.Fatalf("controls=%d, want 2", len(silverQ.controls))
+	}
+
+	// A.5.1 gets the curated title.
+	if silverQ.controls[0].Title != "Curated Policy Title" {
+		t.Errorf("A.5.1 title=%q, want %q", silverQ.controls[0].Title, "Curated Policy Title")
+	}
+	// title_original unchanged.
+	if silverQ.controls[0].TitleOriginal == nil || *silverQ.controls[0].TitleOriginal != "Original A.5.1" {
+		t.Errorf("A.5.1 title_original changed; want %q", "Original A.5.1")
+	}
+
+	// A.5.2 falls back to the parser title (no curated title).
+	if silverQ.controls[1].Title != "Parser Label A.5.2" {
+		t.Errorf("A.5.2 title=%q, want %q", silverQ.controls[1].Title, "Parser Label A.5.2")
 	}
 }
 

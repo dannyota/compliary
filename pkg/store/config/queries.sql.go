@@ -19,6 +19,15 @@ func (q *Queries) DeleteSeedControlKinds(ctx context.Context) error {
 	return err
 }
 
+const deleteSeedControlTitles = `-- name: DeleteSeedControlTitles :exec
+DELETE FROM config.control_title WHERE origin = 'seed'
+`
+
+func (q *Queries) DeleteSeedControlTitles(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteSeedControlTitles)
+	return err
+}
+
 const deleteSeedFileRules = `-- name: DeleteSeedFileRules :exec
 DELETE FROM config.file_rule WHERE origin = 'seed'
 `
@@ -75,6 +84,24 @@ DELETE FROM config.setting WHERE origin = 'seed'
 func (q *Queries) DeleteSeedSettings(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, deleteSeedSettings)
 	return err
+}
+
+const getControlTitle = `-- name: GetControlTitle :one
+SELECT title FROM config.control_title
+WHERE framework_code = $1 AND version_label = $2 AND citation_norm = $3
+`
+
+type GetControlTitleParams struct {
+	FrameworkCode string
+	VersionLabel  string
+	CitationNorm  string
+}
+
+func (q *Queries) GetControlTitle(ctx context.Context, arg GetControlTitleParams) (string, error) {
+	row := q.db.QueryRow(ctx, getControlTitle, arg.FrameworkCode, arg.VersionLabel, arg.CitationNorm)
+	var title string
+	err := row.Scan(&title)
+	return title, err
 }
 
 const getFramework = `-- name: GetFramework :one
@@ -151,6 +178,28 @@ type InsertSeedControlKindParams struct {
 
 func (q *Queries) InsertSeedControlKind(ctx context.Context, arg InsertSeedControlKindParams) error {
 	_, err := q.db.Exec(ctx, insertSeedControlKind, arg.Code, arg.Note)
+	return err
+}
+
+const insertSeedControlTitle = `-- name: InsertSeedControlTitle :exec
+INSERT INTO config.control_title (framework_code, version_label, citation_norm, title, origin)
+VALUES ($1, $2, $3, $4, 'seed') ON CONFLICT (framework_code, version_label, citation_norm) DO NOTHING
+`
+
+type InsertSeedControlTitleParams struct {
+	FrameworkCode string
+	VersionLabel  string
+	CitationNorm  string
+	Title         string
+}
+
+func (q *Queries) InsertSeedControlTitle(ctx context.Context, arg InsertSeedControlTitleParams) error {
+	_, err := q.db.Exec(ctx, insertSeedControlTitle,
+		arg.FrameworkCode,
+		arg.VersionLabel,
+		arg.CitationNorm,
+		arg.Title,
+	)
 	return err
 }
 
@@ -361,6 +410,46 @@ func (q *Queries) ListControlKinds(ctx context.Context) ([]string, error) {
 			return nil, err
 		}
 		items = append(items, code)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listControlTitles = `-- name: ListControlTitles :many
+SELECT id, framework_code, version_label, citation_norm, title, origin, created_at, updated_at FROM config.control_title
+WHERE framework_code = $1 AND version_label = $2
+ORDER BY citation_norm
+`
+
+type ListControlTitlesParams struct {
+	FrameworkCode string
+	VersionLabel  string
+}
+
+func (q *Queries) ListControlTitles(ctx context.Context, arg ListControlTitlesParams) ([]ConfigControlTitle, error) {
+	rows, err := q.db.Query(ctx, listControlTitles, arg.FrameworkCode, arg.VersionLabel)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ConfigControlTitle
+	for rows.Next() {
+		var i ConfigControlTitle
+		if err := rows.Scan(
+			&i.ID,
+			&i.FrameworkCode,
+			&i.VersionLabel,
+			&i.CitationNorm,
+			&i.Title,
+			&i.Origin,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
