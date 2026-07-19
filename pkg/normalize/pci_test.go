@@ -407,7 +407,7 @@ func TestBuildPCITree_Golden(t *testing.T) {
 		t.Errorf("roots=%d, want 15 (12 req headers + 3 appendix groups)", roots)
 	}
 
-	// Depth distribution: X.Y=71, X.Y.Z=230, X.Y.Z.W=48, depth-5=1.
+	// Depth distribution: X.Y=71, X.Y.Z=230, X.Y.Z.W=49, depth-5=1.
 	depthCounts := map[int]int{}
 	for _, c := range tree.Controls {
 		if c.ParentIdx == -1 {
