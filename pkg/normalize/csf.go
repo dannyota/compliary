@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -21,16 +22,6 @@ type csfCell struct {
 
 type csfWorkbook struct {
 	Sheets []csfSheet `json:"sheets"`
-}
-
-// csfRowData holds the parsed cell values for one sheet row.
-type csfRowData struct {
-	Row int
-	A   string // Function
-	B   string // Category
-	C   string // Subcategory
-	D   string // Implementation Examples
-	E   string // Informative References (Task 3)
 }
 
 // csfParsedRow is the intermediate parse result for one data row.
@@ -74,8 +65,8 @@ var reTargetID = regexp.MustCompile(`^[A-Z]{2}(?:\.[A-Z]{2,}(?:-\d+)?)?$`)
 // the normalized control tree. This is a pure function with no side effects.
 //
 // The row parser is structured so that Task 3 (informative-reference mapping
-// edges from col E) can add edge emission without reshaping it: each csfRowData
-// carries the E column, and the MappingEdge slice in TreeResult is ready.
+// edges from col E) can add edge emission without reshaping it: the grid
+// carries col E, and the MappingEdge slice in TreeResult is ready.
 func BuildCSFTree(raw json.RawMessage, frameworkCode, versionLabel string) (*TreeResult, error) {
 	var wb csfWorkbook
 	if err := json.Unmarshal(raw, &wb); err != nil {
@@ -125,16 +116,17 @@ func parseGrid(cells []csfCell) map[int]map[string]string {
 
 // splitRef splits a cell reference like "A5" into column "A" and row 5.
 func splitRef(ref string) (string, int) {
-	col := ""
+	var col strings.Builder
 	row := 0
-	for _, ch := range ref {
+	for i := 0; i < len(ref); i++ {
+		ch := ref[i]
 		if ch >= 'A' && ch <= 'Z' {
-			col += string(ch)
+			col.WriteByte(ch)
 		} else if ch >= '0' && ch <= '9' {
 			row = row*10 + int(ch-'0')
 		}
 	}
-	return col, row
+	return col.String(), row
 }
 
 // parseCSFRows processes the grid into typed parsed rows, deduplicating
@@ -148,7 +140,7 @@ func parseCSFRows(grid map[int]map[string]string) ([]csfParsedRow, error) {
 			rowNums = append(rowNums, r)
 		}
 	}
-	sortInts(rowNums)
+	slices.Sort(rowNums)
 
 	// First pass: identify function rows and dedupe by ID (keep the one with description).
 	type funcInfo struct {
@@ -158,7 +150,6 @@ func parseCSFRows(grid map[int]map[string]string) ([]csfParsedRow, error) {
 		hasDesc bool
 	}
 	funcSeen := make(map[string]*funcInfo)
-	var funcOrder []string
 
 	for _, r := range rowNums {
 		a := strings.TrimSpace(grid[r]["A"])
@@ -181,7 +172,6 @@ func parseCSFRows(grid map[int]map[string]string) ([]csfParsedRow, error) {
 				existing.hasDesc = true
 			}
 		} else {
-			funcOrder = append(funcOrder, funcID)
 			funcSeen[funcID] = &funcInfo{
 				row: r, id: funcID, title: desc, hasDesc: hasDesc,
 			}
@@ -398,7 +388,7 @@ func buildCSFControlTree(parsed []csfParsedRow, frameworkCode, versionLabel stri
 			// Active subcategories parent to the preceding active category.
 			// Withdrawn subcategories parent to their withdrawn v1.1 category
 			// when it exists in-sheet, else to the function row.
-			parentIdx := findSubcategoryParent(pr, parsed, idToIdx, currentFuncIdx)
+			parentIdx := findSubcategoryParent(pr, idToIdx, currentFuncIdx)
 			cr.ParentIdx = parentIdx
 		}
 
@@ -431,7 +421,7 @@ func buildCSFControlTree(parsed []csfParsedRow, frameworkCode, versionLabel stri
 //   - For active subcategories: parent is the matching active category.
 //   - For withdrawn subcategories: parent is the matching withdrawn category
 //     if it exists, otherwise the current function.
-func findSubcategoryParent(pr csfParsedRow, parsed []csfParsedRow, idToIdx map[string]int, currentFuncIdx int) int {
+func findSubcategoryParent(pr csfParsedRow, idToIdx map[string]int, currentFuncIdx int) int {
 	// Extract category prefix from subcategory ID: "GV.OC-01" → "GV.OC"
 	catPrefix := extractCategoryPrefix(pr.ID)
 	if catPrefix == "" {
@@ -460,18 +450,4 @@ func extractCategoryPrefix(subID string) string {
 		return ""
 	}
 	return subID[:dashIdx]
-}
-
-// sortInts sorts a slice of ints in ascending order (simple insertion sort;
-// the slice is small — ~230 rows).
-func sortInts(a []int) {
-	for i := 1; i < len(a); i++ {
-		key := a[i]
-		j := i - 1
-		for j >= 0 && a[j] > key {
-			a[j+1] = a[j]
-			j--
-		}
-		a[j+1] = key
-	}
 }

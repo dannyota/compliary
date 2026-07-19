@@ -390,7 +390,10 @@ func TestBuildCSFTree_Golden(t *testing.T) {
 		}
 	}
 
-	// Mapping edges: verify we have incorporated-into and moved-to edges.
+	// Mapping edge counts pinned.
+	if len(tree.Mappings) != 136 {
+		t.Errorf("mappings=%d, want 136", len(tree.Mappings))
+	}
 	var incInto, movedTo int
 	for _, m := range tree.Mappings {
 		switch m.Relationship {
@@ -400,14 +403,12 @@ func TestBuildCSFTree_Golden(t *testing.T) {
 			movedTo++
 		}
 	}
-	if incInto == 0 {
-		t.Error("no incorporated-into edges")
+	if incInto != 117 {
+		t.Errorf("incorporated-into=%d, want 117", incInto)
 	}
-	if movedTo == 0 {
-		t.Error("no moved-to edges")
+	if movedTo != 19 {
+		t.Errorf("moved-to=%d, want 19", movedTo)
 	}
-	t.Logf("mapping edges: %d total (%d incorporated-into, %d moved-to)",
-		len(tree.Mappings), incInto, movedTo)
 }
 
 func controlIDs(controls []ControlRow) []string {
