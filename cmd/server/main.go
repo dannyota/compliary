@@ -40,6 +40,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"golang.org/x/time/rate"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"danny.vn/compliary/pkg/base/config"
 	"danny.vn/compliary/pkg/base/db"
 	clog "danny.vn/compliary/pkg/base/log"
@@ -117,8 +119,18 @@ func run(cfgPath, addrOverride string, log *slog.Logger) error {
 
 	switch {
 	case publicURL != "" && operatorSecret != "":
-		// OAuth mode.
-		oauthSrv = oauth.New(publicURL, []byte(operatorSecret), log)
+		// OAuth mode. operatorSecret is either a bcrypt hash or a plain
+		// password — auto-hash if it doesn't look like bcrypt ($2a$/$2b$/$2y$).
+		operatorHash := []byte(operatorSecret)
+		if _, err := bcrypt.Cost(operatorHash); err != nil {
+			hashed, hashErr := bcrypt.GenerateFromPassword([]byte(operatorSecret), bcrypt.DefaultCost)
+			if hashErr != nil {
+				return fmt.Errorf("hash operator secret: %w", hashErr)
+			}
+			operatorHash = hashed
+			log.Info("COMPLIARY_OAUTH_OPERATOR_SECRET auto-hashed (plain password detected)")
+		}
+		oauthSrv = oauth.New(publicURL, operatorHash, log)
 		if token != "" {
 			log.Info("OAuth + bearer fallback enabled — both OAuth and static token accepted")
 		} else {
