@@ -150,7 +150,7 @@ func checkChecksums(log *slog.Logger) error {
 		checked += len(sum.Files)
 		log.Info("verified", "dir", entry.dir, "files", len(sum.Files))
 	}
-	slog.Info("checksums verified", "files", checked)
+	log.Info("checksums verified", "files", checked)
 	return nil
 }
 
@@ -203,6 +203,10 @@ func parseAtlasSum(content string) (atlasSum, error) {
 }
 
 // verifyFileHashes checks each file's hash and returns the computed directory hash.
+//
+// Atlas's per-file hashes are CUMULATIVE: entry N's h1 digest covers files
+// 1..N (name + content each), not file N alone — so the accumulator must NOT
+// be reset between files (verified against a real multi-file Atlas dir).
 func verifyFileHashes(dir string, sum atlasSum) (string, error) {
 	fileHash := sha256.New()
 	for _, file := range sum.Files {
