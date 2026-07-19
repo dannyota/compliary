@@ -63,9 +63,9 @@ framework version: control tree, citations, version + mapping relations) → **I
 embeddings; bulk embed on Kaggle T4 like banhmi) → **LexIndex** (BM25 sparse vectors).
 
 **Landed:** Manifest (all 26 corpus files classified — 23 matched / 3 ignored), Extract (OSCAL JSON
-+ XLSX), Normalize (NIST SP 800-53 r5 + NIST CSF 2.0 + CSF informative-reference mappings —
-see PLAN.md milestone history for validated numbers). **Next:** remaining XLSX parsers (CIS, CCM),
-PDF extractors + parsers, then Index/LexIndex.
++ XLSX), Normalize (NIST SP 800-53 r5 + NIST CSF 2.0 + CSF informative-reference mappings + CIS
+Controls v8.1 + CSA CCM v4.1 — see PLAN.md milestone history for validated numbers). All XLSX
+parsers complete. **Next:** PDF extractors + parsers per SCHEMA.md order, then Index/LexIndex.
 
 ```mermaid
 graph LR
@@ -112,7 +112,7 @@ compliary/
 │   ├── operator/          # operator identity (.env)
 │   ├── manifest/          # data/ scanner + file_rule matcher
 │   ├── extract/           # OSCAL JSON + XLSX extractors (PDF: target)
-│   ├── normalize/         # NIST 800-53 + CSF 2.0 parsers → silver (more parsers: target)
+│   ├── normalize/         # NIST 800-53 + CSF 2.0 + CIS v8.1 + CCM v4.1 → silver (PDF parsers: target)
 │   ├── rag/               # embed, hybrid retrieve            [target]
 │   ├── mcp/               # MCP tools over the shared query core [target]
 │   └── store/             # generated sqlc (do not hand-edit)

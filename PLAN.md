@@ -101,9 +101,10 @@ milestone history.
 
 1. **M2 — parse** (in progress): ~~schema layer~~ done — ~~manifest scanner~~ done (26 files) —
    ~~OSCAL extract~~ done — ~~XLSX extract~~ done (4 workbooks captured as `workbook-rows-json`) —
-   ~~NIST 800-53 r5 normalize~~ done — ~~NIST CSF 2.0 normalize~~ done (225 rows / 91 withdrawn;
-   2732 informative-reference mapping edges — see milestone history). **Next:** remaining XLSX
-   parsers (CIS, CCM) → PDF extractors + parsers per SCHEMA.md order; then Index + LexIndex.
+   ~~NIST 800-53 r5 normalize~~ done — ~~NIST CSF 2.0 normalize~~ done — ~~CIS Controls v8.1
+   normalize~~ done (171 rows) — ~~CSA CCM v4.1 normalize~~ done (224 rows). All XLSX parsers
+   complete; 62/62 CSF→CIS v8.1 mapping edges resolved (first cross-framework resolution proof).
+   **Next:** PDF extractors + parsers per SCHEMA.md order; then Index + LexIndex.
 2. **M3 — MCP evidence service** — `guide`, `corpus_status`, `quality_gaps`, `search`, `document`;
    citation-keyed golden set + eval gate with baseline floors.
 3. **M4 — deploy maintainer instance** — `compliary.danny.vn`: public landing, **authenticated
@@ -169,3 +170,14 @@ patch — new documents always cut v0.2.0+.
   iso27001/2022 470, nistcsf/1.1 185, ciscontrols v8.1 62 + v8 60; 800-53 dual-release lines
   dedupe to r5; publisher typos recorded verbatim (surfaced as quality gaps). Corpus totals: 26
   manifest / 5 bronze / 1441 silver controls / 3068 mapping edges (1083 resolved).
+- **2026-07-19** — **M2 CIS Controls v8.1 + CSA CCM v4.1 — parallel parser wave.** Shared
+  `writeTree` helper extracted (normalizeOSCAL/normalizeCSF become thin adapters); `CaptureXLSXFile`
+  exported for golden tests. CIS v8.1 normalized: 18 controls + 153 safeguards = 171 rows (kinds
+  control/safeguard; IG, asset class, security function as labeled body lines; `serve_gate` public).
+  CCM v4.1 normalized: 17 domains + 207 controls = 224 rows (kinds domain/control; applicability as
+  labeled body lines; `serve_gate` auth-only; title-as-heading policy — licensed headings are citable
+  metadata). CSF's 62 v8.1-pinned CIS edges ALL resolved (62/62) — first cross-framework resolution
+  proof. CCM v4.1 mappings deferred (CSA ships "not available yet"); CAIQ deferred (non-main doc role
+  skipped by normalize dispatch). Corpus totals: 4 documents, 1836 controls, 3068 edges (1145
+  resolved: 947 nist80053 + 136 nistcsf + 62 ciscontrols). Unresolved: CIS v8 60 + CCM v4.0 657 +
+  ISO 470 + PCI 551 + CSF v1.1 185 — pending parsers/documents.

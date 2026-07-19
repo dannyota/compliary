@@ -112,10 +112,18 @@ default for every self-deployed operator.)
 ## Parsing order (M2 build order)
 
 1. **NIST SP 800-53 r5 — OSCAL JSON** (`nist-sp-800-53r5-oscal-catalog.json`): structured catalog →
-   `control` tree with enhancements. Richest, zero PDF risk. Proves the whole schema.
-2. **NIST CSF 2.0 — XLSX** (`nist-csf-2.0.xlsx`): Function.Category.Subcategory rows.
-3. **CIS Controls v8.1.2 — XLSX**: Control/Safeguard rows (asset class, IG columns).
-4. **CSA CCM v4.1 — XLSX**: control rows **+ the Scope Applicability mapping sheet → `control_mapping`**.
+   `control` tree with enhancements. Richest, zero PDF risk. Proves the whole schema. **Landed.**
+2. **NIST CSF 2.0 — XLSX** (`nist-csf-2.0.xlsx`): Function.Category.Subcategory rows. **Landed.**
+3. **CIS Controls v8.1 — XLSX**: 18 controls + 153 safeguards = 171 rows (asset class, security
+   function, IG columns as labeled body lines). `serve_gate` public (CC BY-NC-ND). **Landed.**
+4. **CSA CCM v4.1 — XLSX**: 17 domains + 207 controls = 224 rows. `serve_gate` auth-only.
+   **Landed** (control tree only). **Title-as-heading policy:** licensed-framework headings are
+   citable metadata (CSA publishes them freely in every public CCM index); `title` = publisher
+   heading, `body` (Control Specification) auth-gated. **Mappings deferred:** CSA's v4.1 workbook
+   Scope Applicability sheet contains only "This dataset is not available yet" — no mapping edges
+   this round; the `csa-ccm-v4.1` mapping source stays unused. **CAIQ deferred:** the normalize
+   dispatch skips non-`main` doc roles (e.g. `companion-workbook` for CAIQ sheets) — assessment
+   questions are not controls.
 5. **PCI DSS v4.0.1 — PDF**: requirement tree (`8.3.6`) via go-fitz + layout rules.
 6. **AICPA TSC — PDF**: criteria (`CC6.1`) + points of focus.
 7. **ISO family — PDF**: clause/annex-control trees (27001/27002/27017/27018; 22301 body waits on
@@ -123,7 +131,8 @@ default for every self-deployed operator.)
 8. **COBIT 2019 — PDF**: objectives (`EDM01`–`MEA04`) + practices.
 
 Each parser lands with golden-count tests (expected control counts per version — e.g. 27001:2022
-Annex A = 93, CCM v4.1 = 192, CSF 2.0 subcategories = 106) — parsed counts must match exactly.
+Annex A = 93, CCM v4.1 = 207 controls + 17 domains, CSF 2.0 subcategories = 106) — parsed counts
+must match exactly.
 
 ## Key decisions
 
