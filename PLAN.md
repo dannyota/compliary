@@ -99,9 +99,9 @@ Design settled in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) +
 [`docs/design/SCHEMA.md`](docs/design/SCHEMA.md); M0 (bootstrap) and M1 (`cmd/fetch`) done — see
 milestone history.
 
-1. **M2 — parse** (in progress; design docs done + two-agent review passed):
-   `sql/` schemas + migrations → seed CSVs (registry) → manifest scanner → parsers in the
-   SCHEMA.md order (NIST OSCAL first); bronze → silver → gold; golden-count gates; real rows
+1. **M2 — parse** (in progress; schema layer landed, parsers next):
+   ~~`sql/` schemas + migrations → seed CSVs (registry)~~ done — manifest scanner → parsers in
+   the SCHEMA.md order (NIST OSCAL first); bronze → silver → gold; golden-count gates; real rows
    measured.
 2. **M3 — MCP evidence service** — `guide`, `corpus_status`, `quality_gaps`, `search`, `document`;
    citation-keyed golden set + eval gate with baseline floors.
@@ -139,10 +139,13 @@ patch — new documents always cut v0.2.0+.
 
 ## Milestone history
 
-- **2026-07-19** — **M0 + M1 + corpus + M2 design.** Bootstrap (guide, plan, signed git); license
-  gates verified against live publisher sources (verdicts above). `cmd/fetch` shipped + validated
-  live (NIST/PCI/CIS). Corpus acquisition: 12/15 frameworks in `data/`, filenames kebab-cased
-  (fetchers aligned, re-run validated), versions verified (27018 → :2025, 22301 + Amd 1:2024,
-  CCM → v4.1); 5 documents deferred to phase 2 (v0.2.0). M2 design docs written, two-agent
-  review passed, fixes folded in; design questions 1–3 (schema, registry, reuse) settled in
-  `docs/`.
+- **2026-07-19** — **M0 + M1 + corpus + M2 design + M2 schema layer.** Bootstrap (guide, plan,
+  signed git); license gates verified against live publisher sources (verdicts above). `cmd/fetch`
+  shipped + validated live (NIST/PCI/CIS). Corpus acquisition: 12/15 frameworks in `data/`,
+  filenames kebab-cased (fetchers aligned, re-run validated), versions verified (27018 → :2025,
+  22301 + Amd 1:2024, CCM → v4.1); 5 documents deferred to phase 2 (v0.2.0). M2 design docs
+  written, two-agent review passed, fixes folded in; design questions 1–3 (schema, registry,
+  reuse) settled in `docs/`. M2 schema layer landed: 5 PG schemas (`config`/`ingest`/`bronze`/
+  `silver`/`gold`) + sqlc stores, Atlas→goose migrations, seeded registry (15 frameworks /
+  28 versions / 12 control kinds / 5 mapping sources) validated against local Postgres;
+  `cmd/migrate` + `cmd/seed`, Makefile, `deploy/compose/compliary.yaml`.
