@@ -71,6 +71,11 @@ superseded; amendments are `amends` edges with their own document).
 | Table | Role | Notes |
 |-------|------|-------|
 | `chunk` | Control-level chunks | `control_id` · `citation` (display cite: `ISO/IEC 27001:2022 A.5.1`, `NIST SP 800-53r5 AC-2(3)`) · `context_prefix` (framework + version + family/clause path + **paraphrased** `title` only — never `title_original`) · `content` · `content_sparse` (`sparsevec` BM25) · UNIQUE `(control_id, ordinal)` (one chunk per control today; ordinal reserved for deep controls like COBIT objectives, no migration later) |
+
+**Chunking granularity for sub-control kinds is a per-framework parser decision, settled by eval:**
+points of focus and practices are `control` rows (citable, mappable), but whether they chunk
+individually or fold into their parent criterion/objective's chunk is decided when that parser
+lands, with retrieval eval evidence — not fixed here.
 | `chunk_embedding` | Dense vectors | Qwen3-Embedding 1024-d · one row per `(chunk_id, model)` · HNSW cosine |
 
 Serve-time rule: unauthenticated callers get citations, **paraphrased titles**, scores, and mapping
