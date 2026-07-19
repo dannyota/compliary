@@ -19,6 +19,15 @@ func (q *Queries) DeleteSeedControlKinds(ctx context.Context) error {
 	return err
 }
 
+const deleteSeedFileRules = `-- name: DeleteSeedFileRules :exec
+DELETE FROM config.file_rule WHERE origin = 'seed'
+`
+
+func (q *Queries) DeleteSeedFileRules(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteSeedFileRules)
+	return err
+}
+
 const deleteSeedFrameworkVersions = `-- name: DeleteSeedFrameworkVersions :exec
 DELETE FROM config.framework_version WHERE origin = 'seed'
 `
@@ -136,6 +145,44 @@ func (q *Queries) InsertSeedControlKind(ctx context.Context, arg InsertSeedContr
 	return err
 }
 
+const insertSeedFileRule = `-- name: InsertSeedFileRule :exec
+INSERT INTO config.file_rule (ordinal, pattern, framework_code, version_label, doc_role, qualifier, file_format, ignore, ignore_reason, license_kind, source_url, provenance_note, origin)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'seed') ON CONFLICT (pattern) DO NOTHING
+`
+
+type InsertSeedFileRuleParams struct {
+	Ordinal        int32
+	Pattern        string
+	FrameworkCode  *string
+	VersionLabel   *string
+	DocRole        *string
+	Qualifier      string
+	FileFormat     *string
+	Ignore         bool
+	IgnoreReason   string
+	LicenseKind    *string
+	SourceUrl      string
+	ProvenanceNote string
+}
+
+func (q *Queries) InsertSeedFileRule(ctx context.Context, arg InsertSeedFileRuleParams) error {
+	_, err := q.db.Exec(ctx, insertSeedFileRule,
+		arg.Ordinal,
+		arg.Pattern,
+		arg.FrameworkCode,
+		arg.VersionLabel,
+		arg.DocRole,
+		arg.Qualifier,
+		arg.FileFormat,
+		arg.Ignore,
+		arg.IgnoreReason,
+		arg.LicenseKind,
+		arg.SourceUrl,
+		arg.ProvenanceNote,
+	)
+	return err
+}
+
 const insertSeedFramework = `-- name: InsertSeedFramework :exec
 INSERT INTO config.framework (code, name, publisher, source_access, license_class, ingest_enabled, serve_policy, citation_scheme, terms_note, origin)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'seed') ON CONFLICT (code) DO NOTHING
@@ -223,6 +270,47 @@ func (q *Queries) InsertSeedSetting(ctx context.Context, arg InsertSeedSettingPa
 	return err
 }
 
+const listAllFileRules = `-- name: ListAllFileRules :many
+SELECT id, ordinal, pattern, framework_code, version_label, doc_role, qualifier, file_format, ignore, ignore_reason, license_kind, source_url, provenance_note, origin, created_at, updated_at FROM config.file_rule ORDER BY ordinal
+`
+
+func (q *Queries) ListAllFileRules(ctx context.Context) ([]ConfigFileRule, error) {
+	rows, err := q.db.Query(ctx, listAllFileRules)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ConfigFileRule
+	for rows.Next() {
+		var i ConfigFileRule
+		if err := rows.Scan(
+			&i.ID,
+			&i.Ordinal,
+			&i.Pattern,
+			&i.FrameworkCode,
+			&i.VersionLabel,
+			&i.DocRole,
+			&i.Qualifier,
+			&i.FileFormat,
+			&i.Ignore,
+			&i.IgnoreReason,
+			&i.LicenseKind,
+			&i.SourceUrl,
+			&i.ProvenanceNote,
+			&i.Origin,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listControlKinds = `-- name: ListControlKinds :many
 SELECT code FROM config.control_kind ORDER BY code
 `
@@ -267,6 +355,47 @@ func (q *Queries) ListCurrentFrameworkVersions(ctx context.Context) ([]ConfigFra
 			&i.PublishedOn,
 			&i.IsCurrent,
 			&i.EditionNote,
+			&i.Origin,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listFileRules = `-- name: ListFileRules :many
+SELECT id, ordinal, pattern, framework_code, version_label, doc_role, qualifier, file_format, ignore, ignore_reason, license_kind, source_url, provenance_note, origin, created_at, updated_at FROM config.file_rule WHERE NOT ignore ORDER BY ordinal
+`
+
+func (q *Queries) ListFileRules(ctx context.Context) ([]ConfigFileRule, error) {
+	rows, err := q.db.Query(ctx, listFileRules)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ConfigFileRule
+	for rows.Next() {
+		var i ConfigFileRule
+		if err := rows.Scan(
+			&i.ID,
+			&i.Ordinal,
+			&i.Pattern,
+			&i.FrameworkCode,
+			&i.VersionLabel,
+			&i.DocRole,
+			&i.Qualifier,
+			&i.FileFormat,
+			&i.Ignore,
+			&i.IgnoreReason,
+			&i.LicenseKind,
+			&i.SourceUrl,
+			&i.ProvenanceNote,
 			&i.Origin,
 			&i.CreatedAt,
 			&i.UpdatedAt,

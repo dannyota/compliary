@@ -160,6 +160,41 @@ func run(cfgPath string, log *slog.Logger) error {
 	}
 	counts["setting"] = len(rows)
 
+	if err := q.DeleteSeedFileRules(ctx); err != nil {
+		return fmt.Errorf("clear file_rule seed: %w", err)
+	}
+	rows, err = readSeedCSV("file_rule.csv")
+	if err != nil {
+		return err
+	}
+	for _, r := range rows {
+		ordinal, err := strconv.Atoi(r[0])
+		if err != nil {
+			return fmt.Errorf("file_rule %q ordinal: %w", r[1], err)
+		}
+		ignore, err := strconv.ParseBool(r[7])
+		if err != nil {
+			return fmt.Errorf("file_rule %q ignore: %w", r[1], err)
+		}
+		if err := q.InsertSeedFileRule(ctx, dbconfig.InsertSeedFileRuleParams{
+			Ordinal:        int32(ordinal),
+			Pattern:        r[1],
+			FrameworkCode:  nullText(r[2]),
+			VersionLabel:   nullText(r[3]),
+			DocRole:        nullText(r[4]),
+			Qualifier:      r[5],
+			FileFormat:     nullText(r[6]),
+			Ignore:         ignore,
+			IgnoreReason:   r[8],
+			LicenseKind:    nullText(r[9]),
+			SourceUrl:      r[10],
+			ProvenanceNote: r[11],
+		}); err != nil {
+			return fmt.Errorf("insert file_rule %q: %w", r[1], err)
+		}
+	}
+	counts["file_rule"] = len(rows)
+
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit: %w", err)
 	}
@@ -170,8 +205,17 @@ func run(cfgPath string, log *slog.Logger) error {
 		"mapping_source", counts["mapping_source"],
 		"control_kind", counts["control_kind"],
 		"setting", counts["setting"],
+		"file_rule", counts["file_rule"],
 	)
 	return nil
+}
+
+// nullText returns a *string: nil for empty strings, pointer to the value otherwise.
+func nullText(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 // readSeedCSV reads an embedded seed CSV and returns its data rows with the

@@ -1,0 +1,27 @@
+ordinal,pattern,framework_code,version_label,doc_role,qualifier,file_format,ignore,ignore_reason,license_kind,source_url,provenance_note
+100,nist/nist-sp-800-53r5-oscal-catalog.json,nist80053,r5,main,,oscal-json,false,,public-domain,https://raw.githubusercontent.com/usnistgov/oscal-content/main/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json,
+200,nist/nist-sp-800-53r5.pdf,nist80053,r5,guide,pdf-rendering,pdf,false,,public-domain,https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf,
+300,nist/nist-csf-2.0.xlsx,nistcsf,2.0,main,,xlsx,false,,public-domain,https://csrc.nist.gov/extensions/nudp/services/json/csf/download?olirids=all,
+400,nist/nist-csf-2.0.pdf,nistcsf,2.0,guide,pdf-rendering,pdf,false,,public-domain,https://nvlpubs.nist.gov/nistpubs/CSWP/NIST.CSWP.29.pdf,
+500,cis/cis-controls-version-8.1.2-march-2025.xlsx,ciscontrols,v8.1,main,,xlsx,false,,cc-by-nc-nd,https://learn.cisecurity.org/control-download-v8-1,
+600,cis/cis-controls-version-8.1.2-change-log-march-2025.xlsx,ciscontrols,v8.1,changelog,,xlsx,false,,cc-by-nc-nd,https://learn.cisecurity.org/control-download-v8-1,
+700,cis/cis-controls-guide-v8.1.2-0325-v2.pdf,ciscontrols,v8.1,guide,,pdf,false,,cc-by-nc-nd,https://learn.cisecurity.org/control-download-v8-1,
+800,pcissc/pci-dss-v4.0.1.pdf,pcidss,v4.0.1,main,,pdf,false,,click-through,https://docs-prv.pcisecuritystandards.org/PCI%20DSS/Standard/PCI-DSS-v4_0_1.pdf,
+900,aicpa/aicpa-tsc-2017-points-of-focus-2022.pdf,soc2tsc,2017,main,,pdf,false,,click-through,https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022,2022 revised points-of-focus edition
+1000,csa/csa-ccm-v4.1.0.xlsx,csaccm,v4.1,main,,xlsx,false,,click-through,https://cloudsecurityalliance.org/research/cloud-controls-matrix,
+1100,csa/csa-caiq-v4.1.0.xlsx,csaccm,v4.1,companion-workbook,caiq,xlsx,false,,click-through,https://cloudsecurityalliance.org/research/cloud-controls-matrix,
+1200,csa/csa-caiq-v4.0.3-to-v4.1-changes.xlsx,csaccm,v4.1,changelog,caiq,xlsx,false,,click-through,https://cloudsecurityalliance.org/research/cloud-controls-matrix,
+1300,csa/csa-ccm-caiq-guide.pdf,csaccm,v4.1,guide,caiq-guide,pdf,false,,click-through,https://cloudsecurityalliance.org/research/cloud-controls-matrix,
+1400,csa/csa-ccm-introductory-guidance.pdf,csaccm,v4.1,guide,introductory-guidance,pdf,false,,click-through,https://cloudsecurityalliance.org/research/cloud-controls-matrix,
+1500,csa/csa-ccm-v4.1-implementation-guidelines.pdf,csaccm,v4.1,guide,implementation-guidelines,pdf,false,,click-through,https://cloudsecurityalliance.org/research/cloud-controls-matrix,
+1600,csa/csa-continuous-audit-metrics-catalog-v1.1.pdf,,,,,,true,separate CSA publication not a CCM document,,https://cloudsecurityalliance.org/research/cloud-controls-matrix,
+1700,csa/csa-key-metrics-code-of-practice.pdf,,,,,,true,separate CSA publication not a CCM document,,https://cloudsecurityalliance.org/research/cloud-controls-matrix,
+1800,isaca/cobit-2019-framework-governance-and-management-objectives.pdf,cobit,2019,main,,pdf,false,,purchased,https://www.isaca.org/resources/cobit,
+1900,isaca/cobit-2019-framework-introduction-and-methodology.pdf,cobit,2019,guide,introduction-and-methodology,pdf,false,,purchased,https://www.isaca.org/resources/cobit,
+2000,iso/iso-iec-27001-2022.pdf,iso27001,2022,main,,pdf,false,,purchased,https://www.iso.org/standard/27001,
+2100,iso/iso-iec-27001-2022-amd1-2024.pdf,iso27001,2022,amendment,amd1-2024,pdf,false,,purchased,https://www.iso.org/standard/27001,
+2200,iso/iso-22301-2019-amd1-2024.pdf,iso22301,2019,amendment,amd1-2024,pdf,false,,purchased,https://www.iso.org/standard/75106.html,
+2300,iso/iso-iec-27002-2022.pdf,iso27002,2022,main,,pdf,false,,unverified,https://www.iso.org/standard/75652.html,operator-accepted re-hosted copy; replace on phase-2 purchase
+2400,iso/iso-iec-27017-2015.pdf,iso27017,2015,main,,pdf,false,,purchased,https://www.iso.org/standard/43757.html,
+2500,iso/iso-iec-27018-2019.pdf,iso27018,2019,main,,pdf,false,,purchased,https://www.iso.org/standard/27018,superseded edition intentional
+2600,README.md,,,,,,true,corpus readme not a framework document,,,

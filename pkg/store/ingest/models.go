@@ -16,8 +16,11 @@ type IngestManifestFile struct {
 	FrameworkCode *string
 	VersionLabel  *string
 	DocRole       *string
+	Qualifier     string
 	FileFormat    *string
 	Status        string
+	Ignored       bool
+	IgnoreReason  string
 	ExtractedAt   *time.Time
 	NormalizedAt  *time.Time
 	IndexedAt     *time.Time

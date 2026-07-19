@@ -24,6 +24,12 @@ SELECT code FROM config.control_kind ORDER BY code;
 -- name: GetSetting :one
 SELECT value FROM config.setting WHERE key = $1;
 
+-- name: ListFileRules :many
+SELECT * FROM config.file_rule WHERE NOT ignore ORDER BY ordinal;
+
+-- name: ListAllFileRules :many
+SELECT * FROM config.file_rule ORDER BY ordinal;
+
 -- Seed queries (cmd/seed). Each re-seed deletes the managed ('seed') rows and
 -- re-inserts from the CSV; ON CONFLICT DO NOTHING means a user override sharing
 -- a natural key is preserved. origin='user' rows are never deleted.
@@ -62,3 +68,10 @@ DELETE FROM config.setting WHERE origin = 'seed';
 -- name: InsertSeedSetting :exec
 INSERT INTO config.setting (key, value, origin)
 VALUES ($1, $2, 'seed') ON CONFLICT (key) DO NOTHING;
+
+-- name: DeleteSeedFileRules :exec
+DELETE FROM config.file_rule WHERE origin = 'seed';
+
+-- name: InsertSeedFileRule :exec
+INSERT INTO config.file_rule (ordinal, pattern, framework_code, version_label, doc_role, qualifier, file_format, ignore, ignore_reason, license_kind, source_url, provenance_note, origin)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'seed') ON CONFLICT (pattern) DO NOTHING;

@@ -21,8 +21,11 @@ CREATE TABLE ingest.manifest_file (
     framework_code TEXT,
     version_label  TEXT,
     doc_role       TEXT,
+    qualifier      TEXT NOT NULL DEFAULT '',
     file_format    TEXT,
     status         TEXT NOT NULL DEFAULT 'active',
+    ignored        BOOLEAN NOT NULL DEFAULT FALSE,
+    ignore_reason  TEXT NOT NULL DEFAULT '',
     extracted_at   TIMESTAMPTZ,
     normalized_at  TIMESTAMPTZ,
     indexed_at     TIMESTAMPTZ,
@@ -31,7 +34,7 @@ CREATE TABLE ingest.manifest_file (
     updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_ingest_manifest_file UNIQUE (rel_path),
     CONSTRAINT chk_ingest_manifest_file_status CHECK (status IN ('active', 'removed')),
-    CONSTRAINT chk_ingest_manifest_file_role CHECK (doc_role IN ('main', 'amendment', 'companion-workbook', 'changelog')),
+    CONSTRAINT chk_ingest_manifest_file_role CHECK (doc_role IN ('main', 'amendment', 'companion-workbook', 'changelog', 'guide')),
     CONSTRAINT chk_ingest_manifest_file_format CHECK (file_format IN ('oscal-json', 'xlsx', 'pdf'))
 );
 

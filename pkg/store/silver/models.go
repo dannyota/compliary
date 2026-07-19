@@ -17,6 +17,25 @@ type ConfigControlKind struct {
 	UpdatedAt time.Time
 }
 
+type ConfigFileRule struct {
+	ID             int64
+	Ordinal        int32
+	Pattern        string
+	FrameworkCode  *string
+	VersionLabel   *string
+	DocRole        *string
+	Qualifier      string
+	FileFormat     *string
+	Ignore         bool
+	IgnoreReason   string
+	LicenseKind    *string
+	SourceUrl      string
+	ProvenanceNote string
+	Origin         string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
 type ConfigFramework struct {
 	ID             int64
 	Code           string

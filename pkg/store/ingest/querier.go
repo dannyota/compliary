@@ -15,6 +15,7 @@ type Querier interface {
 	ListFilesToExtract(ctx context.Context) ([]IngestManifestFile, error)
 	ListFilesToIndex(ctx context.Context) ([]IngestManifestFile, error)
 	ListFilesToNormalize(ctx context.Context) ([]IngestManifestFile, error)
+	ListIgnoredManifestFiles(ctx context.Context) ([]IngestManifestFile, error)
 	ListUnrecognizedManifestFiles(ctx context.Context) ([]IngestManifestFile, error)
 	MarkExtracted(ctx context.Context, id int64) error
 	MarkIndexed(ctx context.Context, id int64) error

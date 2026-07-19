@@ -83,6 +83,41 @@ CREATE TABLE config.control_kind (
     CONSTRAINT chk_config_control_kind_origin CHECK (origin IN ('seed', 'user'))
 );
 
+-- config.file_rule: filename-to-document matching rules for the manifest
+-- scanner. Each rule maps a data/ rel_path pattern (path.Match glob) to a
+-- framework + version + role + format, or marks it as ignored. First match
+-- by ordinal wins; unmatched files are recorded with NULL framework fields
+-- (quality gap). Seed rules cover the shipped corpus; operators add rows
+-- with origin='user' to extend without editing seeds.
+CREATE TABLE config.file_rule (
+    id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ordinal         INT NOT NULL,
+    pattern         TEXT NOT NULL,
+    framework_code  TEXT,
+    version_label   TEXT,
+    doc_role        TEXT,
+    qualifier       TEXT NOT NULL DEFAULT '',
+    file_format     TEXT,
+    ignore          BOOLEAN NOT NULL DEFAULT FALSE,
+    ignore_reason   TEXT NOT NULL DEFAULT '',
+    license_kind    TEXT,
+    source_url      TEXT NOT NULL DEFAULT '',
+    provenance_note TEXT NOT NULL DEFAULT '',
+    origin          TEXT NOT NULL DEFAULT 'seed',
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_config_file_rule UNIQUE (pattern),
+    CONSTRAINT chk_config_file_rule_origin CHECK (origin IN ('seed', 'user')),
+    CONSTRAINT chk_config_file_rule_role CHECK (doc_role IN ('main', 'amendment', 'companion-workbook', 'changelog', 'guide')),
+    CONSTRAINT chk_config_file_rule_format CHECK (file_format IN ('oscal-json', 'xlsx', 'pdf')),
+    CONSTRAINT chk_config_file_rule_license CHECK (license_kind IN ('public-domain', 'cc-by-nc-nd', 'click-through', 'purchased', 'unverified')),
+    CONSTRAINT chk_config_file_rule_ignore CHECK (
+        (ignore = TRUE AND framework_code IS NULL AND version_label IS NULL AND doc_role IS NULL AND file_format IS NULL)
+        OR
+        (ignore = FALSE AND framework_code IS NOT NULL AND version_label IS NOT NULL AND doc_role IS NOT NULL AND file_format IS NOT NULL)
+    )
+);
+
 -- config.setting: generic key/value store for operator-tunable gates.
 CREATE TABLE config.setting (
     id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

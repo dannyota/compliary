@@ -10,6 +10,7 @@ import (
 
 type Querier interface {
 	DeleteSeedControlKinds(ctx context.Context) error
+	DeleteSeedFileRules(ctx context.Context) error
 	DeleteSeedFrameworkVersions(ctx context.Context) error
 	// Seed queries (cmd/seed). Each re-seed deletes the managed ('seed') rows and
 	// re-inserts from the CSV; ON CONFLICT DO NOTHING means a user override sharing
@@ -21,12 +22,15 @@ type Querier interface {
 	GetFrameworkVersion(ctx context.Context, arg GetFrameworkVersionParams) (ConfigFrameworkVersion, error)
 	GetSetting(ctx context.Context, key string) (string, error)
 	InsertSeedControlKind(ctx context.Context, arg InsertSeedControlKindParams) error
+	InsertSeedFileRule(ctx context.Context, arg InsertSeedFileRuleParams) error
 	InsertSeedFramework(ctx context.Context, arg InsertSeedFrameworkParams) error
 	InsertSeedFrameworkVersion(ctx context.Context, arg InsertSeedFrameworkVersionParams) error
 	InsertSeedMappingSource(ctx context.Context, arg InsertSeedMappingSourceParams) error
 	InsertSeedSetting(ctx context.Context, arg InsertSeedSettingParams) error
+	ListAllFileRules(ctx context.Context) ([]ConfigFileRule, error)
 	ListControlKinds(ctx context.Context) ([]string, error)
 	ListCurrentFrameworkVersions(ctx context.Context) ([]ConfigFrameworkVersion, error)
+	ListFileRules(ctx context.Context) ([]ConfigFileRule, error)
 	ListFrameworkVersions(ctx context.Context) ([]ConfigFrameworkVersion, error)
 	// Load queries (read the registry into the app at startup).
 	ListFrameworks(ctx context.Context) ([]ConfigFramework, error)

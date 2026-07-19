@@ -24,7 +24,7 @@ func (q *Queries) DemoteMissingManifestFiles(ctx context.Context, dollar_1 []str
 }
 
 const listActiveManifestFiles = `-- name: ListActiveManifestFiles :many
-SELECT id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, file_format, status, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at FROM ingest.manifest_file WHERE status = 'active' ORDER BY rel_path
+SELECT id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, qualifier, file_format, status, ignored, ignore_reason, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at FROM ingest.manifest_file WHERE status = 'active' ORDER BY rel_path
 `
 
 func (q *Queries) ListActiveManifestFiles(ctx context.Context) ([]IngestManifestFile, error) {
@@ -44,8 +44,11 @@ func (q *Queries) ListActiveManifestFiles(ctx context.Context) ([]IngestManifest
 			&i.FrameworkCode,
 			&i.VersionLabel,
 			&i.DocRole,
+			&i.Qualifier,
 			&i.FileFormat,
 			&i.Status,
+			&i.Ignored,
+			&i.IgnoreReason,
 			&i.ExtractedAt,
 			&i.NormalizedAt,
 			&i.IndexedAt,
@@ -64,8 +67,10 @@ func (q *Queries) ListActiveManifestFiles(ctx context.Context) ([]IngestManifest
 }
 
 const listFilesToExtract = `-- name: ListFilesToExtract :many
-SELECT id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, file_format, status, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at FROM ingest.manifest_file
-WHERE status = 'active' AND framework_code IS NOT NULL AND extracted_at IS NULL
+SELECT id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, qualifier, file_format, status, ignored, ignore_reason, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at FROM ingest.manifest_file
+WHERE status = 'active' AND framework_code IS NOT NULL AND NOT ignored
+  AND doc_role NOT IN ('guide', 'changelog')
+  AND extracted_at IS NULL
 ORDER BY rel_path
 `
 
@@ -86,8 +91,11 @@ func (q *Queries) ListFilesToExtract(ctx context.Context) ([]IngestManifestFile,
 			&i.FrameworkCode,
 			&i.VersionLabel,
 			&i.DocRole,
+			&i.Qualifier,
 			&i.FileFormat,
 			&i.Status,
+			&i.Ignored,
+			&i.IgnoreReason,
 			&i.ExtractedAt,
 			&i.NormalizedAt,
 			&i.IndexedAt,
@@ -106,7 +114,7 @@ func (q *Queries) ListFilesToExtract(ctx context.Context) ([]IngestManifestFile,
 }
 
 const listFilesToIndex = `-- name: ListFilesToIndex :many
-SELECT id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, file_format, status, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at FROM ingest.manifest_file
+SELECT id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, qualifier, file_format, status, ignored, ignore_reason, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at FROM ingest.manifest_file
 WHERE status = 'active' AND framework_code IS NOT NULL
   AND normalized_at IS NOT NULL AND indexed_at IS NULL
 ORDER BY rel_path
@@ -129,8 +137,11 @@ func (q *Queries) ListFilesToIndex(ctx context.Context) ([]IngestManifestFile, e
 			&i.FrameworkCode,
 			&i.VersionLabel,
 			&i.DocRole,
+			&i.Qualifier,
 			&i.FileFormat,
 			&i.Status,
+			&i.Ignored,
+			&i.IgnoreReason,
 			&i.ExtractedAt,
 			&i.NormalizedAt,
 			&i.IndexedAt,
@@ -149,7 +160,7 @@ func (q *Queries) ListFilesToIndex(ctx context.Context) ([]IngestManifestFile, e
 }
 
 const listFilesToNormalize = `-- name: ListFilesToNormalize :many
-SELECT id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, file_format, status, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at FROM ingest.manifest_file
+SELECT id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, qualifier, file_format, status, ignored, ignore_reason, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at FROM ingest.manifest_file
 WHERE status = 'active' AND framework_code IS NOT NULL
   AND extracted_at IS NOT NULL AND normalized_at IS NULL
 ORDER BY rel_path
@@ -172,8 +183,55 @@ func (q *Queries) ListFilesToNormalize(ctx context.Context) ([]IngestManifestFil
 			&i.FrameworkCode,
 			&i.VersionLabel,
 			&i.DocRole,
+			&i.Qualifier,
 			&i.FileFormat,
 			&i.Status,
+			&i.Ignored,
+			&i.IgnoreReason,
+			&i.ExtractedAt,
+			&i.NormalizedAt,
+			&i.IndexedAt,
+			&i.StageError,
+			&i.FirstSeenAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listIgnoredManifestFiles = `-- name: ListIgnoredManifestFiles :many
+SELECT id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, qualifier, file_format, status, ignored, ignore_reason, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at FROM ingest.manifest_file
+WHERE status = 'active' AND ignored ORDER BY rel_path
+`
+
+func (q *Queries) ListIgnoredManifestFiles(ctx context.Context) ([]IngestManifestFile, error) {
+	rows, err := q.db.Query(ctx, listIgnoredManifestFiles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []IngestManifestFile
+	for rows.Next() {
+		var i IngestManifestFile
+		if err := rows.Scan(
+			&i.ID,
+			&i.RelPath,
+			&i.Sha256,
+			&i.SizeBytes,
+			&i.FrameworkCode,
+			&i.VersionLabel,
+			&i.DocRole,
+			&i.Qualifier,
+			&i.FileFormat,
+			&i.Status,
+			&i.Ignored,
+			&i.IgnoreReason,
 			&i.ExtractedAt,
 			&i.NormalizedAt,
 			&i.IndexedAt,
@@ -192,8 +250,8 @@ func (q *Queries) ListFilesToNormalize(ctx context.Context) ([]IngestManifestFil
 }
 
 const listUnrecognizedManifestFiles = `-- name: ListUnrecognizedManifestFiles :many
-SELECT id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, file_format, status, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at FROM ingest.manifest_file
-WHERE status = 'active' AND framework_code IS NULL ORDER BY rel_path
+SELECT id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, qualifier, file_format, status, ignored, ignore_reason, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at FROM ingest.manifest_file
+WHERE status = 'active' AND NOT ignored AND framework_code IS NULL ORDER BY rel_path
 `
 
 func (q *Queries) ListUnrecognizedManifestFiles(ctx context.Context) ([]IngestManifestFile, error) {
@@ -213,8 +271,11 @@ func (q *Queries) ListUnrecognizedManifestFiles(ctx context.Context) ([]IngestMa
 			&i.FrameworkCode,
 			&i.VersionLabel,
 			&i.DocRole,
+			&i.Qualifier,
 			&i.FileFormat,
 			&i.Status,
+			&i.Ignored,
+			&i.IgnoreReason,
 			&i.ExtractedAt,
 			&i.NormalizedAt,
 			&i.IndexedAt,
@@ -275,22 +336,25 @@ func (q *Queries) SetStageError(ctx context.Context, arg SetStageErrorParams) er
 
 const upsertManifestFile = `-- name: UpsertManifestFile :one
 
-INSERT INTO ingest.manifest_file (rel_path, sha256, size_bytes, framework_code, version_label, doc_role, file_format, status)
-VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
+INSERT INTO ingest.manifest_file (rel_path, sha256, size_bytes, framework_code, version_label, doc_role, qualifier, file_format, status, ignored, ignore_reason)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', $9, $10)
 ON CONFLICT (rel_path) DO UPDATE SET
     sha256         = EXCLUDED.sha256,
     size_bytes     = EXCLUDED.size_bytes,
     framework_code = EXCLUDED.framework_code,
     version_label  = EXCLUDED.version_label,
     doc_role       = EXCLUDED.doc_role,
+    qualifier      = EXCLUDED.qualifier,
     file_format    = EXCLUDED.file_format,
     status         = 'active',
+    ignored        = EXCLUDED.ignored,
+    ignore_reason  = EXCLUDED.ignore_reason,
     extracted_at   = CASE WHEN ingest.manifest_file.sha256 = EXCLUDED.sha256 THEN ingest.manifest_file.extracted_at END,
     normalized_at  = CASE WHEN ingest.manifest_file.sha256 = EXCLUDED.sha256 THEN ingest.manifest_file.normalized_at END,
     indexed_at     = CASE WHEN ingest.manifest_file.sha256 = EXCLUDED.sha256 THEN ingest.manifest_file.indexed_at END,
     stage_error    = CASE WHEN ingest.manifest_file.sha256 = EXCLUDED.sha256 THEN ingest.manifest_file.stage_error ELSE '' END,
     updated_at     = now()
-RETURNING id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, file_format, status, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at
+RETURNING id, rel_path, sha256, size_bytes, framework_code, version_label, doc_role, qualifier, file_format, status, ignored, ignore_reason, extracted_at, normalized_at, indexed_at, stage_error, first_seen_at, updated_at
 `
 
 type UpsertManifestFileParams struct {
@@ -300,7 +364,10 @@ type UpsertManifestFileParams struct {
 	FrameworkCode *string
 	VersionLabel  *string
 	DocRole       *string
+	Qualifier     string
 	FileFormat    *string
+	Ignored       bool
+	IgnoreReason  string
 }
 
 // Manifest scan. The upsert preserves per-stage state when the sha256 is
@@ -314,7 +381,10 @@ func (q *Queries) UpsertManifestFile(ctx context.Context, arg UpsertManifestFile
 		arg.FrameworkCode,
 		arg.VersionLabel,
 		arg.DocRole,
+		arg.Qualifier,
 		arg.FileFormat,
+		arg.Ignored,
+		arg.IgnoreReason,
 	)
 	var i IngestManifestFile
 	err := row.Scan(
@@ -325,8 +395,11 @@ func (q *Queries) UpsertManifestFile(ctx context.Context, arg UpsertManifestFile
 		&i.FrameworkCode,
 		&i.VersionLabel,
 		&i.DocRole,
+		&i.Qualifier,
 		&i.FileFormat,
 		&i.Status,
+		&i.Ignored,
+		&i.IgnoreReason,
 		&i.ExtractedAt,
 		&i.NormalizedAt,
 		&i.IndexedAt,
