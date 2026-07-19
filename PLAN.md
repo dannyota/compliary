@@ -40,9 +40,9 @@ files) — one scope, built together. All **planned** — nothing ingested yet.
 | 6 | CIS Controls | v8.1 (docs at v8.1.2, 2025-03) | CIS | free, CC BY-NC-ND 4.0 | auto-fetch | Control / Safeguard (5.1) |
 | 7 | ISO/IEC 27002 | 2022 | ISO/IEC JTC 1/SC 27 | paid, copyrighted | BYO (purchase) | Control (5.1–8.34) |
 | 8 | ISO/IEC 27017 | 2015 | ISO/IEC JTC 1/SC 27 | paid, copyrighted | BYO (purchase) | Control (27002:2013 numbering + CLD.x.x) |
-| 9 | ISO/IEC 27018 | 2019 | ISO/IEC JTC 1/SC 27 | paid, copyrighted | BYO (purchase) | Control (27002:2013 numbering + Annex A PII) |
+| 9 | ISO/IEC 27018 | 2025 | ISO/IEC JTC 1/SC 27 | paid, copyrighted | BYO (purchase) | Control (27002:2022 numbering + Annex A PII) |
 | 10 | ISO/IEC 27701 | 2025 (standalone PIMS; 2019 transition ends 2028) | ISO/IEC JTC 1/SC 27 | paid, copyrighted | BYO (purchase) | Clause; control |
-| 11 | ISO 22301 | 2019 | ISO/TC 292 | paid, copyrighted | BYO (purchase) | Clause (4–10) |
+| 11 | ISO 22301 | 2019 + Amd 1:2024 | ISO/TC 292 | paid, copyrighted | BYO (purchase) | Clause (4–10) |
 | 12 | ISO/IEC 42001 | 2023 | ISO/IEC JTC 1/SC 42 | paid, copyrighted | BYO (purchase) | Clause; Annex A control |
 | 13 | SWIFT CSCF | v2026 | SWIFT | members only | BYO (member access) | Control (1.1–7.x) |
 | 14 | CSA CCM | v4.1 (2026-01) | CSA | free w/ registration | BYO (registration) | Control ID (AIS-01…) |
@@ -50,8 +50,9 @@ files) — one scope, built together. All **planned** — nothing ingested yet.
 
 - **SOC 2 Type 1 vs Type 2** are *report types* (design vs operating effectiveness over a period),
   not separate criteria sets — one corpus entry over the TSC, report-type as metadata.
-- **ISO cloud companions lag the 2022 renumbering:** 27017/27018 are still keyed to 27002:2013
-  control numbering — version-lineage relations must model cross-edition references.
+- **ISO cloud companion 27017 lags the 2022 renumbering:** still keyed to 27002:2013 control
+  numbering (27018:2025 realigned to 27002:2022) — version-lineage relations must model
+  cross-edition references.
 - **Build order (recommendation): NIST first** (auto-fetch + structured OSCAL = richest spike),
   then CIS + PCI DSS + SOC 2 (free BYO), then the ISO family (purchased BYO) + mappings.
 
