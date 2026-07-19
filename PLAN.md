@@ -137,7 +137,7 @@ patch — new documents always cut v0.2.0+.
 | Evidence-only; no answer LLM | citations/versions/mappings/gaps over MCP; user brings the model |
 | Distribution | open-source self-deploy; repo ships code + metadata seeds, never licensed text |
 | Ingestion | auto-fetch public-domain (NIST) only; license-gated sources are operator-BYO |
-| Private serving | licensed text only behind auth ("internal use"); maintainer `/mcp` authenticated |
+| Private serving | licensed text only behind auth ("internal use"); maintainer `/mcp` authenticated. **M3 contract: authenticated + local-stdio callers get FULL VERBATIM text (body, title_original, chunk content); the paraphrased-only reduced surface applies solely to unauthenticated HTTP** |
 | One corpus, one DB | framework = registry dimension; maintainer instance at `compliary.danny.vn` |
 | Corpus language | English (publication language); VN focus selects frameworks, never translates |
 | Stack | Go + PostgreSQL/pgvector + sqlc + hybrid retrieval + MCP (banhmi-proven) |
