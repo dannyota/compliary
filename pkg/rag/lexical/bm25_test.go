@@ -80,10 +80,15 @@ func TestTokenize_citationSchemes(t *testing.T) {
 		{"cscf-control", "2.8A", []string{"2.8a"}},
 		{"cscf-control", "3.1", []string{"3.1"}},
 
-		// ccm-workbook: CSA CCM
+		// ccm-workbook: CSA CCM (includes ampersand domains)
 		{"ccm-workbook", "AIS-01", []string{"ais-01"}},
 		{"ccm-workbook", "DSP-17", []string{"dsp-17"}},
 		{"ccm-workbook", "IAM-04", []string{"iam-04"}},
+		{"ccm-workbook", "A&A-01", []string{"a&a-01"}},
+		{"ccm-workbook", "I&S-05", []string{"i&s-05"}},
+
+		// tsc-criteria: SOC 2 Points of Focus (POF) sub-criteria
+		{"tsc-criteria-pof", "A1.1-POF-01", []string{"a1.1-pof-01"}},
 
 		// cobit-objective: COBIT
 		{"cobit-objective", "EDM01.01", []string{"edm01.01"}},
@@ -113,6 +118,9 @@ func TestTokenize_citationInContext(t *testing.T) {
 		{"CCM ref", "domain AIS-01 addresses", "ais-01"},
 		{"PCI deep", "requirement 8.3.6 mandates", "8.3.6"},
 		{"CLD prefix", "control CLD.12.1.5 specifies", "cld.12.1.5"},
+		{"CCM ampersand", "domain A&A-01 covers audit", "a&a-01"},
+		{"CCM ampersand I&S", "control I&S-05 addresses", "i&s-05"},
+		{"TSC POF", "point of focus A1.1-POF-01 defines", "a1.1-pof-01"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -165,6 +173,9 @@ func TestIsCitationToken(t *testing.T) {
 		{"pr.aa-01", true},     // letter + dot + digit
 		{"edm01.01", true},     // letter + digit + dot
 		{"cld.12.1.5", true},   // letter + dot + digit
+		{"a&a-01", true},       // letter + ampersand + digit (CCM)
+		{"i&s-05", true},       // letter + ampersand + digit (CCM)
+		{"a1.1-pof-01", true},  // letter + dot + digit (TSC POF)
 	}
 	for _, tc := range cases {
 		t.Run(tc.input, func(t *testing.T) {

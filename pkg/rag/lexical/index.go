@@ -63,7 +63,7 @@ func IndexCorpus(ctx context.Context, goldQ SparseQuerier, batchSize int, log *s
 	log.Info("lexindex: trained BM25 encoder", "vocab_size", len(enc.idf), "avgdl", fmt.Sprintf("%.1f", enc.avgdl))
 
 	written := 0
-	for i, c := range chunks {
+	for _, c := range chunks {
 		vec := enc.DocVector(c.text)
 		err := goldQ.UpdateChunkSparse(ctx, dbgold.UpdateChunkSparseParams{
 			ID:            c.id,
@@ -76,7 +76,6 @@ func IndexCorpus(ctx context.Context, goldQ SparseQuerier, batchSize int, log *s
 		if written%batchSize == 0 || written == len(chunks) {
 			log.Info("lexindex: progress", "written", written, "total", len(chunks))
 		}
-		_ = i
 	}
 	return written, nil
 }

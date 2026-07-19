@@ -7,10 +7,10 @@
 // needs no persisted vocabulary — only the same deterministic hash. Lowercasing +
 // alnum splitting in the tokenizer make queries match case-insensitively.
 //
-// Citation tokens (AC-2(3), A.5.1, CC6.1, PR.AA-01, EDM01.01, etc.) are kept intact
-// during tokenization so exact citation queries hit. The rule: a citation token is a
-// contiguous run of [A-Za-z0-9.()-] that contains at least one letter and one digit
-// (or a dot). Everything else splits on non-alnum boundaries.
+// Citation tokens (AC-2(3), A.5.1, CC6.1, PR.AA-01, EDM01.01, A&A-01, etc.) are kept
+// intact during tokenization so exact citation queries hit. The rule: a citation token
+// is a contiguous run of [A-Za-z0-9.()-&] that contains at least one letter and one
+// digit (or a dot). Everything else splits on non-alnum boundaries.
 //
 // Adapted from banhmi pkg/rag/lexical — Vietnamese diacritic folding, Thai TCC
 // segmentation, and all non-English normalizers are stripped. English-only.
@@ -38,9 +38,10 @@ const (
 )
 
 // isCitationChar reports whether r can appear inside a citation token.
-// Citation tokens may contain letters, digits, dots, hyphens, and parentheses.
+// Citation tokens may contain letters, digits, dots, hyphens, parentheses,
+// and ampersands (CSA CCM uses A&A-01, I&S-05, etc.).
 func isCitationChar(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '.' || r == '-' || r == '(' || r == ')'
+	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '.' || r == '-' || r == '(' || r == ')' || r == '&'
 }
 
 // isCitationToken reports whether s looks like a framework citation token.
@@ -218,14 +219,14 @@ func sparseLiteral(weights map[int32]float64) string {
 		ids = append(ids, int(id))
 	}
 	sort.Ints(ids)
-	var b strings.Builder
-	b.WriteByte('{')
+	var sb strings.Builder
+	sb.WriteByte('{')
 	for i, id := range ids {
 		if i > 0 {
-			b.WriteByte(',')
+			sb.WriteByte(',')
 		}
-		fmt.Fprintf(&b, "%d:%g", id, weights[int32(id)])
+		fmt.Fprintf(&sb, "%d:%g", id, weights[int32(id)])
 	}
-	fmt.Fprintf(&b, "}/%d", Dim)
-	return b.String()
+	fmt.Fprintf(&sb, "}/%d", Dim)
+	return sb.String()
 }
