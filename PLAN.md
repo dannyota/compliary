@@ -88,8 +88,7 @@ mappings, Secure Controls Framework (license check needed before use).
 
 ## Open decisions
 
-1. **Maintainer `/mcp` auth mechanism** — bearer token + CloudFront origin header (banhmi
-   pattern) vs OAuth (needed for claude.ai custom connectors). Decide at M4 (deploy).
+None. (Auth settled 2026-07-20: **OAuth** — see Decisions.)
 
 ## Roadmap
 
@@ -144,6 +143,7 @@ patch — new documents always cut v0.2.0+.
 | Corpus language | English (publication language); VN focus selects frameworks, never translates |
 | Stack | Go + PostgreSQL/pgvector + sqlc + hybrid retrieval + MCP (banhmi-proven) |
 | Sources | official publisher sources only; license provenance per document |
+| Maintainer `/mcp` auth | **OAuth** (MCP auth spec: authorization-code + PKCE + dynamic client registration) so the instance connects as a **claude.ai and chatgpt.com custom connector**; **unauthenticated requests get 401 for everything** (no anonymous reduced surface on the maintainer instance — projection layer stays as defense-in-depth; self-deployers may opt into a public metadata surface) |
 | Embedder | maintainer deploy **shares banhmi's embedder** (wiring at M4); self-deploy ships embed/lexindex/retrieve code **copied from banhmi** (same author) at the Index stage |
 
 ## Milestone history

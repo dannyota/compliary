@@ -47,7 +47,11 @@ Most sources are copyrighted publications; compliary never redistributes them.
 - **Licensed text is served privately only** ("internal use") — there is **no public MCP service**;
   every operator self-deploys their own instance. The maintainer's `compliary.danny.vn` hosts a
   public landing page (project info) and an `/mcp` endpoint **authenticated for the maintainer
-  alone** — it serves no other users.
+  alone** — it serves no other users. **Unauthenticated requests receive 401 for everything**
+  (only the landing page and health check answer anonymously). Auth is **OAuth** (MCP auth
+  spec), so the maintainer can attach the instance as a custom connector in **claude.ai** and
+  **chatgpt.com** — those platforms' OAuth flows sign in as the maintainer; no other account
+  is authorized.
 - **Official publisher sources only**, with license kind, source URL, and retrieval date recorded
   per document.
 
