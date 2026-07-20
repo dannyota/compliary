@@ -38,6 +38,17 @@ const defaultTimeout = 5 * time.Minute
 // but a single dense query vector saturates well before 512.
 const MaxQueryTokens = 512
 
+// CanonicalModel is THE model identifier for the corpus embedding space. It
+// must equal the string stored in gold.chunk_embedding.model (written by the
+// bulk engines) because the dense retrieval arm filters on exact equality —
+// a query embedder constructed with any other string silently matches zero
+// rows and degrades retrieval to BM25-only. Every embedder constructor
+// (server, stdio, eval, pipeline) must use this constant.
+const CanonicalModel = "qwen3-embedding-0.6b"
+
+// CanonicalDims is the embedding dimension of CanonicalModel.
+const CanonicalDims = 1024
+
 // Qwen3QueryPrefix is prepended to query text before tokenization.
 // Qwen3-Embedding is asymmetric: queries get an instruction prefix,
 // documents do not. The task instruction is tuned for security/compliance

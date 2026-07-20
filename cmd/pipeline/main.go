@@ -36,6 +36,7 @@ import (
 	"danny.vn/compliary/pkg/extract"
 	"danny.vn/compliary/pkg/manifest"
 	"danny.vn/compliary/pkg/normalize"
+	"danny.vn/compliary/pkg/rag/embed"
 	"danny.vn/compliary/pkg/rag/embed/kagglebatch"
 	"danny.vn/compliary/pkg/rag/embed/onnxembed"
 	ragindex "danny.vn/compliary/pkg/rag/index"
@@ -441,8 +442,8 @@ func runIndex(ctx context.Context, cfg *config.Config, pool poolWrapper, log *sl
 	// were eligible — a prior run may have built chunks but failed during
 	// the embed phase, leaving missing embeddings with indexed_at still NULL.
 
-	const embedModel = "qwen3-embedding-0.6b"
-	const embedDims = 1024
+	const embedModel = embed.CanonicalModel
+	const embedDims = embed.CanonicalDims
 	var totalEmbeddings int
 	var embedError bool
 

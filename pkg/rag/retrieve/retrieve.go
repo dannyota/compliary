@@ -76,6 +76,27 @@ func New(pool *pgxpool.Pool, embedder embed.Embedder, log *slog.Logger) (*Retrie
 		return nil, fmt.Errorf("retrieve: load framework schemes: %w", err)
 	}
 	r.frameworkScheme = schemes
+
+	// Dense-arm parity guard: the vector arm filters gold.chunk_embedding on
+	// exact model-string equality, so an embedder whose Model() doesn't match
+	// the stored rows silently retrieves nothing and the whole deployment
+	// degrades to BM25-only (a real production incident, 2026-07-21 — the
+	// server was configured with an org-prefixed model name). Warn loudly at
+	// construction rather than fail: an empty corpus is legitimate.
+	if embedder != nil {
+		var n int64
+		err := pool.QueryRow(context.Background(),
+			"SELECT count(*) FROM gold.chunk_embedding WHERE model = $1", embedder.Model()).Scan(&n)
+		switch {
+		case err != nil:
+			log.Warn("retrieve: cannot verify embedding-model parity", "err", err)
+		case n == 0:
+			log.Warn("retrieve: NO stored embeddings match the query embedder's model — the dense arm will retrieve nothing and search runs BM25-only",
+				"query_model", embedder.Model(), "hint", "use embed.CanonicalModel")
+		default:
+			log.Info("retrieve: dense arm ready", "model", embedder.Model(), "embeddings", n)
+		}
+	}
 	return r, nil
 }
 

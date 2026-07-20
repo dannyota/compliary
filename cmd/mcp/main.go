@@ -101,8 +101,8 @@ func buildQueryEmbedder(log *slog.Logger) (embed.Embedder, error) {
 		ModelPath:     modelPath,
 		TokenizerPath: tokenizerPath,
 		LibPath:       libPath,
-		Dims:          1024,
-		Model:         "Qwen/Qwen3-Embedding-0.6B",
+		Dims:          embed.CanonicalDims,
+		Model:         embed.CanonicalModel,
 	})
 	if err != nil {
 		log.Warn("ONNX query embedder unavailable — search will use BM25-only mode", "err", err)

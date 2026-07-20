@@ -576,8 +576,8 @@ func clientIP(r *http.Request, trustProxy bool) string {
 // document vectors that come from different models live in different spaces, so
 // a mismatch silently wrecks retrieval rather than erroring.
 const (
-	embedModel = "Qwen/Qwen3-Embedding-0.6B"
-	embedDims  = 1024
+	embedModel = embed.CanonicalModel
+	embedDims  = embed.CanonicalDims
 )
 
 // buildQueryEmbedder selects the query-time embedder:

@@ -163,7 +163,7 @@ func run(o opts, log *slog.Logger) error {
 		TokenizerPath: onnxTokenizer,
 		LibPath:       onnxLib,
 		Dims:          1024,
-		Model:         "qwen3-embedding-0.6b",
+		Model:         ragembed.CanonicalModel,
 		NumKVLayers:   28,
 		NumKVHeads:    8,
 		HeadDim:       128,
