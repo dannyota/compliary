@@ -315,3 +315,13 @@ patch — new documents always cut v0.2.0+.
   mapping sheets ruled out: CCM v4.1.0's "Scope Applicability (Mappings)" sheet is an empty
   placeholder and the CIS v8.1.2 workbook carries no mapping sheets — OLIR/CIS mappings need
   new acquisitions (v0.2.0). README rewritten (agent-authored, reviewed).
+- **2026-07-21** — **Quality round 4: amended_by in the document tool + raw-cosine abstention.**
+  (1) `document` now returns `amended_by` — amendment patches targeting the looked-up control
+  (citation, action, qualifier, doc key, neutral title; verbatim instruction body full-projection
+  only, stripped under reduced). (2) Score-floor abstention moved from the MCP core into the
+  retriever and re-based on the **best raw cosine across hits** (RRF scores have no absolute
+  scale; cosine does) — BM25-only deployments never trip it; `cmd/eval -abstain-floor` measures
+  it directly. Calibrated by sweeping 0.30–0.70 on the 125-case set: floor 0.5 abstains the two
+  clearly-distant OOS queries at zero recall/MRR cost (abstention 92.0% → 93.6%); above 0.55
+  in-scope cases start tripping — compliance-adjacent OOS embeds too close to InfoSec text to
+  separate further at this corpus size. `search_abstain_floor` seeded to 0.5.

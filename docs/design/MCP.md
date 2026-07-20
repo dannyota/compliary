@@ -11,7 +11,7 @@ structured data, never prose.
 | **guide** | Playbook: scope, citation forms, query tips, evidence contract | none | static structured payload |
 | **corpus_status** | Live per-framework/version counts | none | frameworks[], totals, notes |
 | **search** | Hybrid retrieval (dense + BM25, RRF-fused) | query, framework?, version_label?, include_withdrawn?, top_k?, mode? | hits[], gaps[], abstain |
-| **document** | Citation lookup: control + mappings + lineage + chunks | citation, framework_code?, version_label?, include? | control, parent, children, mappings, inbound_mappings, version_lineage, chunks, gaps |
+| **document** | Citation lookup: control + mappings + lineage + chunks | citation, framework_code?, version_label?, include? | control, amended_by, parent, children, mappings, inbound_mappings, version_lineage, chunks, gaps |
 | **quality_gaps** | Known corpus gaps and caveats | category?, limit? | unresolved_mappings, deferred_docs, manifest_gaps, body_quality_caveats, eval_floors |
 
 ## Recommended agent flow
@@ -33,6 +33,12 @@ Two projection modes control whether verbatim licensed text is included in respo
 
 Mapping edges, version lineage, and structural metadata survive both projections unchanged --
 they are structural, not licensed text.
+
+**Amendments:** when a control has amendment patches (rows in an `amendment` document whose
+`amends_citation_norm` targets it), `document` returns them in `amended_by` — citation, action
+(add/replace/delete), amendment qualifier, doc key, neutral title, and (full projection only)
+the verbatim instruction text. Base lookups always win citation resolution; amendment rows never
+shadow the base clause.
 
 ## Transports
 
@@ -126,22 +132,28 @@ Known follow-ups, not yet implemented (severity in parens):
 
 ## Search: score-floor abstention
 
-The `search_abstain_floor` config setting controls when the search tool signals low confidence:
+The `search_abstain_floor` config setting controls when the search tool signals low confidence.
+The floor compares the **best raw vector cosine similarity across the returned hits** (not the
+RRF-fused score, which is a rank artifact with no absolute scale). The check lives in the
+retriever, so `cmd/eval -abstain-floor` measures it directly. BM25-only deployments (no
+embedder) never abstain on the floor — there is no cosine to compare.
 
-- **Current floor: 0.** At 3.4k chunks with RRF fusion, the score band is too compressed
-  (0.047--0.071 for non-citation hits) for clean OOS/in-scope separation. Any floor > 0 drops
-  in-scope recall.
+- **Current floor: 0.5** (calibrated 2026-07-21 by sweeping 0.30–0.70 against the 125-case
+  golden set). At 0.5 the two clearly-distant OOS queries abstain and no in-scope case trips;
+  above 0.55 in-scope cases start failing. Honest limit: compliance-adjacent OOS (export
+  controls, medical-device software, environmental management) embeds close to InfoSec text, so
+  the cosine bands overlap — 8 of 10 OOS golden cases still return hits without abstaining.
 - **Abstain response:** `abstain: true` + `gaps[].kind = "low_confidence"` or `"no_evidence"`.
-  The agent sees the gap notice and can decide how to proceed.
-- **Operator-tunable:** as the corpus grows and score distributions widen, operators raise the
-  floor via the config.setting seed row.
+  Hits are still returned; the agent sees the gap notice and decides how to proceed.
+- **Operator-tunable** via the config.setting seed row; re-calibrate with
+  `cmd/eval -abstain-floor <f>` when the corpus grows.
 
 ### Abstention eval status
 
 | Lane | Recall@8 | MRR@8 | Current | Abstain |
 |------|----------|-------|---------|---------|
-| Open-corpus (no pins) | 72.2% | 49.5% | 100% | 92.0% |
-| Framework-filtered | 81.7% | 67.9% | 94.3% | 92.0% |
+| Open-corpus (no pins) | 72.2% | 49.5% | 100% | 93.6% |
+| Framework-filtered | 81.7% | 67.9% | 94.3% | 93.6% |
 
 Golden set v3: 125 cases (105 v2 + 20 new: 8 COBIT, 5 OOS, 4 ISO 27001 topic-phrased, 3
 27017/27018). Quality round 2 (2026-07-20): curated titles for COBIT + 27002 put every new
@@ -152,9 +164,9 @@ cross-framework competition between enriched 27001 chunks and their 27002 twins 
 trade; the MCP-recommended filtered path improved).
 
 Floors (open-corpus lane, 125-case set): recall >= 0.66, MRR >= 0.44, current >= 0.98,
-abstain >= 0.90. Score-floor abstention is inert (floor=0), so all 10 OOS cases structurally
-count against abstention — 115/125 = 92.0% is the ceiling until score-based abstention becomes
-viable.
+abstain >= 0.90. The raw-cosine floor (0.5) catches the two clearly-distant OOS cases; the
+remaining 8 compliance-adjacent OOS cases embed too close to InfoSec text to separate, so
+93.6% is the calibrated optimum at this corpus size.
 
 **Truth about abstain floors:** at the current corpus size, score-floor abstention cannot distinguish
 OOS queries from in-scope queries. The `abstain` field works for `no_evidence` (empty result set)
