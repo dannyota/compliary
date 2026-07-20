@@ -20,6 +20,12 @@ type Querier interface {
 	ListControlsForDocument(ctx context.Context, documentID int64) ([]SilverControl, error)
 	ListDocuments(ctx context.Context) ([]SilverDocument, error)
 	ListDocumentsForVersion(ctx context.Context, arg ListDocumentsForVersionParams) ([]SilverDocument, error)
+	// For each given control, the body of its longest resolved `equivalent`-mapped
+	// counterpart — used by the Index stage to enrich shallow chunks (a 27001
+	// Annex A one-liner gains its 27002 guidance). Only counterparts whose body is
+	// longer than the control's own qualify, so the enrichment never flows from the
+	// richer control to the poorer one. DISTINCT ON keeps one row per source.
+	ListEquivalentBodies(ctx context.Context, dollar_1 []int64) ([]ListEquivalentBodiesRow, error)
 	ListMappingsForControl(ctx context.Context, fromControlID int64) ([]SilverControlMapping, error)
 	ListVersionRelations(ctx context.Context) ([]SilverVersionRelation, error)
 	// Lazily fill to_control_id for edges whose target framework has landed. The

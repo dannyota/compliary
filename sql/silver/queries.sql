@@ -84,3 +84,24 @@ ORDER BY to_framework_code, to_citation_norm;
 
 -- name: CountUnresolvedMappings :one
 SELECT count(*) FROM silver.control_mapping WHERE to_control_id IS NULL;
+
+-- name: ListEquivalentBodies :many
+-- For each given control, the body of its longest resolved `equivalent`-mapped
+-- counterpart — used by the Index stage to enrich shallow chunks (a 27001
+-- Annex A one-liner gains its 27002 guidance). Only counterparts whose body is
+-- longer than the control's own qualify, so the enrichment never flows from the
+-- richer control to the poorer one. DISTINCT ON keeps one row per source.
+SELECT DISTINCT ON (cm.from_control_id)
+    cm.from_control_id,
+    tgt.citation       AS equivalent_citation,
+    d.framework_code   AS equivalent_framework,
+    tgt.body           AS equivalent_body
+FROM silver.control_mapping cm
+JOIN silver.control tgt ON tgt.id = cm.to_control_id
+JOIN silver.document d  ON d.id = tgt.document_id
+JOIN silver.control src ON src.id = cm.from_control_id
+WHERE cm.from_control_id = ANY($1::bigint[])
+  AND cm.relationship = 'equivalent'
+  AND tgt.body IS NOT NULL AND tgt.body <> ''
+  AND length(tgt.body) > COALESCE(length(src.body), 0)
+ORDER BY cm.from_control_id, length(tgt.body) DESC;

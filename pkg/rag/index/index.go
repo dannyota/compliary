@@ -61,10 +61,24 @@ func (idx *Indexer) ReapOrphans(ctx context.Context, goldQ GoldQuerier) (int64, 
 	return reaped, nil
 }
 
+// EquivalentBody is the retrieval-enrichment payload for one control: the body
+// of its `equivalent`-mapped counterpart in another framework, with the
+// counterpart's true citation so the appended text is never misattributed.
+type EquivalentBody struct {
+	Citation  string
+	Framework string
+	Body      string
+}
+
 // BuildChunks creates one gold.chunk per silver.control for the given document,
 // deleting any existing chunks for those controls first (idempotent rebuild).
+// equivalents maps control ID → its equivalent counterpart's body (may be nil);
+// when present, the counterpart's body is appended to the chunk content under a
+// source label, so retrieval finds the control by its equivalent's richer text
+// (27001 Annex A one-liners gain their 27002 guidance). The control's own body
+// is never modified — chunks are the retrieval surface, body is the evidence.
 // Returns the number of chunks created.
-func (idx *Indexer) BuildChunks(ctx context.Context, doc dbsilver.SilverDocument, controls []dbsilver.SilverControl, goldQ GoldQuerier) (int, error) {
+func (idx *Indexer) BuildChunks(ctx context.Context, doc dbsilver.SilverDocument, controls []dbsilver.SilverControl, equivalents map[int64]EquivalentBody, goldQ GoldQuerier) (int, error) {
 	if len(controls) == 0 {
 		return 0, nil
 	}
@@ -91,7 +105,11 @@ func (idx *Indexer) BuildChunks(ctx context.Context, doc dbsilver.SilverDocument
 	var created int
 	for _, ctrl := range controls {
 		prefix := buildContextPrefix(doc, ctrl, byID)
-		content := buildContent(ctrl)
+		var eq *EquivalentBody
+		if e, ok := equivalents[ctrl.ID]; ok {
+			eq = &e
+		}
+		content := buildContent(ctrl, eq)
 
 		_, err := goldQ.InsertChunk(ctx, dbgold.InsertChunkParams{
 			ControlID:     ctrl.ID,
@@ -270,8 +288,10 @@ func ancestorCitations(ctrl dbsilver.SilverControl, byID map[int64]*dbsilver.Sil
 	return chain
 }
 
-// buildContent builds the chunk body: citation + title + body.
-func buildContent(ctrl dbsilver.SilverControl) string {
+// buildContent builds the chunk body: citation + title + body, optionally
+// followed by the equivalent counterpart's body under a label that names its
+// true source — the appended text must never read as this control's own.
+func buildContent(ctrl dbsilver.SilverControl, eq *EquivalentBody) string {
 	var b strings.Builder
 	b.WriteString(ctrl.Citation)
 	if ctrl.Title != "" {
@@ -281,6 +301,14 @@ func buildContent(ctrl dbsilver.SilverControl) string {
 	if ctrl.Body != nil && *ctrl.Body != "" {
 		b.WriteString("\n")
 		b.WriteString(*ctrl.Body)
+	}
+	if eq != nil && eq.Body != "" {
+		b.WriteString("\n\n[equivalent ")
+		b.WriteString(eq.Framework)
+		b.WriteString(" ")
+		b.WriteString(eq.Citation)
+		b.WriteString("]\n")
+		b.WriteString(eq.Body)
 	}
 	return b.String()
 }

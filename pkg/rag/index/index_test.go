@@ -152,7 +152,7 @@ func TestBuildChunks_createsOnePerControl(t *testing.T) {
 	store := newFakeGoldStore()
 	idx := &Indexer{Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))}
 
-	created, err := idx.BuildChunks(context.Background(), doc, controls, store)
+	created, err := idx.BuildChunks(context.Background(), doc, controls, nil, store)
 	if err != nil {
 		t.Fatalf("BuildChunks: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestBuildChunks_contextPrefix(t *testing.T) {
 	store := newFakeGoldStore()
 	idx := &Indexer{Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))}
 
-	_, err := idx.BuildChunks(context.Background(), doc, controls, store)
+	_, err := idx.BuildChunks(context.Background(), doc, controls, nil, store)
 	if err != nil {
 		t.Fatalf("BuildChunks: %v", err)
 	}
@@ -217,7 +217,7 @@ func TestBuildChunks_contentFormat(t *testing.T) {
 	store := newFakeGoldStore()
 	idx := &Indexer{Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))}
 
-	_, err := idx.BuildChunks(context.Background(), doc, controls, store)
+	_, err := idx.BuildChunks(context.Background(), doc, controls, nil, store)
 	if err != nil {
 		t.Fatalf("BuildChunks: %v", err)
 	}
@@ -244,7 +244,7 @@ func TestBuildChunks_neverTitleOriginal(t *testing.T) {
 	store := newFakeGoldStore()
 	idx := &Indexer{Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))}
 
-	_, err := idx.BuildChunks(context.Background(), doc, controls, store)
+	_, err := idx.BuildChunks(context.Background(), doc, controls, nil, store)
 	if err != nil {
 		t.Fatalf("BuildChunks: %v", err)
 	}
@@ -268,12 +268,12 @@ func TestBuildChunks_idempotent(t *testing.T) {
 	idx := &Indexer{Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))}
 
 	// First run.
-	created1, err := idx.BuildChunks(context.Background(), doc, controls, store)
+	created1, err := idx.BuildChunks(context.Background(), doc, controls, nil, store)
 	if err != nil {
 		t.Fatalf("BuildChunks run 1: %v", err)
 	}
 	// Second run: should delete and recreate.
-	created2, err := idx.BuildChunks(context.Background(), doc, controls, store)
+	created2, err := idx.BuildChunks(context.Background(), doc, controls, nil, store)
 	if err != nil {
 		t.Fatalf("BuildChunks run 2: %v", err)
 	}
@@ -295,7 +295,7 @@ func TestEmbedMissing_embedsAllChunks(t *testing.T) {
 		BatchSize: 2,
 	}
 
-	_, err := idx.BuildChunks(context.Background(), doc, controls, store)
+	_, err := idx.BuildChunks(context.Background(), doc, controls, nil, store)
 	if err != nil {
 		t.Fatalf("BuildChunks: %v", err)
 	}
@@ -329,7 +329,7 @@ func TestEmbedMissing_idempotent(t *testing.T) {
 		BatchSize: 2,
 	}
 
-	_, _ = idx.BuildChunks(context.Background(), doc, controls, store)
+	_, _ = idx.BuildChunks(context.Background(), doc, controls, nil, store)
 
 	// First embed.
 	n1, err := idx.EmbedMissing(context.Background(), store)
@@ -368,7 +368,7 @@ func TestEmbedMissing_batchBoundary(t *testing.T) {
 	emb := &fakeEmbedder{dims: 4, model: "test-model"}
 	idx := &Indexer{Embedder: emb, Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError})), BatchSize: 2}
 
-	_, _ = idx.BuildChunks(context.Background(), doc, controls, store)
+	_, _ = idx.BuildChunks(context.Background(), doc, controls, nil, store)
 	upserted, err := idx.EmbedMissing(context.Background(), store)
 	if err != nil {
 		t.Fatalf("EmbedMissing: %v", err)
@@ -425,7 +425,7 @@ func TestEmbedText_withAndWithoutPrefix(t *testing.T) {
 
 func TestBuildContent_noBody(t *testing.T) {
 	ctrl := dbsilver.SilverControl{Citation: "AC", Title: "Access Control"}
-	content := buildContent(ctrl)
+	content := buildContent(ctrl, nil)
 	if content != "AC Access Control" {
 		t.Errorf("content = %q, want %q", content, "AC Access Control")
 	}
@@ -433,9 +433,61 @@ func TestBuildContent_noBody(t *testing.T) {
 
 func TestBuildContent_withBody(t *testing.T) {
 	ctrl := dbsilver.SilverControl{Citation: "AC-1", Title: "Policy", Body: ptrStr("The body.")}
-	content := buildContent(ctrl)
+	content := buildContent(ctrl, nil)
 	if content != "AC-1 Policy\nThe body." {
 		t.Errorf("content = %q", content)
+	}
+}
+
+func TestBuildContent_equivalentEnrichment(t *testing.T) {
+	// A shallow 27001 Annex A control gains its 27002 guidance under a label
+	// naming the true source — never presented as the control's own text.
+	ctrl := dbsilver.SilverControl{Citation: "A.5.7", Title: "Annex A control A.5.7", Body: ptrStr("Threat intelligence shall be collected.")}
+	eq := &EquivalentBody{Citation: "5.7", Framework: "iso27002", Body: "Information relating to threats should be collected and analysed."}
+	content := buildContent(ctrl, eq)
+	want := "A.5.7 Annex A control A.5.7\nThreat intelligence shall be collected.\n\n[equivalent iso27002 5.7]\nInformation relating to threats should be collected and analysed."
+	if content != want {
+		t.Errorf("content = %q\nwant %q", content, want)
+	}
+
+	// Empty equivalent body → no label, no trailing junk.
+	if got := buildContent(ctrl, &EquivalentBody{Citation: "5.7", Framework: "iso27002"}); got != "A.5.7 Annex A control A.5.7\nThreat intelligence shall be collected." {
+		t.Errorf("empty-equivalent content = %q", got)
+	}
+}
+
+func TestBuildChunks_equivalentEnrichmentApplied(t *testing.T) {
+	store := newFakeGoldStore()
+	idx := &Indexer{Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))}
+	doc := dbsilver.SilverDocument{ID: 1, DocKey: "iso27001|2022|main", FrameworkCode: "iso27001", VersionLabel: "2022"}
+	controls := []dbsilver.SilverControl{
+		{ID: 10, DocumentID: 1, Citation: "A.5.7", CitationNorm: "A.5.7", Title: "Annex A control A.5.7", Body: ptrStr("shallow")},
+		{ID: 11, DocumentID: 1, Citation: "A.5.8", CitationNorm: "A.5.8", Title: "Annex A control A.5.8", Body: ptrStr("also shallow")},
+	}
+	equivalents := map[int64]EquivalentBody{
+		10: {Citation: "5.7", Framework: "iso27002", Body: "rich guidance text"},
+	}
+	created, err := idx.BuildChunks(context.Background(), doc, controls, equivalents, store)
+	if err != nil {
+		t.Fatalf("BuildChunks: %v", err)
+	}
+	if created != 2 {
+		t.Fatalf("created = %d, want 2", created)
+	}
+	var enriched, plain string
+	for _, c := range store.chunks {
+		switch c.Citation {
+		case "A.5.7":
+			enriched = c.Content
+		case "A.5.8":
+			plain = c.Content
+		}
+	}
+	if !strings.Contains(enriched, "[equivalent iso27002 5.7]\nrich guidance text") {
+		t.Errorf("A.5.7 chunk missing labeled enrichment: %q", enriched)
+	}
+	if strings.Contains(plain, "equivalent") {
+		t.Errorf("A.5.8 chunk should be unenriched: %q", plain)
 	}
 }
 
@@ -486,7 +538,7 @@ func TestBuildChunks_worksWithoutEmbedder(t *testing.T) {
 	// Indexer with nil Embedder — chunk building must still work.
 	idx := &Indexer{Log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))}
 
-	created, err := idx.BuildChunks(context.Background(), doc, controls, store)
+	created, err := idx.BuildChunks(context.Background(), doc, controls, nil, store)
 	if err != nil {
 		t.Fatalf("BuildChunks without embedder: %v", err)
 	}

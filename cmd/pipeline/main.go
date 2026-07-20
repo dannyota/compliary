@@ -391,7 +391,35 @@ func runIndex(ctx context.Context, cfg *config.Config, pool poolWrapper, log *sl
 				continue
 			}
 
-			created, err := idx.BuildChunks(ctx, doc, controls, goldQ)
+			// Retrieval enrichment: bodies of resolved `equivalent`-mapped
+			// counterparts (27001 Annex A gains its 27002 guidance).
+			ids := make([]int64, len(controls))
+			for i := range controls {
+				ids[i] = controls[i].ID
+			}
+			eqRows, err := silverQ.ListEquivalentBodies(ctx, ids)
+			if err != nil {
+				log.Error("index: list equivalent bodies", "doc", doc.DocKey, "err", err)
+				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{ID: f.ID, StageError: "index: " + err.Error()})
+				fileErrored = true
+				chunkBuildError = true
+				continue
+			}
+			equivalents := make(map[int64]ragindex.EquivalentBody, len(eqRows))
+			for _, r := range eqRows {
+				if r.EquivalentBody != nil {
+					equivalents[r.FromControlID] = ragindex.EquivalentBody{
+						Citation:  r.EquivalentCitation,
+						Framework: r.EquivalentFramework,
+						Body:      *r.EquivalentBody,
+					}
+				}
+			}
+			if len(equivalents) > 0 {
+				log.Info("index: equivalent-body enrichment", "doc", doc.DocKey, "enriched", len(equivalents))
+			}
+
+			created, err := idx.BuildChunks(ctx, doc, controls, equivalents, goldQ)
 			if err != nil {
 				log.Error("index: build chunks", "doc", doc.DocKey, "err", err)
 				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{ID: f.ID, StageError: "index: " + err.Error()})

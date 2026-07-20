@@ -263,6 +263,60 @@ func (q *Queries) ListDocumentsForVersion(ctx context.Context, arg ListDocuments
 	return items, nil
 }
 
+const listEquivalentBodies = `-- name: ListEquivalentBodies :many
+SELECT DISTINCT ON (cm.from_control_id)
+    cm.from_control_id,
+    tgt.citation       AS equivalent_citation,
+    d.framework_code   AS equivalent_framework,
+    tgt.body           AS equivalent_body
+FROM silver.control_mapping cm
+JOIN silver.control tgt ON tgt.id = cm.to_control_id
+JOIN silver.document d  ON d.id = tgt.document_id
+JOIN silver.control src ON src.id = cm.from_control_id
+WHERE cm.from_control_id = ANY($1::bigint[])
+  AND cm.relationship = 'equivalent'
+  AND tgt.body IS NOT NULL AND tgt.body <> ''
+  AND length(tgt.body) > COALESCE(length(src.body), 0)
+ORDER BY cm.from_control_id, length(tgt.body) DESC
+`
+
+type ListEquivalentBodiesRow struct {
+	FromControlID       int64
+	EquivalentCitation  string
+	EquivalentFramework string
+	EquivalentBody      *string
+}
+
+// For each given control, the body of its longest resolved `equivalent`-mapped
+// counterpart — used by the Index stage to enrich shallow chunks (a 27001
+// Annex A one-liner gains its 27002 guidance). Only counterparts whose body is
+// longer than the control's own qualify, so the enrichment never flows from the
+// richer control to the poorer one. DISTINCT ON keeps one row per source.
+func (q *Queries) ListEquivalentBodies(ctx context.Context, dollar_1 []int64) ([]ListEquivalentBodiesRow, error) {
+	rows, err := q.db.Query(ctx, listEquivalentBodies, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListEquivalentBodiesRow
+	for rows.Next() {
+		var i ListEquivalentBodiesRow
+		if err := rows.Scan(
+			&i.FromControlID,
+			&i.EquivalentCitation,
+			&i.EquivalentFramework,
+			&i.EquivalentBody,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMappingsForControl = `-- name: ListMappingsForControl :many
 SELECT id, from_control_id, to_framework_code, to_version_label, to_citation_norm, to_control_id, mapping_source_code, relationship, provenance_detail, created_at, updated_at FROM silver.control_mapping WHERE from_control_id = $1
 ORDER BY to_framework_code, to_citation_norm
