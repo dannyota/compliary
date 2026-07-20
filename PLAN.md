@@ -284,3 +284,17 @@ patch — new documents always cut v0.2.0+.
   Hybrid eval flat within noise (open 66.0/45.1, filtered 80.0/62.5) — the golden set measures
   citation-finding, which the noise wasn't blocking; the wins are served-evidence quality. All
   floors pass.
+- **2026-07-20** — **Quality round 2: curated titles (COBIT + 27002), 27001 chunk enrichment,
+  golden v3.** (1) 373 new curated titles (276 COBIT practices/objectives/domains + 97 ISO 27002)
+  authored by agents and adversarially verified — the verifier caught 10 wrong-topic 27002 titles
+  (adjacent-number confusions) and 1 COBIT, all fixed before merge; 1101 total title rows.
+  (2) Retrieval enrichment: each 27001 Annex A chunk now appends its 27002 equivalent's guidance
+  under a `[equivalent iso27002 x.y]` label (index-layer only; served body unchanged) — driven by
+  the 186 resolved structural edges via the new `ListEquivalentBodies` query. (3) Golden v3:
+  125 cases (+8 COBIT, +5 OOS, +4 27001 topic-phrased, +3 27017/27018), adversarially verified
+  (1 ambiguous case reworded). Results: every new COBIT and 27001 topic case hits at rank 1 —
+  COBIT went from neutral "Practice EDM01.01" labels to topically searchable. New baselines
+  (125 cases): open 69.6/47.7, filtered 82.6/67.0; old-105 filtered 80.0/62.9, open 66.0/43.1
+  (MRR −2.0pp from enriched-27001 vs 27002 cross-framework competition — accepted trade).
+  Floors re-based: recall ≥0.66, MRR ≥0.44, current ≥0.98, abstain ≥0.90 (10 OOS structurally
+  fail while score-abstention is inert). 511 chunks re-embedded (Kaggle T4).

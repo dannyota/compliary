@@ -304,7 +304,7 @@ func staticBodyQualityCaveats() []BodyQualityCaveat {
 		},
 		{
 			Framework:   "iso27001",
-			Description: "ISO 27001:2022 Annex A: control bodies from the PDF table are shallow (one-line statements extracted from the table row). Full implementation guidance lives in ISO 27002:2022, which is a separate document.",
+			Description: "ISO 27001:2022 Annex A: control bodies from the PDF table are shallow (one-line statements extracted from the table row); full implementation guidance lives in ISO 27002:2022. For retrieval, each Annex A chunk is enriched with its 27002 equivalent's guidance (labeled with the 27002 citation), so topic searches find the 27001 control; the served body remains the 27001 statement only.",
 		},
 		{
 			Framework:   "soc2tsc",
@@ -314,10 +314,15 @@ func staticBodyQualityCaveats() []BodyQualityCaveat {
 }
 
 func staticEvalFloors() []EvalFloor {
+	// Open-corpus lane on the 125-case golden set (v3, 2026-07-20). The
+	// abstention floor is re-based for the 10-OOS/125 distribution: score-floor
+	// abstention is inert (floor=0), so every OOS case structurally counts
+	// against the metric — 115/125 = 0.92 is the ceiling until score-based
+	// abstention becomes viable.
 	return []EvalFloor{
-		{Metric: "recall@8", Floor: 0.63, Last: 0.650},
-		{Metric: "MRR@8", Floor: 0.41, Last: 0.446},
+		{Metric: "recall@8", Floor: 0.66, Last: 0.696},
+		{Metric: "MRR@8", Floor: 0.44, Last: 0.477},
 		{Metric: "current-version", Floor: 0.98, Last: 1.000},
-		{Metric: "abstention", Floor: 0.93, Last: 0.952},
+		{Metric: "abstention", Floor: 0.90, Last: 0.920},
 	}
 }
