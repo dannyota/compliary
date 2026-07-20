@@ -325,3 +325,17 @@ patch — new documents always cut v0.2.0+.
   clearly-distant OOS queries at zero recall/MRR cost (abstention 92.0% → 93.6%); above 0.55
   in-scope cases start tripping — compliance-adjacent OOS embeds too close to InfoSec text to
   separate further at this corpus size. `search_abstain_floor` seeded to 0.5.
+- **2026-07-21** — **Incident: the deployed dense arm had been silently dead since first deploy;
+  fixed + guarded.** Deploy-time live testing of the new abstention floor exposed that every
+  production search hit was BM25-only (similarity 0, no vector rank). Root cause: the dense arm
+  filters `gold.chunk_embedding` on exact model-string equality; stored rows carry
+  `qwen3-embedding-0.6b` but `cmd/server`/`cmd/mcp` constructed query embedders with
+  `Qwen/Qwen3-Embedding-0.6B` — zero rows matched. (The round-1 "model mismatch" embed error was
+  the same defect's loud form; normalizing the response comparison silenced it without fixing the
+  SQL filter.) Eval numbers were unaffected (cmd/eval used the right string), but prod served
+  lexical-only retrieval. Fix: `embed.CanonicalModel`/`CanonicalDims` as the single source of
+  truth across all five constructors, plus a construction-time parity guard in `retrieve.New`
+  that warns loudly when zero stored embeddings match the query embedder's model. Verified live:
+  startup logs "dense arm ready … embeddings=3404", in-scope hits carry real similarities and
+  vector ranks, and the abstention floor fires (clearly-OOS query → `abstain: true`,
+  `low_confidence`, top sim 0.26 < 0.5).
