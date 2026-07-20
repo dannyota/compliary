@@ -104,9 +104,12 @@ are read-only queries.
   endpoint). `COMPLIARY_OAUTH_RATE_PER_MIN` default 10 attempts/min. On exceed -> 429 +
   `Retry-After`.
 
-**Client IP behind proxy:** with `COMPLIARY_TRUST_PROXY=true`, the client IP is the **leftmost**
-`X-Forwarded-For` entry (CloudFront puts the real client first, appending proxy hops rightward), so
-per-IP limiting keys on the true client rather than a shared edge IP.
+**Client IP behind proxy:** with `COMPLIARY_TRUST_PROXY=true`, the client IP for rate limiting is
+the entry the **trusted edge appended** to `X-Forwarded-For` — position `len − COMPLIARY_TRUSTED_PROXY_HOPS`
+(default hops `1`, a single CloudFront edge). The **leftmost** entry is never used: edge proxies
+append rather than replace, so the leftmost is client-controllable and an attacker could rotate a
+spoofed value to get a fresh rate-limit bucket per request and bypass the brute-force gate. Set
+`COMPLIARY_TRUSTED_PROXY_HOPS=2` for a CloudFront→ALB chain.
 
 ### Security hardening backlog
 

@@ -12,7 +12,9 @@ Infra mirrors banhmi's AWS shape: CloudFront (TLS termination) -> ECS -> RDS.
 | `COMPLIARY_MCP_TOKEN` | for bearer / fallback | Static bearer token for CLI/script access. If set alongside OAuth, both mechanisms are accepted. |
 | `COMPLIARY_MCP_PUBLIC` | no | `true` to serve reduced projection anonymously when no auth is configured. Default: `false` (401 on `/mcp`). |
 | `COMPLIARY_MCP_ALLOWED_ORIGINS` | no | Comma-separated origins for MCP cross-origin protection. |
-| `COMPLIARY_TRUST_PROXY` | no | `true` when behind a reverse proxy (CloudFront). Uses the leftmost `X-Forwarded-For` entry as the client IP for rate limiting. |
+| `COMPLIARY_TRUST_PROXY` | no | `true` when behind a reverse proxy (CloudFront). The client IP for rate limiting is the entry the trusted edge **appended** to `X-Forwarded-For` (position `len − hops`), not the client-controllable leftmost entry. |
+| `COMPLIARY_TRUSTED_PROXY_HOPS` | no | Number of appending proxies between the client and this server (default `1` for a single CloudFront edge). Set `2` behind CloudFront→ALB. Too-low over-restricts (fail-safe); too-high risks trusting a client-supplied entry. |
+| `COMPLIARY_OAUTH_RATE_PER_MIN` | no | Per-IP attempt budget for `POST /oauth/authorize` and `POST /oauth/token` (brute-force gate; default 10). |
 | `COMPLIARY_MCP_RATE_RPS` | no | Global per-IP request rate (default 50). |
 | `COMPLIARY_MCP_RATE_BURST` | no | Global per-IP burst capacity (default 100). |
 | `COMPLIARY_OAUTH_RATE_PER_MIN` | no | Tight per-IP limit on `POST /oauth/authorize` and `POST /oauth/token` (brute-force gate; default 10/min). |
