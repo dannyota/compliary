@@ -226,13 +226,14 @@ func healthzHandler(w http.ResponseWriter, _ *http.Request) {
 const maxRequestBody = 1 << 20 // 1 MiB
 
 // secure wraps h with the public-facing defenses: panic recovery → security
-// headers → rate limit → auth → body cap. Auth applies to /mcp only; healthz,
-// OAuth, and well-known endpoints are exempt.
+// headers → global rate limit → OAuth brute-force gate → auth → body cap. Auth
+// applies to /mcp only; healthz, OAuth, and well-known endpoints are exempt.
 func secure(h http.Handler, oauthSrv *oauth.Server, token, publicURL string, mcpPublic bool, log *slog.Logger) (http.Handler, func()) {
+	trustProxy := envBool("COMPLIARY_TRUST_PROXY", false)
 	rl := newRateLimiter(
 		envFloat("COMPLIARY_MCP_RATE_RPS", 50),
 		envInt("COMPLIARY_MCP_RATE_BURST", 100),
-		envBool("COMPLIARY_TRUST_PROXY", false),
+		trustProxy,
 	)
 	rlStop := rl.startEvictor(10 * time.Minute)
 
@@ -265,17 +266,49 @@ func secure(h http.Handler, oauthSrv *oauth.Server, token, publicURL string, mcp
 		// else: reduced projection served anonymously (mcpPublic=true).
 	}
 
+	// OAuth brute-force gate: a tight per-IP limiter on the auth-sensitive POST
+	// endpoints (operator-secret guess path + token endpoint), layered on top of
+	// the global limiter. Only meaningful in OAuth mode.
+	var oauthRLStop func()
+	if oauthSrv != nil {
+		perMin := envInt("COMPLIARY_OAUTH_RATE_PER_MIN", 10)
+		oauthRL := newRateLimiter(float64(perMin)/60.0, perMin, trustProxy)
+		oauthRLStop = oauthRL.startEvictor(10 * time.Minute)
+		h = oauthEndpointLimit(h, oauthRL)
+	}
+
 	h = rl.middleware(h)
 	h = securityHeaders(h)
 	h = recoverPanic(h, log)
 
 	stop := func() {
 		rlStop()
+		if oauthRLStop != nil {
+			oauthRLStop()
+		}
 		if oauthSrv != nil {
 			oauthSrv.StopEvictor()
 		}
 	}
 	return h, stop
+}
+
+// oauthEndpointLimit applies a tight per-IP limiter to POST /oauth/authorize and
+// POST /oauth/token — a deliberate brute-force gate on the operator-secret guess
+// path. On exceed it returns 429 with Retry-After. All other requests pass
+// through untouched (the global limiter still governs them).
+func oauthEndpointLimit(next http.Handler, rl *rateLimiter) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost &&
+			(r.URL.Path == "/oauth/authorize" || r.URL.Path == "/oauth/token") {
+			if !rl.limiter(clientIP(r, rl.trustProxy)).Allow() {
+				w.Header().Set("Retry-After", "60")
+				http.Error(w, "too many requests", http.StatusTooManyRequests)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // mcpOnly applies the bearer middleware only to /mcp; all other paths pass
@@ -449,8 +482,12 @@ func (rl *rateLimiter) startEvictor(ttl time.Duration) func() {
 func clientIP(r *http.Request, trustProxy bool) string {
 	if trustProxy {
 		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+			// CloudFront (and standard XFF semantics) put the real client IP
+			// LEFTMOST, appending each proxy hop to the right. Take the first
+			// entry so per-IP rate limiting keys on the true client, not the
+			// shared edge IP.
 			parts := strings.Split(xff, ",")
-			if ip := strings.TrimSpace(parts[len(parts)-1]); ip != "" {
+			if ip := strings.TrimSpace(parts[0]); ip != "" {
 				return ip
 			}
 		}

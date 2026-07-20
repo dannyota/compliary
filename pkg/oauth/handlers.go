@@ -188,6 +188,17 @@ func (s *Server) authorizePost(w http.ResponseWriter, r *http.Request) {
 	state := r.PostFormValue("state")
 	scope := r.PostFormValue("scope")
 
+	// Defense-in-depth: re-validate PKCE method on POST (the GET form path also
+	// checks it, but a hand-crafted POST must not bypass the S256 requirement).
+	if challengeMethod != "S256" {
+		http.Error(w, "invalid_request: code_challenge_method must be S256", http.StatusBadRequest)
+		return
+	}
+	if codeChallenge == "" {
+		http.Error(w, "invalid_request: code_challenge is required", http.StatusBadRequest)
+		return
+	}
+
 	// Verify operator password.
 	if err := bcrypt.CompareHashAndPassword(s.operatorHash, []byte(password)); err != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")

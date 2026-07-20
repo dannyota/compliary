@@ -12,9 +12,10 @@ Infra mirrors banhmi's AWS shape: CloudFront (TLS termination) -> ECS -> RDS.
 | `COMPLIARY_MCP_TOKEN` | for bearer / fallback | Static bearer token for CLI/script access. If set alongside OAuth, both mechanisms are accepted. |
 | `COMPLIARY_MCP_PUBLIC` | no | `true` to serve reduced projection anonymously when no auth is configured. Default: `false` (401 on `/mcp`). |
 | `COMPLIARY_MCP_ALLOWED_ORIGINS` | no | Comma-separated origins for MCP cross-origin protection. |
-| `COMPLIARY_TRUST_PROXY` | no | `true` when behind a reverse proxy (CloudFront). Uses `X-Forwarded-For` for rate limiting. |
-| `COMPLIARY_MCP_RATE_RPS` | no | Per-IP request rate (default 50). |
-| `COMPLIARY_MCP_RATE_BURST` | no | Per-IP burst capacity (default 100). |
+| `COMPLIARY_TRUST_PROXY` | no | `true` when behind a reverse proxy (CloudFront). Uses the leftmost `X-Forwarded-For` entry as the client IP for rate limiting. |
+| `COMPLIARY_MCP_RATE_RPS` | no | Global per-IP request rate (default 50). |
+| `COMPLIARY_MCP_RATE_BURST` | no | Global per-IP burst capacity (default 100). |
+| `COMPLIARY_OAUTH_RATE_PER_MIN` | no | Tight per-IP limit on `POST /oauth/authorize` and `POST /oauth/token` (brute-force gate; default 10/min). |
 | `PORT` | no | Listen port (default 8088). |
 
 ## Generating the operator password hash

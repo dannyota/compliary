@@ -489,6 +489,38 @@ func TestWrongPassword(t *testing.T) {
 	}
 }
 
+func TestAuthorizePost_RejectsPlainPKCEMethod(t *testing.T) {
+	// Defense-in-depth: a hand-crafted POST with code_challenge_method=plain must
+	// be rejected (400), not bypass the S256 requirement enforced on the GET form.
+	_, ts := testServer(t)
+	clientID, _ := registerTestClient(t, ts)
+	_, challenge := pkce()
+
+	form := url.Values{
+		"password":              {testPassword},
+		"response_type":         {"code"},
+		"client_id":             {clientID},
+		"redirect_uri":          {"http://localhost/callback"},
+		"code_challenge":        {challenge},
+		"code_challenge_method": {"plain"},
+		"scope":                 {"mcp:read"},
+	}
+
+	noRedirect := &http.Client{
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	resp, err := noRedirect.PostForm(ts.URL+"/oauth/authorize", form)
+	if err != nil {
+		t.Fatalf("POST: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("plain method POST: expected 400, got %d", resp.StatusCode)
+	}
+}
+
 func TestInvalidClientID(t *testing.T) {
 	_, ts := testServer(t)
 	_, challenge := pkce()

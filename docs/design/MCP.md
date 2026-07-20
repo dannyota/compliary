@@ -96,6 +96,31 @@ rebinding), redirects are refused, and the response body is capped at 64 KiB.
 Body cap (1 MiB), cross-origin protection, panic recovery. Stateless: no session state -- all tools
 are read-only queries.
 
+**Two-tier rate limiting:**
+- **Global** per-IP limiter on all routes (`COMPLIARY_MCP_RATE_RPS` default 50,
+  `COMPLIARY_MCP_RATE_BURST` default 100).
+- **OAuth brute-force gate:** a tight per-IP limiter layered on top, applied only to
+  `POST /oauth/authorize` and `POST /oauth/token` (the operator-secret guess path + token
+  endpoint). `COMPLIARY_OAUTH_RATE_PER_MIN` default 10 attempts/min. On exceed -> 429 +
+  `Retry-After`.
+
+**Client IP behind proxy:** with `COMPLIARY_TRUST_PROXY=true`, the client IP is the **leftmost**
+`X-Forwarded-For` entry (CloudFront puts the real client first, appending proxy hops rightward), so
+per-IP limiting keys on the true client rather than a shared edge IP.
+
+### Security hardening backlog
+
+Known follow-ups, not yet implemented (severity in parens):
+
+- **DCR registration cap (MEDIUM):** `/oauth/register` is unauthenticated and unbounded -- an
+  attacker can register unlimited clients, growing the in-memory store. Add a per-IP registration
+  cap + total-client ceiling with eviction.
+- **Refresh-reuse family revocation (MEDIUM):** refresh tokens rotate on use and the old token is
+  consumed, but a replayed (already-consumed) refresh token does not revoke the whole token family.
+  OAuth 2.1 recommends revoking the entire family on detected reuse.
+- **PKCE verifier length check (LOW):** the token endpoint verifies the S256 hash but does not
+  enforce RFC 7636's 43-128 char `code_verifier` length bound.
+
 ## Search: score-floor abstention
 
 The `search_abstain_floor` config setting controls when the search tool signals low confidence:
