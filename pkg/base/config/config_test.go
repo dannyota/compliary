@@ -126,6 +126,36 @@ func TestEnvPassword(t *testing.T) {
 	}
 }
 
+func TestEnvDatabaseOverrides(t *testing.T) {
+	t.Setenv("COMPLIARY_DATABASE_HOST", "compliary.abc123.ap-southeast-1.rds.amazonaws.com")
+	t.Setenv("COMPLIARY_DATABASE_PORT", "5432")
+	t.Setenv("COMPLIARY_DATABASE_USER", "compliary")
+	t.Setenv("COMPLIARY_DATABASE_NAME", "compliary")
+	t.Setenv("COMPLIARY_DATABASE_SSLMODE", "require")
+	c, err := Load(filepath.Join(t.TempDir(), "absent.yaml"))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if c.Database.Host != "compliary.abc123.ap-southeast-1.rds.amazonaws.com" {
+		t.Errorf("Host = %q, not applied from env", c.Database.Host)
+	}
+	if c.Database.Port != 5432 {
+		t.Errorf("Port = %d, want 5432", c.Database.Port)
+	}
+	if c.Database.User != "compliary" {
+		t.Errorf("User = %q, not applied from env", c.Database.User)
+	}
+	if c.Database.DBName != "compliary" {
+		t.Errorf("DBName = %q, not applied from env", c.Database.DBName)
+	}
+	if c.Database.SSLMode != "require" {
+		t.Errorf("SSLMode = %q, want require (RDS)", c.Database.SSLMode)
+	}
+	if !strings.Contains(c.Database.DSN(), "sslmode=require") {
+		t.Errorf("DSN missing sslmode=require: %s", c.Database.DSN())
+	}
+}
+
 func TestDSNQuoting(t *testing.T) {
 	d := DatabaseConfig{Host: "local host", Port: 1, User: "u", DBName: "d", SSLMode: "disable", Password: "p w'd"}
 	dsn := d.DSN()

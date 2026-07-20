@@ -27,7 +27,10 @@ type Config struct {
 }
 
 // DatabaseConfig holds PostgreSQL connection settings. Password comes from the
-// environment (COMPLIARY_DATABASE_PASSWORD), never the YAML file.
+// environment (COMPLIARY_DATABASE_PASSWORD), never the YAML file. Host, port,
+// user, dbname, and sslmode can also be overridden from the environment
+// (COMPLIARY_DATABASE_HOST/PORT/USER/NAME/SSLMODE) so the deployed container is
+// configured entirely by env, with no config file baked into the image.
 type DatabaseConfig struct {
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`
@@ -121,6 +124,17 @@ func (c *Config) applyEnv() {
 		if p, err := strconv.Atoi(v); err == nil {
 			c.Database.Port = p
 		}
+	}
+	if v := os.Getenv("COMPLIARY_DATABASE_USER"); v != "" {
+		c.Database.User = v
+	}
+	if v := os.Getenv("COMPLIARY_DATABASE_NAME"); v != "" {
+		c.Database.DBName = v
+	}
+	// SSLMode override matters for managed Postgres: the built-in default is
+	// "disable" for the local podman stack, but RDS should run "require".
+	if v := os.Getenv("COMPLIARY_DATABASE_SSLMODE"); v != "" {
+		c.Database.SSLMode = v
 	}
 	if v := os.Getenv("COMPLIARY_DATA_DIR"); v != "" {
 		c.DataDir = v
