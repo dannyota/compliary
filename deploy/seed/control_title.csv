@@ -727,3 +727,376 @@ pcidss,v4.0.1,A3.3.2,Annual Technology Suitability Review
 pcidss,v4.0.1,A3.3.3,Quarterly BAU Activity Compliance Verification
 pcidss,v4.0.1,A3.4.1,Semi-Annual User Access Privilege Review
 pcidss,v4.0.1,A3.5.1,Behavioral Anomaly and Attack Pattern Detection
+iso27002,2022,5,Organizational Policies Roles and Governance Controls
+iso27002,2022,5.1,Establishing and Reviewing Security Policy Documents
+iso27002,2022,5.10,Governing Acceptable Use of Information Assets
+iso27002,2022,5.11,Returning Assets Upon Employment Termination
+iso27002,2022,5.12,Establishing Information Classification Schemes and Levels
+iso27002,2022,5.13,Applying Classification Labels to Information Assets
+iso27002,2022,5.14,Governing Information Exchanges With External Parties
+iso27002,2022,5.15,Defining and Enforcing Logical Access Rules
+iso27002,2022,5.16,Governing User Identities Throughout Their Lifecycle
+iso27002,2022,5.17,Safeguarding and Managing Authentication Credentials
+iso27002,2022,5.18,Granting and Reviewing User Access Entitlements
+iso27002,2022,5.19,Embedding Security in Supplier and Partner Agreements
+iso27002,2022,5.2,Assigning Organizational Security Functions and Duties
+iso27002,2022,5.20,Addressing Security Within Supplier Service Delivery
+iso27002,2022,5.21,Managing Security Across the ICT Supply Chain
+iso27002,2022,5.22,Monitoring and Reviewing Supplier Service Changes
+iso27002,2022,5.23,Securing Use of Cloud-Hosted Services
+iso27002,2022,5.24,Planning and Preparing Incident Response Processes
+iso27002,2022,5.25,Evaluating and Deciding on Security Event Escalation
+iso27002,2022,5.26,Executing Coordinated Incident Response Actions
+iso27002,2022,5.27,Capturing Lessons From Security Incidents
+iso27002,2022,5.28,Gathering and Preserving Digital Forensic Evidence
+iso27002,2022,5.29,Maintaining Security During Disruptions and Crises
+iso27002,2022,5.3,Separating Conflicting Duties and Responsibilities
+iso27002,2022,5.30,Readiness for Business Continuity and Recovery
+iso27002,2022,5.31,Identifying Applicable Legal and Regulatory Obligations
+iso27002,2022,5.32,Safeguarding Intellectual Property and Licensed Works
+iso27002,2022,5.33,Safeguarding Records From Loss and Falsification
+iso27002,2022,5.34,Protecting Personal Data and Privacy Obligations
+iso27002,2022,5.35,Conducting Independent Security Management Reviews
+iso27002,2022,5.36,Verifying Adherence to Security Policies and Standards
+iso27002,2022,5.37,Formalizing Documented Operating Procedures
+iso27002,2022,5.4,Holding Management Accountable for Security Enforcement
+iso27002,2022,5.5,Engaging With Government and Regulatory Authorities
+iso27002,2022,5.6,Building Relationships With Security Interest Groups
+iso27002,2022,5.7,Collecting and Analysing Information About Security Threats
+iso27002,2022,5.8,Integrating Security Into Project Management Practices
+iso27002,2022,5.9,Cataloguing and Assigning Ownership of Information Assets
+iso27002,2022,6,People Security Screening and Awareness Controls
+iso27002,2022,6.1,Verifying Personnel Backgrounds Before Employment
+iso27002,2022,6.2,Defining Security Terms in Employment Contracts
+iso27002,2022,6.3,Delivering Security Education Training and Awareness
+iso27002,2022,6.4,Establishing a Disciplinary Process for Policy Violations
+iso27002,2022,6.5,Defining Responsibilities After Employment Changes
+iso27002,2022,6.6,Protecting Confidential Information Through Agreements
+iso27002,2022,6.7,Securing Work Performed From Remote Locations
+iso27002,2022,6.8,Reporting Security Weaknesses and Suspicious Events
+iso27002,2022,7,Physical Perimeter and Environmental Protection Controls
+iso27002,2022,7.1,Establishing and Controlling Physical Security Boundaries
+iso27002,2022,7.10,Sanitizing and Disposing of Storage Media Securely
+iso27002,2022,7.11,Ensuring Reliable Power and Utility Supplies
+iso27002,2022,7.12,Protecting Power and Network Cabling From Tampering
+iso27002,2022,7.13,Keeping Equipment Correctly Serviced and Maintained
+iso27002,2022,7.14,Securing Disposal and Reuse of Equipment
+iso27002,2022,7.2,Controlling Entry to Secure Physical Areas
+iso27002,2022,7.3,Protecting Offices Rooms and Facility Interiors
+iso27002,2022,7.4,Detecting and Responding to Physical Security Intrusions
+iso27002,2022,7.5,Mitigating External and Environmental Hazard Risks
+iso27002,2022,7.6,Restricting Access in Sensitive Operational Zones
+iso27002,2022,7.7,Maintaining an Organized and Secure Workspace
+iso27002,2022,7.8,Positioning and Shielding Equipment Against Threats
+iso27002,2022,7.9,Protecting Assets in Transit and Off-Premises
+iso27002,2022,8,Technology Infrastructure and Application Security Controls
+iso27002,2022,8.1,Securing and Managing User Endpoint Devices
+iso27002,2022,8.10,Deleting Information No Longer Required
+iso27002,2022,8.11,Concealing Data Through Masking and Anonymization
+iso27002,2022,8.12,Detecting and Preventing Sensitive Data Leakage
+iso27002,2022,8.13,Maintaining Verified Backup Copies of Information and Systems
+iso27002,2022,8.14,Building Redundancy Into Information Processing Systems
+iso27002,2022,8.15,Recording Activity Through System and Audit Logging
+iso27002,2022,8.16,Continuously Monitoring Infrastructure and Services
+iso27002,2022,8.17,Synchronizing System Clocks to Trusted Time Sources
+iso27002,2022,8.18,Restricting Use of Privileged System Utilities
+iso27002,2022,8.19,Controlling Software Installation on Production Systems
+iso27002,2022,8.2,Managing Elevated System and Administrative Privileges
+iso27002,2022,8.20,Securing Communications Over Public and Private Networks
+iso27002,2022,8.21,Protecting Web-Facing and External Network Services
+iso27002,2022,8.22,Segregating Network Zones by Security Requirements
+iso27002,2022,8.23,Filtering and Controlling Web Access and Content
+iso27002,2022,8.24,Managing Cryptographic Protections and Their Keys
+iso27002,2022,8.25,Building Security Into the Software Development Lifecycle
+iso27002,2022,8.26,Defining and Enforcing Application Security Requirements
+iso27002,2022,8.27,Applying Secure System Architecture and Design Principles
+iso27002,2022,8.28,Performing Secure Coding and Code Review Practices
+iso27002,2022,8.29,Integrating Security Testing Into Development and Acceptance
+iso27002,2022,8.3,Enforcing Need-to-Know Restrictions on Information Access
+iso27002,2022,8.30,Governing Development Outsourced to External Providers
+iso27002,2022,8.31,Separating Development Test and Production Environments
+iso27002,2022,8.32,Planning and Controlling System and Software Changes
+iso27002,2022,8.33,Safeguarding Data Used in Testing Environments
+iso27002,2022,8.34,Protecting Systems During Audit and Assurance Testing
+iso27002,2022,8.4,Controlling Access to Source Code and Build Artefacts
+iso27002,2022,8.5,Designing and Enforcing Secure Authentication Mechanisms
+iso27002,2022,8.6,Planning and Managing Infrastructure Capacity Demands
+iso27002,2022,8.7,Defending Against Malicious Software and Ransomware
+iso27002,2022,8.8,Identifying and Remediating Technical Vulnerabilities
+iso27002,2022,8.9,Managing System Configuration Baselines and Hardening
+cobit,2019,APO,Align and organize IT management processes
+cobit,2019,APO01,Designing the IT management framework
+cobit,2019,APO01.01,Defining the organizational structure for IT
+cobit,2019,APO01.02,Establishing roles and responsibilities
+cobit,2019,APO01.03,Maintaining the management system enablers
+cobit,2019,APO01.04,Defining and enforcing IT policies
+cobit,2019,APO01.05,Optimizing process performance targets
+cobit,2019,APO01.06,Defining information ownership and stewardship
+cobit,2019,APO01.07,Managing continuous improvement of processes
+cobit,2019,APO01.08,Maintaining compliance with policies and procedures
+cobit,2019,APO01.09,Aligning IT with enterprise architecture
+cobit,2019,APO01.10,Defining the IT process management system
+cobit,2019,APO01.11,Assessing the management system effectiveness
+cobit,2019,APO02,Setting the information technology strategy
+cobit,2019,APO02.01,Understanding enterprise direction and goals
+cobit,2019,APO02.02,Assessing current IT capabilities and performance
+cobit,2019,APO02.03,Defining target IT capability roadmap
+cobit,2019,APO02.04,Conducting gap analysis on IT capabilities
+cobit,2019,APO02.05,Producing the strategic IT plan
+cobit,2019,APO02.06,Communicating the IT strategy and direction
+cobit,2019,APO03,Shaping the enterprise architecture landscape
+cobit,2019,APO03.01,Building the enterprise architecture baseline
+cobit,2019,APO03.02,Defining the target architecture reference model
+cobit,2019,APO03.03,Selecting technology and migration opportunities
+cobit,2019,APO03.04,Setting architecture governance principles
+cobit,2019,APO03.05,Providing architecture services and guidance
+cobit,2019,APO04,Driving technology innovation and emerging trends
+cobit,2019,APO04.01,Scanning the environment for innovation opportunities
+cobit,2019,APO04.02,Maintaining an innovation awareness program
+cobit,2019,APO04.03,Assessing the potential of emerging technologies
+cobit,2019,APO04.04,Recommending appropriate innovation initiatives
+cobit,2019,APO04.05,Implementing approved innovation projects
+cobit,2019,APO04.06,Monitoring and measuring innovation value outcomes
+cobit,2019,APO05,Governing the IT investment portfolio
+cobit,2019,APO05.01,Establishing the IT investment mix criteria
+cobit,2019,APO05.02,Determining availability of investment funding
+cobit,2019,APO05.03,Evaluating and selecting programs for funding
+cobit,2019,APO05.04,Monitoring and optimizing IT investment performance
+cobit,2019,APO05.05,Adjusting portfolios based on performance review
+cobit,2019,APO06,Planning and tracking IT budgets and costs
+cobit,2019,APO06.01,Building the IT financial management framework
+cobit,2019,APO06.02,Prioritizing IT resource allocation decisions
+cobit,2019,APO06.03,Establishing IT budgeting practices and controls
+cobit,2019,APO06.04,Modeling and allocating IT costs to consumers
+cobit,2019,APO06.05,Reviewing and optimizing IT spending patterns
+cobit,2019,APO07,Managing IT human resources and competencies
+cobit,2019,APO07.01,Maintaining adequate IT staffing levels
+cobit,2019,APO07.02,Identifying key IT personnel and skill needs
+cobit,2019,APO07.03,Managing IT skills development and training
+cobit,2019,APO07.04,Evaluating individual employee job performance
+cobit,2019,APO07.05,Planning workforce succession and retention
+cobit,2019,APO07.06,Managing contract and temporary IT staff
+cobit,2019,APO08,Governing business and IT relationships
+cobit,2019,APO08.01,Understanding business expectations and priorities
+cobit,2019,APO08.02,Identifying value creation opportunities for business
+cobit,2019,APO08.03,Managing the business and IT partnership lifecycle
+cobit,2019,APO08.04,Coordinating with business for service integration
+cobit,2019,APO08.05,Providing executive management advice on IT direction
+cobit,2019,APO09,Overseeing IT service agreements and catalogs
+cobit,2019,APO09.01,Identifying and cataloging IT-enabled services
+cobit,2019,APO09.02,Defining service level agreements and terms
+cobit,2019,APO09.03,Monitoring actual service level performance
+cobit,2019,APO09.04,Reviewing and updating service agreement terms
+cobit,2019,APO09.05,Reporting on service level achievement and gaps
+cobit,2019,APO10,Overseeing IT vendors and suppliers
+cobit,2019,APO10.01,Identifying and evaluating potential IT suppliers
+cobit,2019,APO10.02,Selecting vendors and formalizing contracts
+cobit,2019,APO10.03,Managing ongoing vendor relationships and risks
+cobit,2019,APO10.04,Monitoring vendor delivery and contract compliance
+cobit,2019,APO10.05,Reviewing and adjusting supplier arrangements
+cobit,2019,APO11,Governing IT quality management practices
+cobit,2019,APO11.01,Establishing quality management system standards
+cobit,2019,APO11.02,Defining quality metrics and acceptance criteria
+cobit,2019,APO11.03,Focusing quality practices on stakeholder needs
+cobit,2019,APO11.04,Performing quality monitoring and control activities
+cobit,2019,APO11.05,Integrating quality into solution delivery processes
+cobit,2019,APO12,Identifying and assessing IT-related risk
+cobit,2019,APO12.01,Collecting and profiling IT risk data
+cobit,2019,APO12.02,Analyzing and quantifying IT risk scenarios
+cobit,2019,APO12.03,Maintaining an aggregated profile of IT risk
+cobit,2019,APO12.04,Articulating risk and presenting risk profiles
+cobit,2019,APO12.05,Defining the risk mitigation action portfolio
+cobit,2019,APO12.06,Responding to identified risk with timely actions
+cobit,2019,APO13,Operating the information security program
+cobit,2019,APO13.01,Establishing the information security management system
+cobit,2019,APO13.02,Defining and implementing security treatment plans
+cobit,2019,APO13.03,Monitoring and reviewing ISMS effectiveness
+cobit,2019,APO14,Governing enterprise data and information assets
+cobit,2019,APO14.01,Defining data management organizational responsibilities
+cobit,2019,APO14.02,Determining data quality requirements and rules
+cobit,2019,APO14.03,Profiling and classifying enterprise data assets
+cobit,2019,APO14.04,Defining data quality assessment methods
+cobit,2019,APO14.05,Tracking and correcting data quality issues
+cobit,2019,APO14.06,Establishing data retention and archival policies
+cobit,2019,APO14.07,Managing data lifecycle from creation to disposal
+cobit,2019,APO14.08,Implementing data backup and recovery controls
+cobit,2019,APO14.09,Evaluating enterprise data management maturity
+cobit,2019,APO14.10,Ensuring regulatory compliance for data handling
+cobit,2019,BAI,Build and implement IT-enabled change
+cobit,2019,BAI01,Governing IT programs and projects
+cobit,2019,BAI01.01,Maintaining a standard program management approach
+cobit,2019,BAI01.02,Initiating programs within the portfolio scope
+cobit,2019,BAI01.03,Managing stakeholder engagement in programs
+cobit,2019,BAI01.04,Developing and maintaining program plans
+cobit,2019,BAI01.05,Launching and executing program workstreams
+cobit,2019,BAI01.06,Monitoring and controlling program progress
+cobit,2019,BAI01.07,Planning and commissioning individual projects
+cobit,2019,BAI01.08,Managing program quality and risk criteria
+cobit,2019,BAI01.09,Closing programs and capturing lessons learned
+cobit,2019,BAI02,Defining IT solution requirements and scope
+cobit,2019,BAI02.01,Eliciting and documenting functional requirements
+cobit,2019,BAI02.02,Conducting feasibility studies for proposed solutions
+cobit,2019,BAI02.03,Managing requirements risk and change control
+cobit,2019,BAI02.04,Obtaining approval of requirements and solutions
+cobit,2019,BAI03,Developing and acquiring IT solutions
+cobit,2019,BAI03.01,Designing high-level and detailed solution components
+cobit,2019,BAI03.02,Designing detailed infrastructure and technology elements
+cobit,2019,BAI03.03,Developing and documenting solution components
+cobit,2019,BAI03.04,Procuring or building solution infrastructure
+cobit,2019,BAI03.05,Building solution components per specifications
+cobit,2019,BAI03.06,Conducting quality assurance and code review
+cobit,2019,BAI03.07,Preparing solution test plans and scenarios
+cobit,2019,BAI03.08,Executing solution functional and integration testing
+cobit,2019,BAI03.09,Managing third-party solution component defects
+cobit,2019,BAI03.10,Maintaining and patching IT solutions
+cobit,2019,BAI03.11,Defining IT service operational support criteria
+cobit,2019,BAI03.12,Evaluating build-versus-buy acquisition strategies
+cobit,2019,BAI04,Managing IT resource availability and capacity
+cobit,2019,BAI04.01,Assessing current availability and capacity baselines
+cobit,2019,BAI04.02,Evaluating business impact of capacity shortfalls
+cobit,2019,BAI04.03,Planning future resource and capacity needs
+cobit,2019,BAI04.04,Monitoring and reviewing availability and performance
+cobit,2019,BAI04.05,Investigating and resolving capacity-related issues
+cobit,2019,BAI05,Facilitating organizational change adoption
+cobit,2019,BAI05.01,Establishing the desire and readiness for change
+cobit,2019,BAI05.02,Forming the implementation team and assigning roles
+cobit,2019,BAI05.03,Communicating the change vision to stakeholders
+cobit,2019,BAI05.04,Empowering change agents and removing barriers
+cobit,2019,BAI05.05,Enabling operational handover and knowledge transfer
+cobit,2019,BAI05.06,Embedding new practices into standard operations
+cobit,2019,BAI05.07,Sustaining change adoption and measuring outcomes
+cobit,2019,BAI06,Controlling IT changes and release scope
+cobit,2019,BAI06.01,Evaluating and prioritizing change requests
+cobit,2019,BAI06.02,Managing emergency and expedited change requests
+cobit,2019,BAI06.03,Tracking and reporting change status to stakeholders
+cobit,2019,BAI06.04,Closing and documenting completed changes
+cobit,2019,BAI07,Governing IT change acceptance and transition
+cobit,2019,BAI07.01,Planning acceptance test scope and criteria
+cobit,2019,BAI07.02,Preparing the business readiness test plan
+cobit,2019,BAI07.03,Testing changes in a pre-production environment
+cobit,2019,BAI07.04,Establishing a conversion and migration plan
+cobit,2019,BAI07.05,Executing user acceptance testing activities
+cobit,2019,BAI07.06,Promoting approved changes to production environment
+cobit,2019,BAI07.07,Providing early production support and stabilization
+cobit,2019,BAI07.08,Performing post-implementation review and evaluation
+cobit,2019,BAI08,Managing organizational knowledge and information sharing
+cobit,2019,BAI08.01,Cultivating and encouraging a knowledge sharing culture
+cobit,2019,BAI08.02,Identifying and classifying knowledge sources
+cobit,2019,BAI08.03,Organizing and contextualizing knowledge assets
+cobit,2019,BAI08.04,Using and sharing knowledge across the enterprise
+cobit,2019,BAI09,Controlling IT assets throughout their lifecycle
+cobit,2019,BAI09.01,Identifying and recording organizational IT assets
+cobit,2019,BAI09.02,Managing critical assets and their configurations
+cobit,2019,BAI09.03,Managing IT asset utilization and performance
+cobit,2019,BAI09.04,Managing software licensing and compliance obligations
+cobit,2019,BAI09.05,Retiring and disposing of IT assets securely
+cobit,2019,BAI10,Governing IT configuration and baselines
+cobit,2019,BAI10.01,Establishing the configuration management framework
+cobit,2019,BAI10.02,Identifying and recording configuration items
+cobit,2019,BAI10.03,Maintaining and updating configuration baselines
+cobit,2019,BAI10.04,Producing configuration status and integrity reports
+cobit,2019,BAI10.05,Verifying and auditing configuration completeness
+cobit,2019,BAI11,Managing IT project scope and delivery
+cobit,2019,BAI11.01,Defining the project management approach and scope
+cobit,2019,BAI11.02,Planning project schedule and resource assignments
+cobit,2019,BAI11.03,Managing project stakeholder engagement
+cobit,2019,BAI11.04,Developing and maintaining the project plan
+cobit,2019,BAI11.05,Monitoring project progress and reporting status
+cobit,2019,BAI11.06,Managing project quality and deliverables
+cobit,2019,BAI11.07,Managing project risk and issue resolution
+cobit,2019,BAI11.08,Managing project scope changes and requirements
+cobit,2019,BAI11.09,Closing the project and capturing lessons
+cobit,2019,DSS,Deliver and support IT-enabled services
+cobit,2019,DSS01,Running IT operations and infrastructure
+cobit,2019,DSS01.01,Performing IT operational procedures and tasks
+cobit,2019,DSS01.02,Managing outsourced IT operational services
+cobit,2019,DSS01.03,Monitoring IT infrastructure and environment
+cobit,2019,DSS01.04,Managing sensitivity to environmental conditions
+cobit,2019,DSS01.05,Managing facilities and physical infrastructure
+cobit,2019,DSS02,Handling IT service requests and incidents
+cobit,2019,DSS02.01,Defining incident and request classification schemes
+cobit,2019,DSS02.02,Recording and categorizing service requests
+cobit,2019,DSS02.03,Verifying and approving submitted service requests
+cobit,2019,DSS02.04,Investigating and diagnosing reported incidents
+cobit,2019,DSS02.05,Resolving and recovering from service incidents
+cobit,2019,DSS02.06,Closing service requests and confirming resolution
+cobit,2019,DSS02.07,Tracking incident trends and producing reports
+cobit,2019,DSS03,Identifying and resolving IT problems
+cobit,2019,DSS03.01,Identifying and classifying recurring IT problems
+cobit,2019,DSS03.02,Investigating root causes of identified problems
+cobit,2019,DSS03.03,Raising known error records and workarounds
+cobit,2019,DSS03.04,Resolving problems and implementing permanent fixes
+cobit,2019,DSS03.05,Performing proactive problem trend analysis
+cobit,2019,DSS04,Planning and managing business continuity
+cobit,2019,DSS04.01,Defining the business continuity policy and scope
+cobit,2019,DSS04.02,Maintaining the business continuity strategy
+cobit,2019,DSS04.03,Developing business continuity response plans
+cobit,2019,DSS04.04,Exercising and testing continuity plan scenarios
+cobit,2019,DSS04.05,Reviewing and updating continuity plan documentation
+cobit,2019,DSS04.06,Conducting continuity plan training and awareness
+cobit,2019,DSS04.07,Managing backup and recovery arrangements
+cobit,2019,DSS04.08,Performing post-recovery review and assessment
+cobit,2019,DSS05,Operating security protection services
+cobit,2019,DSS05.01,Protecting systems against malicious software threats
+cobit,2019,DSS05.02,Managing network and connectivity security controls
+cobit,2019,DSS05.03,Securing endpoint devices and workstations
+cobit,2019,DSS05.04,Managing user identity and logical access rights
+cobit,2019,DSS05.05,Controlling physical access to IT facilities
+cobit,2019,DSS05.06,Managing sensitive documents and output handling
+cobit,2019,DSS05.07,Monitoring the infrastructure for security events
+cobit,2019,DSS06,Controlling business process transactions and data
+cobit,2019,DSS06.01,Aligning control activities with business objectives
+cobit,2019,DSS06.02,Controlling the processing of business transactions
+cobit,2019,DSS06.03,Managing roles and access for business processes
+cobit,2019,DSS06.04,Managing errors and exceptions in processing
+cobit,2019,DSS06.05,Ensuring traceability and accountability of transactions
+cobit,2019,DSS06.06,Securing information assets used in processes
+cobit,2019,EDM,"Governance: evaluate, direct and monitor activities"
+cobit,2019,EDM01,Establishing and maintaining the governance system
+cobit,2019,EDM01.01,Evaluating the governance system design
+cobit,2019,EDM01.02,Directing the governance system implementation
+cobit,2019,EDM01.03,Monitoring the governance system effectiveness
+cobit,2019,EDM02,Steering stakeholder value and benefits delivery
+cobit,2019,EDM02.01,Evaluating value and benefits optimization approach
+cobit,2019,EDM02.02,Directing value creation program execution
+cobit,2019,EDM02.03,Monitoring benefits realization and value outcomes
+cobit,2019,EDM02.04,Evaluating portfolio investment value alignment
+cobit,2019,EDM03,Governing enterprise risk appetite and profile
+cobit,2019,EDM03.01,Evaluating the enterprise risk management framework
+cobit,2019,EDM03.02,Directing the risk management strategy execution
+cobit,2019,EDM03.03,Monitoring risk management outcome effectiveness
+cobit,2019,EDM04,Optimizing IT and business resource utilization
+cobit,2019,EDM04.01,Evaluating resource planning and allocation approaches
+cobit,2019,EDM04.02,Directing resource management strategy and priorities
+cobit,2019,EDM04.03,Monitoring resource utilization and performance outcomes
+cobit,2019,EDM05,Ensuring transparent stakeholder engagement and reporting
+cobit,2019,EDM05.01,Evaluating stakeholder communication requirements
+cobit,2019,EDM05.02,Directing stakeholder engagement and transparency
+cobit,2019,EDM05.03,Monitoring stakeholder reporting and satisfaction
+cobit,2019,MEA,Monitor and assess IT performance and conformance
+cobit,2019,MEA01,Tracking IT performance and conformance outcomes
+cobit,2019,MEA01.01,Establishing the performance monitoring approach
+cobit,2019,MEA01.02,Setting performance targets and tolerance thresholds
+cobit,2019,MEA01.03,Collecting and processing performance monitoring data
+cobit,2019,MEA01.04,Analyzing performance trends and reporting results
+cobit,2019,MEA01.05,Ensuring corrective actions from monitoring findings
+cobit,2019,MEA02,Overseeing internal controls system effectiveness
+cobit,2019,MEA02.01,Monitoring internal controls and their coverage
+cobit,2019,MEA02.02,Reviewing controls effectiveness through self-assessment
+cobit,2019,MEA02.03,Performing control exception and deficiency analysis
+cobit,2019,MEA02.04,Planning and coordinating assurance and audit initiatives
+cobit,2019,MEA03,Assessing compliance with external obligations
+cobit,2019,MEA03.01,Identifying external compliance requirements and changes
+cobit,2019,MEA03.02,Evaluating adherence to regulatory and legal obligations
+cobit,2019,MEA03.03,Confirming external compliance through reporting
+cobit,2019,MEA03.04,Obtaining assurance on external compliance posture
+cobit,2019,MEA04,Providing independent assurance and audit coverage
+cobit,2019,MEA04.01,Establishing independent assurance scope and criteria
+cobit,2019,MEA04.02,Planning the independent assurance engagement
+cobit,2019,MEA04.03,Performing the assurance review and evidence gathering
+cobit,2019,MEA04.04,Reporting assurance findings and recommendations
+cobit,2019,MEA04.05,Following up on assurance remediation actions
+cobit,2019,MEA04.06,Coordinating assurance with external audit providers
+cobit,2019,MEA04.07,Assessing the quality of assurance activities
+cobit,2019,MEA04.08,Integrating assurance outcomes into governance reporting
+cobit,2019,MEA04.09,Evaluating overall assurance program maturity
