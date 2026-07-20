@@ -1100,3 +1100,620 @@ cobit,2019,MEA04.06,Coordinating assurance with external audit providers
 cobit,2019,MEA04.07,Assessing the quality of assurance activities
 cobit,2019,MEA04.08,Integrating assurance outcomes into governance reporting
 cobit,2019,MEA04.09,Evaluating overall assurance program maturity
+soc2tsc,2017,A1.1,Availability capacity planning and demand management
+soc2tsc,2017,A1.1-POF-01,Capacity monitoring and forecasting
+soc2tsc,2017,A1.1-POF-02,Current usage measurement and trending
+soc2tsc,2017,A1.1-POF-03,Demand management controls
+soc2tsc,2017,A1.2,Environmental protections and operational recovery capabilities
+soc2tsc,2017,A1.2-POF-01,Recovery time and recovery point objectives
+soc2tsc,2017,A1.2-POF-02,Backup and restoration procedures
+soc2tsc,2017,A1.2-POF-03,Recovery site and infrastructure readiness
+soc2tsc,2017,A1.2-POF-04,Replication and failover mechanisms
+soc2tsc,2017,A1.2-POF-05,Business continuity plan documentation
+soc2tsc,2017,A1.2-POF-06,Continuity plan testing frequency
+soc2tsc,2017,A1.2-POF-07,Recovery test results evaluation
+soc2tsc,2017,A1.2-POF-08,Alternate processing facility readiness
+soc2tsc,2017,A1.2-POF-09,Data backup integrity verification
+soc2tsc,2017,A1.2-POF-10,Restoration from backup validation
+soc2tsc,2017,A1.2-POF-11,Periodic recovery rehearsal and update
+soc2tsc,2017,A1.3,Recovery plan testing and business continuity maintenance
+soc2tsc,2017,A1.3-POF-01,Continuity plan periodic review and update
+soc2tsc,2017,A1.3-POF-02,Lessons learned from recovery exercises
+soc2tsc,2017,C1.1,Confidential information identification and classification
+soc2tsc,2017,C1.1-POF-01,Confidential information classification criteria
+soc2tsc,2017,C1.1-POF-02,Confidentiality labeling and marking procedures
+soc2tsc,2017,C1.1-POF-03,Handling requirements for confidential data
+soc2tsc,2017,C1.2,Confidential information disposal and destruction
+soc2tsc,2017,C1.2-POF-01,Secure destruction of confidential data
+soc2tsc,2017,C1.2-POF-02,Verification of confidential data disposal
+soc2tsc,2017,CC1.1,Control environment commitment to integrity and ethical values
+soc2tsc,2017,CC1.1-POF-01,Tone at the top for ethical behavior
+soc2tsc,2017,CC1.1-POF-02,Standards of conduct establishment
+soc2tsc,2017,CC1.1-POF-03,Adherence to standards of conduct evaluation
+soc2tsc,2017,CC1.1-POF-04,Deviation from standards addressed promptly
+soc2tsc,2017,CC1.1-POF-05,Ethical values in hiring and promotion
+soc2tsc,2017,CC1.2,Board of directors oversight independence and governance
+soc2tsc,2017,CC1.2-POF-01,Board independence from management
+soc2tsc,2017,CC1.2-POF-02,Board relevant expertise and competence
+soc2tsc,2017,CC1.2-POF-03,Board oversight of internal control responsibilities
+soc2tsc,2017,CC1.2-POF-04,Board interaction with internal and external auditors
+soc2tsc,2017,CC1.3,Management organizational structure and reporting lines
+soc2tsc,2017,CC1.3-POF-01,Defined authority and responsibility assignments
+soc2tsc,2017,CC1.3-POF-02,Reporting lines across the entity
+soc2tsc,2017,CC1.3-POF-03,Segregation of duties in role design
+soc2tsc,2017,CC1.3-POF-04,Organizational chart maintenance and communication
+soc2tsc,2017,CC1.3-POF-05,Delegation of authority limits
+soc2tsc,2017,CC1.3-POF-06,Outsourced function oversight structure
+soc2tsc,2017,CC1.4,Competence commitment and workforce development
+soc2tsc,2017,CC1.4-POF-01,Competency requirements for key roles
+soc2tsc,2017,CC1.4-POF-02,Training and development programs
+soc2tsc,2017,CC1.4-POF-03,Talent attraction and retention practices
+soc2tsc,2017,CC1.4-POF-04,Succession and contingency planning for key roles
+soc2tsc,2017,CC1.4-POF-05,Performance evaluation against competency standards
+soc2tsc,2017,CC1.4-POF-06,Addressing competency shortfalls and gaps
+soc2tsc,2017,CC1.4-POF-07,Workforce capacity relative to objectives
+soc2tsc,2017,CC1.5,Accountability for internal control responsibilities
+soc2tsc,2017,CC1.5-POF-01,Accountability enforcement and consequences
+soc2tsc,2017,CC1.5-POF-02,Performance measures tied to control responsibilities
+soc2tsc,2017,CC1.5-POF-03,Incentive alignment with internal control duties
+soc2tsc,2017,CC1.5-POF-04,Pressure awareness and excessive demand mitigation
+soc2tsc,2017,CC1.5-POF-05,Discipline for control violations
+soc2tsc,2017,CC1.5-POF-06,Reward and recognition for control ownership
+soc2tsc,2017,CC2.1,Information and communication quality for internal control
+soc2tsc,2017,CC2.1-POF-01,Relevant information identification and capture
+soc2tsc,2017,CC2.1-POF-02,Data sources for internal control information
+soc2tsc,2017,CC2.1-POF-03,Processing of data into useful information
+soc2tsc,2017,CC2.1-POF-04,Information quality and integrity maintenance
+soc2tsc,2017,CC2.1-POF-05,Information timeliness and currency
+soc2tsc,2017,CC2.1-POF-06,Completeness of information for decision-making
+soc2tsc,2017,CC2.1-POF-07,Information accuracy verification
+soc2tsc,2017,CC2.1-POF-08,Information accessibility to authorized personnel
+soc2tsc,2017,CC2.1-POF-09,Cost-benefit of information production
+soc2tsc,2017,CC2.2,Internal communication of control objectives and responsibilities
+soc2tsc,2017,CC2.2-POF-01,Communication of control environment expectations
+soc2tsc,2017,CC2.2-POF-02,Policies and procedures communication channels
+soc2tsc,2017,CC2.2-POF-03,Communication of objectives to personnel
+soc2tsc,2017,CC2.2-POF-04,Responsibility assignments communicated clearly
+soc2tsc,2017,CC2.2-POF-05,Communication of changes in systems or controls
+soc2tsc,2017,CC2.2-POF-06,Confidential reporting and whistleblower channels
+soc2tsc,2017,CC2.2-POF-07,Communication between management and the board
+soc2tsc,2017,CC2.2-POF-08,Communication methods and frequency selection
+soc2tsc,2017,CC2.2-POF-09,Communication effectiveness evaluation
+soc2tsc,2017,CC2.2-POF-10,Communication of identified deficiencies
+soc2tsc,2017,CC2.2-POF-11,Separate lines of communication for sensitive matters
+soc2tsc,2017,CC2.2-POF-12,Communication of system description to users
+soc2tsc,2017,CC2.2-POF-13,Communication about principal service commitments
+soc2tsc,2017,CC2.3,External communication with parties and service commitments
+soc2tsc,2017,CC2.3-POF-01,Communication with external parties about controls
+soc2tsc,2017,CC2.3-POF-02,Regulatory and compliance communication
+soc2tsc,2017,CC2.3-POF-03,Communication with vendors and business partners
+soc2tsc,2017,CC2.3-POF-04,External auditor and assessor communication
+soc2tsc,2017,CC2.3-POF-05,Customer commitments and obligations disclosure
+soc2tsc,2017,CC2.3-POF-06,User notification of system changes
+soc2tsc,2017,CC2.3-POF-07,External incident and breach notification
+soc2tsc,2017,CC2.3-POF-08,Service-level agreement communication
+soc2tsc,2017,CC2.3-POF-09,Third-party reporting requirements
+soc2tsc,2017,CC2.3-POF-10,Communication about subservice organizations
+soc2tsc,2017,CC2.3-POF-11,Communication channels for external complaints
+soc2tsc,2017,CC2.3-POF-12,External-facing system description availability
+soc2tsc,2017,CC3.1,Risk assessment objective specification and suitability
+soc2tsc,2017,CC3.1-POF-01,Operations objectives definition
+soc2tsc,2017,CC3.1-POF-02,Compliance objectives identification
+soc2tsc,2017,CC3.1-POF-03,Reporting objectives establishment
+soc2tsc,2017,CC3.1-POF-04,Security objectives articulation
+soc2tsc,2017,CC3.1-POF-05,Availability objectives specification
+soc2tsc,2017,CC3.1-POF-06,Confidentiality objectives establishment
+soc2tsc,2017,CC3.1-POF-07,Processing integrity objectives definition
+soc2tsc,2017,CC3.1-POF-08,Privacy objectives specification
+soc2tsc,2017,CC3.1-POF-09,Objective alignment across business units
+soc2tsc,2017,CC3.1-POF-10,Materiality and risk tolerance thresholds
+soc2tsc,2017,CC3.1-POF-11,Laws and regulations reflected in objectives
+soc2tsc,2017,CC3.1-POF-12,External standards and frameworks considered
+soc2tsc,2017,CC3.1-POF-13,Objectives mapped to trust services categories
+soc2tsc,2017,CC3.1-POF-14,Objectives updated for business changes
+soc2tsc,2017,CC3.1-POF-15,Subobjectives for system components
+soc2tsc,2017,CC3.1-POF-16,Objective applicability to entity and system
+soc2tsc,2017,CC3.2,Risk assessment and significance analysis
+soc2tsc,2017,CC3.2-POF-01,Entity-level risk identification
+soc2tsc,2017,CC3.2-POF-02,System-level risk identification
+soc2tsc,2017,CC3.2-POF-03,Risk factor analysis and significance estimation
+soc2tsc,2017,CC3.2-POF-04,Likelihood and impact assessment
+soc2tsc,2017,CC3.2-POF-05,Technology-related risk identification
+soc2tsc,2017,CC3.2-POF-06,External threat and vulnerability assessment
+soc2tsc,2017,CC3.2-POF-07,Vendor and third-party risk evaluation
+soc2tsc,2017,CC3.2-POF-08,Emerging risk identification practices
+soc2tsc,2017,CC3.2-POF-09,Risk register or inventory maintenance
+soc2tsc,2017,CC3.3,Fraud risk assessment in control environment design
+soc2tsc,2017,CC3.3-POF-01,Fraudulent reporting risk assessment
+soc2tsc,2017,CC3.3-POF-02,Asset misappropriation risk evaluation
+soc2tsc,2017,CC3.3-POF-03,Unauthorized access and manipulation risk
+soc2tsc,2017,CC3.3-POF-04,Management override of controls risk
+soc2tsc,2017,CC3.3-POF-05,Incentives and pressures increasing fraud risk
+soc2tsc,2017,CC3.4,Change identification and impact on internal controls
+soc2tsc,2017,CC3.4-POF-01,Changes in the external environment assessed
+soc2tsc,2017,CC3.4-POF-02,Changes in the business model evaluated
+soc2tsc,2017,CC3.4-POF-03,Changes in leadership and key personnel
+soc2tsc,2017,CC3.4-POF-04,Technology environment changes evaluated
+soc2tsc,2017,CC3.4-POF-05,New vendors and business relationships assessed
+soc2tsc,2017,CC3.4-POF-06,Regulatory and legal changes impact analysis
+soc2tsc,2017,CC4.1,Monitoring activities through ongoing and separate evaluations
+soc2tsc,2017,CC4.1-POF-01,Ongoing monitoring activities scope
+soc2tsc,2017,CC4.1-POF-02,Separate evaluation frequency and design
+soc2tsc,2017,CC4.1-POF-03,Baseline for evaluating control effectiveness
+soc2tsc,2017,CC4.1-POF-04,Qualified evaluators and objectivity
+soc2tsc,2017,CC4.1-POF-05,Evaluation of outsourced function controls
+soc2tsc,2017,CC4.1-POF-06,Evaluation results documentation
+soc2tsc,2017,CC4.1-POF-07,Assessment of controls by independent parties
+soc2tsc,2017,CC4.1-POF-08,Scope adjustment based on risk changes
+soc2tsc,2017,CC4.2,Internal control deficiency communication and remediation
+soc2tsc,2017,CC4.2-POF-01,Deficiency identification and classification
+soc2tsc,2017,CC4.2-POF-02,Corrective action tracking and follow-up
+soc2tsc,2017,CC4.2-POF-03,Deficiency escalation to management and board
+soc2tsc,2017,CC5.1,Control activity selection and development for risk mitigation
+soc2tsc,2017,CC5.1-POF-01,Control activities integrated with risk assessment
+soc2tsc,2017,CC5.1-POF-02,Control type determination for risk mitigation
+soc2tsc,2017,CC5.1-POF-03,Consideration of business process factors
+soc2tsc,2017,CC5.1-POF-04,Segregation of duties in control design
+soc2tsc,2017,CC5.1-POF-05,Manual versus automated control determination
+soc2tsc,2017,CC5.1-POF-06,Control granularity at transaction and entity level
+soc2tsc,2017,CC5.2,Technology general controls over IT infrastructure
+soc2tsc,2017,CC5.2-POF-01,Technology acquisition and implementation controls
+soc2tsc,2017,CC5.2-POF-02,Infrastructure maintenance and management controls
+soc2tsc,2017,CC5.2-POF-03,Security management technology controls
+soc2tsc,2017,CC5.2-POF-04,Technology operations and monitoring controls
+soc2tsc,2017,CC5.3,Control activities deployed through policies and procedures
+soc2tsc,2017,CC5.3-POF-01,Policy establishment for expected practices
+soc2tsc,2017,CC5.3-POF-02,Policy responsibility and accountability assignment
+soc2tsc,2017,CC5.3-POF-03,Timely policy execution and enforcement
+soc2tsc,2017,CC5.3-POF-04,Corrective actions for policy deviations
+soc2tsc,2017,CC5.3-POF-05,Competent personnel performing control activities
+soc2tsc,2017,CC5.3-POF-06,Periodic policy review and reassessment
+soc2tsc,2017,CC6.1,Logical and physical access security implementation
+soc2tsc,2017,CC6.1-POF-01,Information asset inventory and classification
+soc2tsc,2017,CC6.1-POF-02,Access control software and mechanisms
+soc2tsc,2017,CC6.1-POF-03,Credential and authentication management
+soc2tsc,2017,CC6.1-POF-04,Encryption of data at rest and in transit
+soc2tsc,2017,CC6.1-POF-05,Protection of encryption keys
+soc2tsc,2017,CC6.1-POF-06,Network segmentation and boundary protection
+soc2tsc,2017,CC6.1-POF-07,Endpoint protection and malware defense
+soc2tsc,2017,CC6.1-POF-08,Identity management and provisioning
+soc2tsc,2017,CC6.1-POF-09,Physical access restrictions to facilities
+soc2tsc,2017,CC6.1-POF-10,Physical access point monitoring
+soc2tsc,2017,CC6.1-POF-11,Environmental controls for infrastructure
+soc2tsc,2017,CC6.1-POF-12,Logical access restrictions to systems and data
+soc2tsc,2017,CC6.1-POF-13,Infrastructure and application hardening
+soc2tsc,2017,CC6.2,User registration and access authorization controls
+soc2tsc,2017,CC6.2-POF-01,Access provisioning based on authorization
+soc2tsc,2017,CC6.2-POF-02,Role-based or attribute-based access controls
+soc2tsc,2017,CC6.2-POF-03,Access request and approval workflows
+soc2tsc,2017,CC6.3,Access removal and modification upon role change or termination
+soc2tsc,2017,CC6.3-POF-01,Timely access revocation on personnel departure
+soc2tsc,2017,CC6.3-POF-02,Shared account access management on transfer
+soc2tsc,2017,CC6.3-POF-03,Role change access rights modification
+soc2tsc,2017,CC6.3-POF-04,Temporary or emergency access removal procedures
+soc2tsc,2017,CC6.4,Privileged access restriction and review
+soc2tsc,2017,CC6.4-POF-01,Privileged access scope limitation
+soc2tsc,2017,CC6.4-POF-02,Periodic privileged access review and recertification
+soc2tsc,2017,CC6.4-POF-03,Privileged activity logging and monitoring
+soc2tsc,2017,CC6.4-POF-04,Break-glass and emergency access procedures
+soc2tsc,2017,CC6.5,Asset decommissioning and secure disposal controls
+soc2tsc,2017,CC6.5-POF-01,Removing data protections only after data destruction
+soc2tsc,2017,CC6.6,Boundary protection and external threat security measures
+soc2tsc,2017,CC6.6-POF-01,Threat intelligence and vulnerability monitoring
+soc2tsc,2017,CC6.6-POF-02,Intrusion detection and prevention systems
+soc2tsc,2017,CC6.6-POF-03,Security patch and vulnerability management
+soc2tsc,2017,CC6.6-POF-04,Penetration testing and security assessments
+soc2tsc,2017,CC6.7,Data in motion encryption and transmission protection
+soc2tsc,2017,CC6.7-POF-01,Data-in-transit encryption controls
+soc2tsc,2017,CC6.7-POF-02,Secure data transfer protocols
+soc2tsc,2017,CC6.7-POF-03,Data leakage prevention for transmissions
+soc2tsc,2017,CC6.7-POF-04,Transmission integrity verification
+soc2tsc,2017,CC6.8,Malicious software prevention detection and response
+soc2tsc,2017,CC6.8-POF-01,Anti-malware deployment and updates
+soc2tsc,2017,CC6.8-POF-02,Email and web content filtering
+soc2tsc,2017,CC6.8-POF-03,Endpoint detection and response tooling
+soc2tsc,2017,CC6.8-POF-04,Security awareness and phishing training
+soc2tsc,2017,CC6.8-POF-05,Removable media and device controls
+soc2tsc,2017,CC7.1,Infrastructure and software vulnerability management and monitoring
+soc2tsc,2017,CC7.1-POF-01,Security event logging and collection
+soc2tsc,2017,CC7.1-POF-02,Log monitoring and alerting thresholds
+soc2tsc,2017,CC7.1-POF-03,Vulnerability scanning and assessment
+soc2tsc,2017,CC7.1-POF-04,Network traffic analysis and anomaly detection
+soc2tsc,2017,CC7.1-POF-05,Correlation of events from multiple sources
+soc2tsc,2017,CC7.2,Monitoring system operations for anomalies and security events
+soc2tsc,2017,CC7.2-POF-01,Incident detection criteria and indicators
+soc2tsc,2017,CC7.2-POF-02,Incident severity classification scheme
+soc2tsc,2017,CC7.2-POF-03,Incident triage and initial assessment
+soc2tsc,2017,CC7.2-POF-04,Automated alerting for anomalous activity
+soc2tsc,2017,CC7.3,Security event evaluation and impact assessment
+soc2tsc,2017,CC7.3-POF-01,Incident response plan documentation
+soc2tsc,2017,CC7.3-POF-02,Incident response team roles and responsibilities
+soc2tsc,2017,CC7.3-POF-03,Containment and eradication actions
+soc2tsc,2017,CC7.3-POF-04,Evidence preservation and chain of custody
+soc2tsc,2017,CC7.3-POF-05,Communication during incident response
+soc2tsc,2017,CC7.3-POF-06,Regulatory and legal notification requirements
+soc2tsc,2017,CC7.3-POF-07,Post-incident lessons learned and plan updates
+soc2tsc,2017,CC7.4,Security incident response containment and remediation
+soc2tsc,2017,CC7.4-POF-01,Recovery procedures and service restoration steps
+soc2tsc,2017,CC7.4-POF-02,Root cause analysis after incidents
+soc2tsc,2017,CC7.4-POF-03,Remediation actions from incident findings
+soc2tsc,2017,CC7.4-POF-04,Affected-party notification and communication
+soc2tsc,2017,CC7.4-POF-05,Impact assessment of security incidents
+soc2tsc,2017,CC7.4-POF-06,Verification of system integrity after recovery
+soc2tsc,2017,CC7.4-POF-07,Incident trend analysis and pattern identification
+soc2tsc,2017,CC7.4-POF-08,Recovery validation and user acceptance
+soc2tsc,2017,CC7.4-POF-09,Incident documentation and reporting
+soc2tsc,2017,CC7.4-POF-10,Control improvement based on incident experience
+soc2tsc,2017,CC7.4-POF-11,Insurance and risk transfer considerations
+soc2tsc,2017,CC7.4-POF-12,Forensic investigation and evidence analysis
+soc2tsc,2017,CC7.4-POF-13,Third-party incident coordination
+soc2tsc,2017,CC7.4-POF-14,Executive and board incident reporting
+soc2tsc,2017,CC7.5,Incident recovery and restoration of operations
+soc2tsc,2017,CC7.5-POF-01,Incident response effectiveness measurement
+soc2tsc,2017,CC7.5-POF-02,Incident metrics collection and reporting
+soc2tsc,2017,CC7.5-POF-03,Response plan update and rehearsal cadence
+soc2tsc,2017,CC7.5-POF-04,External threat landscape review integration
+soc2tsc,2017,CC7.5-POF-05,Tabletop exercises and response simulations
+soc2tsc,2017,CC7.5-POF-06,Feedback loop for continuous operations improvement
+soc2tsc,2017,CC8.1,Change management authorization and implementation controls
+soc2tsc,2017,CC8.1-POF-01,Change request and approval workflow
+soc2tsc,2017,CC8.1-POF-02,Change classification and prioritization
+soc2tsc,2017,CC8.1-POF-03,Change impact and risk assessment
+soc2tsc,2017,CC8.1-POF-04,Change testing and validation before deployment
+soc2tsc,2017,CC8.1-POF-05,Separation of development and production environments
+soc2tsc,2017,CC8.1-POF-06,Configuration baseline and version control
+soc2tsc,2017,CC8.1-POF-07,Rollback and backout planning
+soc2tsc,2017,CC8.1-POF-08,Emergency change procedures
+soc2tsc,2017,CC8.1-POF-09,Change documentation and audit trail
+soc2tsc,2017,CC8.1-POF-10,Post-implementation review of changes
+soc2tsc,2017,CC8.1-POF-11,Infrastructure change management controls
+soc2tsc,2017,CC8.1-POF-12,Application change management controls
+soc2tsc,2017,CC8.1-POF-13,Database schema change management
+soc2tsc,2017,CC8.1-POF-14,Change advisory board and stakeholder involvement
+soc2tsc,2017,CC8.1-POF-15,Automated deployment and release controls
+soc2tsc,2017,CC8.1-POF-16,Change schedule and maintenance windows
+soc2tsc,2017,CC8.1-POF-17,Third-party and vendor change coordination
+soc2tsc,2017,CC8.1-POF-18,Change success and failure metrics tracking
+soc2tsc,2017,CC9.1,Risk mitigation activity selection and design
+soc2tsc,2017,CC9.1-POF-01,Risk response options evaluation
+soc2tsc,2017,CC9.1-POF-02,Cost-benefit analysis of mitigation actions
+soc2tsc,2017,CC9.2,Vendor and business partner risk assessment and management
+soc2tsc,2017,CC9.2-POF-01,Vendor risk assessment and due diligence
+soc2tsc,2017,CC9.2-POF-02,Vendor selection criteria and evaluation
+soc2tsc,2017,CC9.2-POF-03,Contractual security and compliance requirements
+soc2tsc,2017,CC9.2-POF-04,Vendor performance monitoring
+soc2tsc,2017,CC9.2-POF-05,Subservice organization oversight
+soc2tsc,2017,CC9.2-POF-06,Vendor access controls and restrictions
+soc2tsc,2017,CC9.2-POF-07,Vendor compliance evidence and attestation review
+soc2tsc,2017,CC9.2-POF-08,Vendor termination and transition procedures
+soc2tsc,2017,CC9.2-POF-09,Supply chain and concentration risk evaluation
+soc2tsc,2017,CC9.2-POF-10,Data handling requirements for vendors
+soc2tsc,2017,CC9.2-POF-11,Vendor incident notification and escalation
+soc2tsc,2017,CC9.2-POF-12,Periodic vendor relationship reassessment
+soc2tsc,2017,CC9.2-POF-13,Fourth-party and downstream risk visibility
+soc2tsc,2017,P1.1,Privacy notice and personal information practices disclosure
+soc2tsc,2017,P1.1-POF-01,Purpose of personal information collection disclosed
+soc2tsc,2017,P1.1-POF-02,Notice coverage of data types collected
+soc2tsc,2017,P1.1-POF-03,Notice of third-party data sharing practices
+soc2tsc,2017,P1.1-POF-04,Notice of data subject rights and choices
+soc2tsc,2017,P1.1-POF-05,Notice delivery method and timing
+soc2tsc,2017,P1.1-POF-06,Notice updates and change communication
+soc2tsc,2017,P1.1-POF-07,Notice accessibility and plain language
+soc2tsc,2017,P2.1,Choice and consent for personal information processing
+soc2tsc,2017,P2.1-POF-01,Opt-in and opt-out mechanisms availability
+soc2tsc,2017,P2.1-POF-02,Consent granularity for distinct processing purposes
+soc2tsc,2017,P2.1-POF-03,Implicit versus explicit consent determination
+soc2tsc,2017,P2.1-POF-04,Consent withdrawal mechanism and procedures
+soc2tsc,2017,P2.1-POF-05,Consent records and evidence retention
+soc2tsc,2017,P2.1-POF-06,Consequence of consent refusal disclosed
+soc2tsc,2017,P3.1,Personal information collection limited to identified purposes
+soc2tsc,2017,P3.1-POF-01,Data minimization in collection practices
+soc2tsc,2017,P3.1-POF-02,Collection methods and sources identified
+soc2tsc,2017,P3.1-POF-03,Collection consistent with privacy notice
+soc2tsc,2017,P3.1-POF-04,Third-party data collection on behalf of entity
+soc2tsc,2017,P3.2,Explicit consent for sensitive personal information collection
+soc2tsc,2017,P3.2-POF-01,Sensitive data identification and handling requirements
+soc2tsc,2017,P3.2-POF-02,Enhanced consent for sensitive data categories
+soc2tsc,2017,P4.1,Use retention and disposal limited to disclosed purposes
+soc2tsc,2017,P4.1-POF-01,Purpose limitation enforcement for data usage
+soc2tsc,2017,P4.2,Personal information retention schedule and disposal procedures
+soc2tsc,2017,P4.2-POF-01,Defined retention periods for data categories
+soc2tsc,2017,P4.2-POF-02,Secure disposal procedures for personal data
+soc2tsc,2017,P4.3,Secondary use authorization and new purpose consent
+soc2tsc,2017,P4.3-POF-01,New use authorization and consent refresh
+soc2tsc,2017,P4.3-POF-02,Compatibility assessment for secondary purposes
+soc2tsc,2017,P4.3-POF-03,Internal approval for purpose changes
+soc2tsc,2017,P5.1,Data subject access rights and request fulfillment
+soc2tsc,2017,P5.1-POF-01,Data subject access request process
+soc2tsc,2017,P5.1-POF-02,Identity verification for access requests
+soc2tsc,2017,P5.1-POF-03,Timely response to data subject requests
+soc2tsc,2017,P5.1-POF-04,Format and delivery of requested information
+soc2tsc,2017,P5.1-POF-05,Denial of access justification and appeal
+soc2tsc,2017,P5.2,Personal information correction and deletion requests
+soc2tsc,2017,P5.2-POF-01,Correction request handling procedures
+soc2tsc,2017,P5.2-POF-02,Deletion and erasure request processing
+soc2tsc,2017,P5.2-POF-03,Downstream correction and deletion notification
+soc2tsc,2017,P5.2-POF-04,Dispute resolution for correction requests
+soc2tsc,2017,P6.1,Disclosure of personal information to authorized third parties
+soc2tsc,2017,P6.1-POF-01,Third-party disclosure authorization controls
+soc2tsc,2017,P6.1-POF-02,Data sharing agreements and contracts
+soc2tsc,2017,P6.1-POF-03,Disclosure scope and purpose limitation
+soc2tsc,2017,P6.1-POF-04,Records of disclosures maintained
+soc2tsc,2017,P6.2,Third-party data use obligations and contractual enforcement
+soc2tsc,2017,P6.2-POF-01,Contractual restrictions on recipient data use
+soc2tsc,2017,P6.3,Third-party privacy compliance assessment
+soc2tsc,2017,P6.3-POF-01,Due diligence on third-party privacy compliance
+soc2tsc,2017,P6.4,Data subject notification of third-party disclosures
+soc2tsc,2017,P6.4-POF-01,Disclosure notification method and content
+soc2tsc,2017,P6.4-POF-02,Disclosure tracking for transparency
+soc2tsc,2017,P6.4-POF-03,New recipient notification to data subjects
+soc2tsc,2017,P6.5,Authorization and consent for new disclosure purposes
+soc2tsc,2017,P6.5-POF-01,New disclosure purpose approval process
+soc2tsc,2017,P6.5-POF-02,Consent refresh for changed disclosure scope
+soc2tsc,2017,P6.6,Cross-border personal data transfer safeguards
+soc2tsc,2017,P6.6-POF-01,Jurisdictional data transfer assessment
+soc2tsc,2017,P6.6-POF-02,Transfer mechanism and safeguard selection
+soc2tsc,2017,P6.7,Unauthorized disclosure and privacy breach incident handling
+soc2tsc,2017,P6.7-POF-01,Breach detection and escalation for personal data
+soc2tsc,2017,P6.7-POF-02,Affected individual notification procedures
+soc2tsc,2017,P6.7-POF-03,Regulatory breach reporting compliance
+soc2tsc,2017,P7.1,Personal information accuracy and completeness assurance
+soc2tsc,2017,P7.1-POF-01,Data quality validation at collection
+soc2tsc,2017,P7.1-POF-02,Ongoing accuracy maintenance and refresh
+soc2tsc,2017,P8.1,Privacy program monitoring compliance and enforcement
+soc2tsc,2017,P8.1-POF-01,Privacy policy compliance monitoring activities
+soc2tsc,2017,P8.1-POF-02,Privacy impact assessment processes
+soc2tsc,2017,P8.1-POF-03,Privacy training and awareness programs
+soc2tsc,2017,P8.1-POF-04,Privacy complaint and inquiry handling
+soc2tsc,2017,P8.1-POF-05,Privacy incident investigation and remediation
+soc2tsc,2017,P8.1-POF-06,Regulatory and legal privacy update tracking
+soc2tsc,2017,P8.1-POF-07,Privacy program effectiveness review
+soc2tsc,2017,P8.1-POF-08,Accountability and privacy officer responsibilities
+soc2tsc,2017,PI1.1,Data processing integrity objectives and specifications
+soc2tsc,2017,PI1.1-POF-01,Input completeness and accuracy controls
+soc2tsc,2017,PI1.1-POF-02,Processing logic and calculation verification
+soc2tsc,2017,PI1.1-POF-03,Output reconciliation and validation
+soc2tsc,2017,PI1.2,Processing input validation and error handling controls
+soc2tsc,2017,PI1.2-POF-01,Data input format and range validation
+soc2tsc,2017,PI1.2-POF-02,Duplicate and invalid input detection
+soc2tsc,2017,PI1.2-POF-03,Error correction and reprocessing procedures
+soc2tsc,2017,PI1.3,System processing accuracy timeliness and authorization
+soc2tsc,2017,PI1.3-POF-01,Automated processing controls and checks
+soc2tsc,2017,PI1.3-POF-02,Processing sequence and dependency management
+soc2tsc,2017,PI1.3-POF-03,Exception and error handling during processing
+soc2tsc,2017,PI1.3-POF-04,Processing performance and timeliness monitoring
+soc2tsc,2017,PI1.3-POF-05,Batch and real-time processing integrity controls
+soc2tsc,2017,PI1.4,Processing output completeness accuracy and distribution
+soc2tsc,2017,PI1.4-POF-01,Output completeness verification
+soc2tsc,2017,PI1.4-POF-02,Output distribution to authorized recipients
+soc2tsc,2017,PI1.4-POF-03,Output format accuracy and consistency
+soc2tsc,2017,PI1.4-POF-04,Output retention and archival controls
+soc2tsc,2017,PI1.5,Data storage and retrieval integrity controls
+soc2tsc,2017,PI1.5-POF-01,Data storage integrity and corruption prevention
+soc2tsc,2017,PI1.5-POF-02,Retrieval accuracy and completeness verification
+soc2tsc,2017,PI1.5-POF-03,Data modification audit trail and logging
+soc2tsc,2017,PI1.5-POF-04,Archive and historical data integrity assurance
+csaccm,v4.1,A&A,Audit and assurance controls
+csaccm,v4.1,A&A-01,Establishing audit and assurance policy and procedures
+csaccm,v4.1,A&A-02,Conducting independent assessments
+csaccm,v4.1,A&A-03,Performing risk based planning assessment
+csaccm,v4.1,A&A-04,Verifying requirements compliance
+csaccm,v4.1,A&A-05,Managing the audit management process
+csaccm,v4.1,A&A-06,Tracking and verifying remediation
+csaccm,v4.1,AIS,Application and interface security controls
+csaccm,v4.1,AIS-01,Defining application and interface security policy and procedures
+csaccm,v4.1,AIS-02,Establishing application security baseline requirements
+csaccm,v4.1,AIS-03,Tracking application security metrics
+csaccm,v4.1,AIS-04,Implementing a secure application development lifecycle
+csaccm,v4.1,AIS-05,Performing application security testing
+csaccm,v4.1,AIS-06,Managing secure application deployment
+csaccm,v4.1,AIS-07,Addressing application vulnerability remediation
+csaccm,v4.1,AIS-08,Enforcing API security controls
+csaccm,v4.1,BCR,Business continuity management and operational resilience controls
+csaccm,v4.1,BCR-01,Establishing business continuity management policy and procedures
+csaccm,v4.1,BCR-02,Conducting risk assessment and impact analysis
+csaccm,v4.1,BCR-03,Defining business continuity strategy
+csaccm,v4.1,BCR-04,Developing business continuity planning
+csaccm,v4.1,BCR-05,Maintaining business continuity documentation
+csaccm,v4.1,BCR-06,Conducting business continuity exercises
+csaccm,v4.1,BCR-07,Establishing business continuity communication
+csaccm,v4.1,BCR-08,Managing backup operations
+csaccm,v4.1,BCR-09,Developing a disaster response plan
+csaccm,v4.1,BCR-10,Executing response plan exercise
+csaccm,v4.1,BCR-11,Ensuring equipment redundancy
+csaccm,v4.1,CCC,Change control and configuration management controls
+csaccm,v4.1,CCC-01,Establishing change management policy and procedures
+csaccm,v4.1,CCC-02,Performing quality testing for changes
+csaccm,v4.1,CCC-03,Applying change management technology
+csaccm,v4.1,CCC-04,Implementing unauthorized change protection
+csaccm,v4.1,CCC-05,Managing change agreements
+csaccm,v4.1,CCC-06,Maintaining a change management baseline
+csaccm,v4.1,CCC-07,Detecting baseline deviation
+csaccm,v4.1,CCC-08,Handling exception management for changes
+csaccm,v4.1,CCC-09,Performing change restoration
+csaccm,v4.1,CEK,"Cryptography, encryption and key management controls"
+csaccm,v4.1,CEK-01,Establishing encryption and key management policy and procedures
+csaccm,v4.1,CEK-02,Defining CEK roles and responsibilities
+csaccm,v4.1,CEK-03,Implementing data protection through encryption
+csaccm,v4.1,CEK-04,Selecting appropriate encryption algorithm
+csaccm,v4.1,CEK-05,Managing encryption change management
+csaccm,v4.1,CEK-06,Performing encryption change cost benefit analysis
+csaccm,v4.1,CEK-07,Assessing encryption risk management
+csaccm,v4.1,CEK-08,Enabling service customer key management capability
+csaccm,v4.1,CEK-09,Conducting encryption and key management audit
+csaccm,v4.1,CEK-10,Governing key generation procedures
+csaccm,v4.1,CEK-11,Defining key purpose and scope
+csaccm,v4.1,CEK-12,Scheduling key rotation
+csaccm,v4.1,CEK-13,Executing key revocation
+csaccm,v4.1,CEK-14,Performing secure key destruction
+csaccm,v4.1,CEK-15,Managing key activation
+csaccm,v4.1,CEK-16,Handling key suspension
+csaccm,v4.1,CEK-17,Controlling key deactivation
+csaccm,v4.1,CEK-18,Maintaining key archival
+csaccm,v4.1,CEK-19,Responding to key compromise
+csaccm,v4.1,CEK-20,Facilitating key recovery
+csaccm,v4.1,CEK-21,Maintaining key inventory management
+csaccm,v4.1,DCS,Datacenter security controls
+csaccm,v4.1,DCS-01,Establishing physical and environmental security policy and procedures
+csaccm,v4.1,DCS-02,Enforcing off-site equipment disposal policy and procedures
+csaccm,v4.1,DCS-03,Governing off-site transfer authorization policy and procedures
+csaccm,v4.1,DCS-04,Defining secure area policy and procedures
+csaccm,v4.1,DCS-05,Managing secure media transportation policy and procedures
+csaccm,v4.1,DCS-06,Performing assets classification
+csaccm,v4.1,DCS-07,Maintaining assets cataloguing and tracking
+csaccm,v4.1,DCS-08,Securing controlled physical access points
+csaccm,v4.1,DCS-09,Managing equipment identification
+csaccm,v4.1,DCS-10,Governing secure area authorization
+csaccm,v4.1,DCS-11,Operating the surveillance system
+csaccm,v4.1,DCS-12,Conducting adverse event response training
+csaccm,v4.1,DCS-13,Maintaining cabling security
+csaccm,v4.1,DCS-14,Managing environmental systems
+csaccm,v4.1,DCS-15,Protecting secure utilities
+csaccm,v4.1,DCS-16,Controlling equipment location
+csaccm,v4.1,DCS-17,Tracking datacenter metrics
+csaccm,v4.1,DCS-18,Ensuring datacenter operations resilience
+csaccm,v4.1,DSP,Data security and privacy lifecycle management controls
+csaccm,v4.1,DSP-01,Establishing security and privacy policy and procedures
+csaccm,v4.1,DSP-02,Implementing secure disposal of data
+csaccm,v4.1,DSP-03,Maintaining a data inventory
+csaccm,v4.1,DSP-04,Applying data classification
+csaccm,v4.1,DSP-05,Documenting data flow
+csaccm,v4.1,DSP-06,Assigning data ownership and stewardship
+csaccm,v4.1,DSP-07,Implementing data protection by design and default
+csaccm,v4.1,DSP-08,Implementing data privacy by design and default
+csaccm,v4.1,DSP-09,Conducting data protection impact assessment
+csaccm,v4.1,DSP-10,Controlling sensitive data transfer
+csaccm,v4.1,DSP-11,"Managing personal data access, reversal, rectification and deletion"
+csaccm,v4.1,DSP-12,Enforcing limitation of purpose in personal data processing
+csaccm,v4.1,DSP-13,Overseeing personal data sub-processing
+csaccm,v4.1,DSP-14,Managing disclosure of data sub-processors
+csaccm,v4.1,DSP-15,Enforcing limitation of production data use
+csaccm,v4.1,DSP-16,Governing data retention and deletion
+csaccm,v4.1,DSP-17,Protecting sensitive data from exposure
+csaccm,v4.1,DSP-18,Handling disclosure notification
+csaccm,v4.1,DSP-19,Managing data location requirements
+csaccm,v4.1,GRC,"Governance, risk and compliance controls"
+csaccm,v4.1,GRC-01,Establishing governance program policy and procedures
+csaccm,v4.1,GRC-02,Operating the risk management program
+csaccm,v4.1,GRC-03,Conducting organizational policy reviews
+csaccm,v4.1,GRC-04,Managing the policy exception process
+csaccm,v4.1,GRC-05,Maintaining the information security program
+csaccm,v4.1,GRC-06,Defining the governance responsibility model
+csaccm,v4.1,GRC-07,Performing information system regulatory mapping
+csaccm,v4.1,GRC-08,Engaging special interest groups
+csaccm,v4.1,HRS,Human resources security controls
+csaccm,v4.1,HRS-01,Implementing background screening policy and procedures
+csaccm,v4.1,HRS-02,Enforcing acceptable use of technology policy and procedures
+csaccm,v4.1,HRS-03,Maintaining clean desk policy and procedures
+csaccm,v4.1,HRS-04,Governing remote and home working policy and procedures
+csaccm,v4.1,HRS-05,Managing asset returns
+csaccm,v4.1,HRS-06,Handling employment termination security
+csaccm,v4.1,HRS-07,Defining the employment agreement process
+csaccm,v4.1,HRS-08,Specifying employment agreement content
+csaccm,v4.1,HRS-09,Assigning personnel roles and responsibilities
+csaccm,v4.1,HRS-10,Administering non-disclosure agreements
+csaccm,v4.1,HRS-11,Delivering security awareness training
+csaccm,v4.1,HRS-12,Providing personal and sensitive data awareness and training
+csaccm,v4.1,HRS-13,Ensuring compliance user responsibility
+csaccm,v4.1,IAM,Identity and access management controls
+csaccm,v4.1,IAM-01,Establishing identity and access management policy and procedures
+csaccm,v4.1,IAM-02,Governing credentials management policy and procedures
+csaccm,v4.1,IAM-03,Maintaining the identity inventory
+csaccm,v4.1,IAM-04,Enforcing separation of duties
+csaccm,v4.1,IAM-05,Applying least privilege access
+csaccm,v4.1,IAM-06,Managing access provisioning
+csaccm,v4.1,IAM-07,Processing access changes and revocation
+csaccm,v4.1,IAM-08,Conducting access review
+csaccm,v4.1,IAM-09,Implementing segregation of privileged access roles
+csaccm,v4.1,IAM-10,Controlling management of privileged access roles
+csaccm,v4.1,IAM-11,Obtaining service customers approval for agreed privileged access roles
+csaccm,v4.1,IAM-12,Enforcing unique identities
+csaccm,v4.1,IAM-13,Requiring strong authentication
+csaccm,v4.1,IAM-14,Securing credentials management
+csaccm,v4.1,IAM-15,Implementing authorization mechanisms
+csaccm,v4.1,IPY,Interoperability and portability controls
+csaccm,v4.1,IPY-01,Establishing interoperability and portability policy and procedures
+csaccm,v4.1,IPY-02,Ensuring application interface availability
+csaccm,v4.1,IPY-03,Maintaining secure interoperability and portability management
+csaccm,v4.1,IPY-04,Defining data portability contractual obligations
+csaccm,v4.1,I&S,Infrastructure and virtualization security controls
+csaccm,v4.1,I&S-01,Establishing infrastructure and virtualization security policy and procedures
+csaccm,v4.1,I&S-02,Managing capacity and resource planning
+csaccm,v4.1,I&S-03,Implementing network security controls
+csaccm,v4.1,I&S-04,Applying OS hardening and base controls
+csaccm,v4.1,I&S-05,Segregating production and non-production environments
+csaccm,v4.1,I&S-06,Implementing segmentation and segregation
+csaccm,v4.1,I&S-07,Securing migration to cloud environments
+csaccm,v4.1,I&S-08,Maintaining network architecture documentation
+csaccm,v4.1,I&S-09,Strengthening network defense
+csaccm,v4.1,LOG,Logging and monitoring controls
+csaccm,v4.1,LOG-01,Establishing logging and monitoring policy and procedures
+csaccm,v4.1,LOG-02,Ensuring audit logs protection
+csaccm,v4.1,LOG-03,Implementing security monitoring and alerting
+csaccm,v4.1,LOG-04,Governing audit logs access and accountability
+csaccm,v4.1,LOG-05,Performing audit logs monitoring and response
+csaccm,v4.1,LOG-06,Maintaining clock synchronization
+csaccm,v4.1,LOG-07,Defining logging scope
+csaccm,v4.1,LOG-08,Implementing audit logs sanitization
+csaccm,v4.1,LOG-09,Managing log records
+csaccm,v4.1,LOG-10,Safeguarding audit records protection
+csaccm,v4.1,LOG-11,Performing encryption monitoring and reporting
+csaccm,v4.1,LOG-12,Capturing transaction and activity logging
+csaccm,v4.1,LOG-13,Reviewing access control logs
+csaccm,v4.1,LOG-14,Reporting failures and anomalies
+csaccm,v4.1,SEF,"Security incident management, e-discovery and cloud forensics controls"
+csaccm,v4.1,SEF-01,Establishing security incident management policy and procedures
+csaccm,v4.1,SEF-02,Defining service management policy and procedures
+csaccm,v4.1,SEF-03,Developing incident response plans
+csaccm,v4.1,SEF-04,Conducting incident response testing
+csaccm,v4.1,SEF-05,Tracking incident response metrics
+csaccm,v4.1,SEF-06,Executing event triage processes
+csaccm,v4.1,SEF-07,Managing incident management and response
+csaccm,v4.1,SEF-08,Handling security breach notification
+csaccm,v4.1,SEF-09,Maintaining incident records management
+csaccm,v4.1,SEF-10,Updating points of contact maintenance
+csaccm,v4.1,STA,"Supply chain management, transparency and accountability controls"
+csaccm,v4.1,STA-01,Establishing supply chain risk management policies and procedures
+csaccm,v4.1,STA-02,Defining SSRM policy and procedures
+csaccm,v4.1,STA-03,Governing SSRM supply chain requirements
+csaccm,v4.1,STA-04,Providing SSRM guidance
+csaccm,v4.1,STA-05,Verifying SSRM control ownership
+csaccm,v4.1,STA-06,Conducting SSRM documentation review
+csaccm,v4.1,STA-07,Validating SSRM control implementation
+csaccm,v4.1,STA-08,Maintaining supply chain inventory
+csaccm,v4.1,STA-09,Documenting the service bill of material (BOM)
+csaccm,v4.1,STA-10,Assessing supply chain risk management
+csaccm,v4.1,STA-11,Managing the primary service and contractual agreement
+csaccm,v4.1,STA-12,Performing supply chain agreement review
+csaccm,v4.1,STA-13,Conducting supply chain compliance assessment
+csaccm,v4.1,STA-14,Verifying supply chain service agreement compliance
+csaccm,v4.1,STA-15,Performing supply chain governance review
+csaccm,v4.1,STA-16,Conducting supply chain data security assessment
+csaccm,v4.1,TVM,Threat and vulnerability management controls
+csaccm,v4.1,TVM-01,Establishing threat and vulnerability management policy and procedures
+csaccm,v4.1,TVM-02,Enforcing malware and malicious instructions protection policy and procedures
+csaccm,v4.1,TVM-03,Performing vulnerability identification
+csaccm,v4.1,TVM-04,Conducting threat analysis and modelling
+csaccm,v4.1,TVM-05,Managing detection updates
+csaccm,v4.1,TVM-06,Addressing external library vulnerabilities
+csaccm,v4.1,TVM-07,Executing penetration testing
+csaccm,v4.1,TVM-08,Defining vulnerability remediation schedule
+csaccm,v4.1,TVM-09,Applying vulnerability prioritization
+csaccm,v4.1,TVM-10,Coordinating threat response
+csaccm,v4.1,TVM-11,Producing vulnerability management reporting
+csaccm,v4.1,TVM-12,Tracking vulnerability management metrics
+csaccm,v4.1,UEM,Universal endpoint management controls
+csaccm,v4.1,UEM-01,Establishing endpoint devices policy and procedures
+csaccm,v4.1,UEM-02,Governing application and service approval
+csaccm,v4.1,UEM-03,Ensuring endpoint compatibility
+csaccm,v4.1,UEM-04,Maintaining an endpoint inventory
+csaccm,v4.1,UEM-05,Implementing endpoint management
+csaccm,v4.1,UEM-06,Configuring automatic lock screen
+csaccm,v4.1,UEM-07,Securing operating systems on endpoints
+csaccm,v4.1,UEM-08,Applying storage encryption
+csaccm,v4.1,UEM-09,Deploying anti-malware detection and prevention
+csaccm,v4.1,UEM-10,Configuring software firewall
+csaccm,v4.1,UEM-11,Implementing data loss prevention
+csaccm,v4.1,UEM-12,Enabling remote locate capability
+csaccm,v4.1,UEM-13,Enabling remote wipe capability
+csaccm,v4.1,UEM-14,Assessing third-party endpoint security posture
