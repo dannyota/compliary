@@ -133,10 +133,11 @@ default for every self-deployed operator.)
    = 366 rows; depth distribution X.Y=71 / X.Y.Z=230 / X.Y.Z.W=49 / depth-5=1. **Landed.**
    Titling: generated neutral labels (`"Requirement 8.3.6"`), `title_original` NULL — licensed
    no-title framework rule (see title policy in silver `control` above). Testing Procedures +
-   Guidance columns not modeled (assessment machinery; revisit at eval). **Body noise:** go-fitz
-   interleaves the 3-column layout in reading order; guidance-column prose leaks into 282/351
-   requirement bodies after the requirement text (noisy, not wrong — requirement text leads the
-   body; zero testing-procedure text leaked); column-separation pass deferred to eval.
+   Guidance columns not modeled (assessment machinery). **Body cleanliness:** the normalizer
+   truncates each body at the column boundary (`rePCIStopLine` — "Defined Approach Testing
+   Procedures" / trailing "Guidance" headers), so bodies carry only Defined Approach Requirement
+   text; the 2026-07-20 audit shows 0/351 bodies with column noise (was 282/351 before the
+   stop-line pass).
 6. **AICPA TSC — PDF**: 61 criteria (CC/A/C/PI/P series) + 332 points of focus = 393 rows; neutral
    titles (`"Criterion CC1.1"`), `title_original` = PoF bold lead-in (auth-gated), `serve_gate`
    auth-only. `terms_note` warning fires at normalize (AICPA knowledge-base clause). **Landed.**

@@ -67,9 +67,17 @@ func isPCIBodyLabel(line string) bool {
 	return false
 }
 
-// rePCISkipLine matches structural artifacts from the 3-column layout that
-// are not part of the Defined Approach Requirement content.
-var rePCISkipLine = regexp.MustCompile(`^(Defined Approach (Requirements|Testing Procedures)|Requirements and Testing Procedures|Good Practice|Purpose|Definitions|Examples|Further Information|Guidance)\s*$`)
+// rePCISkipLine matches structural headers from the requirement column itself
+// ("Defined Approach Requirements" / "Requirements and Testing Procedures")
+// that should be skipped (they label our column, not content).
+var rePCISkipLine = regexp.MustCompile(`^(Defined Approach Requirements|Requirements and Testing Procedures)\s*$`)
+
+// rePCIStopLine matches lines containing headers that begin the Testing
+// Procedures or Guidance columns. go-fitz often concatenates multiple column
+// headers onto a single line (e.g. "Defined Approach Testing Procedures
+// Purpose"), so the match is a substring check rather than a full-line anchor.
+// Everything from the first stop-line onward is non-requirement content.
+var rePCIStopLine = regexp.MustCompile(`Defined Approach Testing Procedures|(?:^|\s)Guidance\s*$`)
 
 // BuildPCITree parses a pdf-pages-json capture for PCI DSS and returns the
 // normalized control tree. This is a pure function with no side effects.
@@ -237,7 +245,11 @@ func parsePCIPages(pages []pciPage) ([]pciParsedItem, error) {
 			}
 		}
 
-		// Collect remaining lines until the next first-seen item.
+		// Collect remaining lines until the next first-seen item or a
+		// column-boundary stop line. The PDF's 3-column table linearizes as
+		// requirement → testing procedures → guidance; the stop line marks
+		// where the requirement column ends and the noise begins.
+	bodyLoop:
 		for j := fs.lineIdx + 1; j < endIdx; j++ {
 			nxt := allLines[j]
 
@@ -247,12 +259,13 @@ func parsePCIPages(pages []pciPage) ([]pciParsedItem, error) {
 			default:
 				text := nxt.text
 
-				// Skip structural column-header artifacts.
+				if rePCIStopLine.MatchString(text) {
+					break bodyLoop
+				}
 				if rePCISkipLine.MatchString(text) {
 					continue
 				}
 
-				// Include body labels and regular text.
 				if isPCIBodyLabel(text) {
 					bodyParts = append(bodyParts, text+":")
 				} else {

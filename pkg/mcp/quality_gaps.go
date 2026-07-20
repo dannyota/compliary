@@ -300,7 +300,7 @@ func staticBodyQualityCaveats() []BodyQualityCaveat {
 	return []BodyQualityCaveat{
 		{
 			Framework:   "pcidss",
-			Description: "PCI DSS v4.0.1: go-fitz 3-column PDF extraction interleaves Testing Procedures and Guidance text into 282/351 requirement bodies after the requirement text. The requirement itself is present and correct; trailing noise is from adjacent columns. Column-separation pass deferred.",
+			Description: "PCI DSS v4.0.1: the normalizer truncates requirement bodies at the column boundary (Testing Procedures / Guidance headers) to exclude non-requirement text. A small number of requirements may retain trailing noise where go-fitz column concatenation hides the boundary header.",
 		},
 		{
 			Framework:   "iso27001",
