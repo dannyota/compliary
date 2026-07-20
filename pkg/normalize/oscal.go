@@ -22,6 +22,12 @@ type ControlRow struct {
 	Body          *string
 	ParentIdx     int // index into the parent ControlRow slice; -1 for top-level
 	Ordinal       int32
+	// AmendsCitationNorm + AmendAction are set only on rows inside amendment
+	// documents: the base-document citation this patch modifies and how
+	// (add / replace / delete). Both nil for main-document rows — the DB CHECK
+	// requires them to be set together.
+	AmendsCitationNorm *string
+	AmendAction        *string
 }
 
 // MappingEdge is an in-memory representation of a silver.control_mapping row.

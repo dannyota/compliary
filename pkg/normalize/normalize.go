@@ -34,6 +34,7 @@ type BronzeQuerier interface {
 // SilverQuerier is the subset of dbsilver.Querier needed by normalize.
 type SilverQuerier interface {
 	UpsertDocument(ctx context.Context, arg dbsilver.UpsertDocumentParams) (dbsilver.SilverDocument, error)
+	GetDocumentByKey(ctx context.Context, docKey string) (dbsilver.SilverDocument, error)
 	DeleteControlsForDocument(ctx context.Context, documentID int64) (int64, error)
 	InsertControl(ctx context.Context, arg dbsilver.InsertControlParams) (int64, error)
 	UpsertControlMapping(ctx context.Context, arg dbsilver.UpsertControlMappingParams) error
@@ -88,11 +89,36 @@ func (n *Normalizer) Run(
 			continue
 		}
 
-		// Only 'main' documents parse today. Companion workbooks (CAIQ) and
-		// amendments are deferred until their parsers land — a deferral, not
-		// an error.
-		if deref(f.DocRole) != "main" {
-			n.Log.Info("normalize: deferred doc_role", "path", f.RelPath, "doc_role", deref(f.DocRole))
+		// 'main' documents parse via the scheme switch below. Amendments parse
+		// for the iso-ams scheme when the base main document is already in
+		// silver — amendments attach to the base they modify, so an amendment
+		// without its base (ISO 22301 Amd 1, base not acquired) stays
+		// deferred. Companion workbooks (CAIQ) are deferred by design
+		// (assessment questions are not controls).
+		if role := deref(f.DocRole); role != "main" {
+			if role == "amendment" {
+				fw, err := cfgQ.GetFramework(ctx, fwCode)
+				if err == nil && fw.CitationScheme == "iso-ams" {
+					baseKey := fwCode + "|" + deref(f.VersionLabel) + "|main"
+					if _, err := silverQ.GetDocumentByKey(ctx, baseKey); err == nil {
+						if err := n.normalizeISOAmendment(ctx, f, ingQ, bronzeQ, silverQ); err != nil {
+							n.Log.Error("normalize failed", "path", f.RelPath, "err", err)
+							_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{
+								ID:         f.ID,
+								StageError: fmt.Sprintf("normalize: %s: %s", f.RelPath, err.Error()),
+							})
+							sum.Failed++
+						} else {
+							sum.Succeeded++
+						}
+						continue
+					}
+					n.Log.Info("normalize: deferred amendment (base document absent)", "path", f.RelPath, "base", baseKey)
+					sum.Skipped++
+					continue
+				}
+			}
+			n.Log.Info("normalize: deferred doc_role", "path", f.RelPath, "doc_role", role)
 			sum.Skipped++
 			continue
 		}
@@ -685,16 +711,18 @@ func (n *Normalizer) writeTree(
 		}
 
 		id, err := silverQ.InsertControl(ctx, dbsilver.InsertControlParams{
-			DocumentID:      sdoc.ID,
-			ParentControlID: parentID,
-			Citation:        cr.Citation,
-			CitationNorm:    cr.CitationNorm,
-			Kind:            cr.Kind,
-			Status:          cr.Status,
-			Title:           title,
-			TitleOriginal:   cr.TitleOriginal,
-			Body:            cr.Body,
-			Ordinal:         cr.Ordinal,
+			DocumentID:         sdoc.ID,
+			ParentControlID:    parentID,
+			Citation:           cr.Citation,
+			CitationNorm:       cr.CitationNorm,
+			Kind:               cr.Kind,
+			Status:             cr.Status,
+			Title:              title,
+			TitleOriginal:      cr.TitleOriginal,
+			Body:               cr.Body,
+			Ordinal:            cr.Ordinal,
+			AmendsCitationNorm: cr.AmendsCitationNorm,
+			AmendAction:        cr.AmendAction,
 		})
 		if err != nil {
 			return fmt.Errorf("insert control %s: %w", cr.Citation, err)
@@ -766,6 +794,52 @@ func (n *Normalizer) normalizeISOAMS(
 	tree, err := BuildISO27001Tree(json.RawMessage(re.ContentJsonb), fwCode, verLabel)
 	if err != nil {
 		return fmt.Errorf("build ISO AMS tree: %w", err)
+	}
+
+	doc := DocIdentity{
+		ManifestID:    f.ID,
+		RelPath:       f.RelPath,
+		Sha256:        f.Sha256,
+		FrameworkCode: fwCode,
+		VersionLabel:  verLabel,
+		DocRole:       deref(f.DocRole),
+		Qualifier:     f.Qualifier,
+		ServeGate:     sf.ServeGate,
+	}
+	return n.writeTree(ctx, doc, tree, ingQ, silverQ)
+}
+
+// normalizeISOAmendment parses an ISO amendment document (doc_role
+// 'amendment') into amendment rows attached to the base version. The caller
+// has already verified the base main document exists in silver.
+func (n *Normalizer) normalizeISOAmendment(
+	ctx context.Context,
+	f dbingest.IngestManifestFile,
+	ingQ IngestQuerier,
+	bronzeQ BronzeQuerier,
+	silverQ SilverQuerier,
+) error {
+	sf, err := bronzeQ.GetSourceFile(ctx, dbbronze.GetSourceFileParams{
+		ManifestRelPath: f.RelPath,
+		Sha256:          f.Sha256,
+	})
+	if err != nil {
+		return fmt.Errorf("get source_file: %w", err)
+	}
+
+	re, err := bronzeQ.GetRawExtract(ctx, dbbronze.GetRawExtractParams{
+		SourceFileID: sf.ID,
+		Kind:         "pdf-pages-json",
+	})
+	if err != nil {
+		return fmt.Errorf("get raw_extract: %w", err)
+	}
+
+	fwCode := deref(f.FrameworkCode)
+	verLabel := deref(f.VersionLabel)
+	tree, err := BuildISOAmendmentTree(json.RawMessage(re.ContentJsonb), fwCode, verLabel)
+	if err != nil {
+		return fmt.Errorf("build ISO amendment tree: %w", err)
 	}
 
 	doc := DocIdentity{

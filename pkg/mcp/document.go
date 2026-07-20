@@ -274,7 +274,7 @@ JOIN config.framework_version fv
   ON fv.framework_code = d.framework_code
  AND fv.version_label = d.version_label
 WHERE %s
-ORDER BY fv.is_current DESC, d.framework_code, sc.citation_norm
+ORDER BY fv.is_current DESC, (d.doc_role = 'main') DESC, d.framework_code, sc.citation_norm
 LIMIT 1`, strings.Join(conds, " AND "))
 
 	var ctrl ControlDetail

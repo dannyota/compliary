@@ -3,6 +3,7 @@ package normalize
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -77,6 +78,10 @@ type fakeSilverQuerier struct {
 
 func newFakeSilverQuerier() *fakeSilverQuerier {
 	return &fakeSilverQuerier{nextID: 1}
+}
+
+func (f *fakeSilverQuerier) GetDocumentByKey(_ context.Context, _ string) (dbsilver.SilverDocument, error) {
+	return dbsilver.SilverDocument{}, errors.New("document not found")
 }
 
 func (f *fakeSilverQuerier) UpsertDocument(_ context.Context, arg dbsilver.UpsertDocumentParams) (dbsilver.SilverDocument, error) {
@@ -354,6 +359,10 @@ func newRecordingSilverQuerier() *recordingSilverQuerier {
 	return &recordingSilverQuerier{
 		fakeSilverQuerier: fakeSilverQuerier{nextID: 1},
 	}
+}
+
+func (r *recordingSilverQuerier) GetDocumentByKey(_ context.Context, _ string) (dbsilver.SilverDocument, error) {
+	return dbsilver.SilverDocument{}, errors.New("document not found")
 }
 
 func (r *recordingSilverQuerier) UpsertDocument(ctx context.Context, arg dbsilver.UpsertDocumentParams) (dbsilver.SilverDocument, error) {
