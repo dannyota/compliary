@@ -179,3 +179,41 @@ func findSubstring(s, sub string) bool {
 	}
 	return false
 }
+
+func TestApplyAbstainFloor(t *testing.T) {
+	mk := func(sim float64, vecRank int) eval.Hit {
+		return eval.Hit{Similarity: sim, VectorRank: vecRank, Score: 0.05}
+	}
+	cases := []struct {
+		name        string
+		hits        []eval.Hit
+		floor       float64
+		wantAbstain bool
+		wantCosine  float64
+	}{
+		{"below_floor_abstains", []eval.Hit{mk(0.30, 1), mk(0.25, 2)}, 0.40, true, 0.30},
+		{"above_floor_passes", []eval.Hit{mk(0.55, 1)}, 0.40, false, 0.55},
+		{"best_cosine_not_first_hit", []eval.Hit{{Similarity: 0, BM25Rank: 1, Score: 0.06}, mk(0.62, 3)}, 0.40, false, 0.62},
+		{"bm25_only_never_abstains", []eval.Hit{{Similarity: 0, BM25Rank: 1}, {Similarity: 0, BM25Rank: 2}}, 0.40, false, 0},
+		{"floor_zero_disabled", []eval.Hit{mk(0.10, 1)}, 0, false, 0.10},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ev := eval.Evidence{Hits: tc.hits}
+			applyAbstainFloor(&ev, tc.floor)
+			if ev.Abstain != tc.wantAbstain {
+				t.Errorf("abstain=%v, want %v", ev.Abstain, tc.wantAbstain)
+			}
+			if ev.TopCosine != tc.wantCosine {
+				t.Errorf("topCosine=%v, want %v", ev.TopCosine, tc.wantCosine)
+			}
+			if tc.wantAbstain {
+				if len(ev.Gaps) != 1 || ev.Gaps[0].Kind != "low_confidence" || !ev.Gaps[0].BlocksAnswer {
+					t.Errorf("expected one blocking low_confidence gap, got %+v", ev.Gaps)
+				}
+			} else if len(ev.Gaps) != 0 {
+				t.Errorf("expected no gaps, got %+v", ev.Gaps)
+			}
+		})
+	}
+}

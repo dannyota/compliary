@@ -151,12 +151,12 @@ func run(cfgPath, addrOverride string, log *slog.Logger) error {
 		}
 	}
 
-	scoreFloor := loadScoreFloor(ctx, pool, log)
+	// Raw-cosine abstention floor from config.setting, applied by the retriever.
+	retriever.SetAbstainFloor(loadScoreFloor(ctx, pool, log))
 
 	corpus := mcp.DBCorpus(pool)
 	core := mcp.NewCore(retriever, corpus, log,
 		mcp.WithProjection(projection),
-		mcp.WithScoreFloor(scoreFloor),
 	)
 
 	behindProxy := envBool("COMPLIARY_TRUST_PROXY", false)

@@ -45,6 +45,7 @@ type opts struct {
 	rrfK               int
 	docCap             int
 	lexWeight          float64
+	abstainFloor       float64
 	retrievalMode      string
 	review             bool
 	reviewHits         int
@@ -68,6 +69,7 @@ func main() {
 	flag.IntVar(&o.rrfK, "rrf-k", 0, "RRF fusion constant (0 = default)")
 	flag.IntVar(&o.docCap, "doc-cap", 0, "per-framework hit cap (0 = default)")
 	flag.Float64Var(&o.lexWeight, "lex-weight", 0, "BM25 arm RRF weight (0 = default)")
+	flag.Float64Var(&o.abstainFloor, "abstain-floor", 0, "raw-cosine abstention floor (0 = disabled)")
 	flag.StringVar(&o.retrievalMode, "retrieval-mode", "hybrid", "bm25, vector, or hybrid")
 	flag.BoolVar(&o.review, "review", false, "print per-case evidence review")
 	flag.IntVar(&o.reviewHits, "review-hits", 3, "top hits per case in review mode")
@@ -174,6 +176,9 @@ func run(o opts, log *slog.Logger) error {
 	retriever, err := retrieve.New(pool, embedder, log)
 	if err != nil {
 		return fmt.Errorf("build retriever: %w", err)
+	}
+	if o.abstainFloor > 0 {
+		retriever.SetAbstainFloor(o.abstainFloor)
 	}
 
 	isCurrent := func(h eval.Hit) bool { return h.IsCurrent }

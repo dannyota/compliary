@@ -101,6 +101,11 @@ type Evidence struct {
 	Gaps     []Gap
 	Abstain  bool
 	TopScore float64
+	// TopCosine is the best raw vector cosine similarity across the returned
+	// hits (0 when the dense arm did not run). Unlike the RRF-fused TopScore,
+	// raw cosine keeps an absolute scale, which is what score-floor abstention
+	// compares against.
+	TopCosine float64
 }
 
 // Gap is a reason the evidence is incomplete or uncertain.

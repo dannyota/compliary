@@ -13,6 +13,7 @@ import (
 type fakeSearcher struct {
 	hits    []eval.Hit
 	abstain bool
+	gaps    []eval.Gap
 	err     error
 	lastQ   string
 	lastO   eval.SearchOpts
@@ -33,6 +34,7 @@ func (f *fakeSearcher) SearchEvidence(ctx context.Context, query string, opts ev
 	ev := eval.Evidence{
 		Hits:    f.hits,
 		Abstain: f.abstain,
+		Gaps:    f.gaps,
 	}
 	if len(f.hits) > 0 {
 		ev.TopScore = f.hits[0].Score
@@ -139,19 +141,25 @@ func TestSearch_Hits(t *testing.T) {
 	}
 }
 
-func TestSearch_ScoreFloorAbstention(t *testing.T) {
+func TestSearch_RetrieverAbstentionPassThrough(t *testing.T) {
+	// The score-floor decision lives in the retriever; the core must carry its
+	// abstain flag and low_confidence gap through unchanged.
 	fs := &fakeSearcher{
-		hits: []eval.Hit{
-			{ChunkID: 1, Score: 0.04, Content: "text"},
-		},
+		hits:    []eval.Hit{{ChunkID: 1, Score: 0.04, Content: "text"}},
+		abstain: true,
+		gaps: []eval.Gap{{
+			Kind:         "low_confidence",
+			Message:      "below floor",
+			BlocksAnswer: true,
+		}},
 	}
-	c := NewCore(fs, nil, nil, WithScoreFloor(0.06))
+	c := NewCore(fs, nil, nil)
 	out, err := c.Search(context.Background(), SearchInput{Query: "test"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !out.Abstain {
-		t.Error("should abstain when top score is below floor")
+		t.Error("retriever abstain flag must pass through")
 	}
 	if len(out.Gaps) == 0 {
 		t.Fatal("expected at least one gap")
@@ -170,19 +178,19 @@ func TestSearch_ScoreFloorAbstention(t *testing.T) {
 	}
 }
 
-func TestSearch_ScoreFloorNoAbstain(t *testing.T) {
+func TestSearch_NoAbstainByDefault(t *testing.T) {
 	fs := &fakeSearcher{
 		hits: []eval.Hit{
 			{ChunkID: 1, Score: 0.08, Content: "text"},
 		},
 	}
-	c := NewCore(fs, nil, nil, WithScoreFloor(0.06))
+	c := NewCore(fs, nil, nil)
 	out, err := c.Search(context.Background(), SearchInput{Query: "test"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if out.Abstain {
-		t.Error("should not abstain when top score is above floor")
+		t.Error("should not abstain when the retriever did not")
 	}
 }
 

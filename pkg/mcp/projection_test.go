@@ -97,6 +97,16 @@ func TestProjectDocumentReduced(t *testing.T) {
 		VersionLineage: []VersionLineageRow{
 			{Kind: "version", FrameworkCode: "nist80053", VersionLabel: "r5", IsCurrent: true},
 		},
+		AmendedBy: []AmendmentRef{
+			{
+				Citation:  "4.1",
+				Action:    "add",
+				Qualifier: "amd1-2024",
+				DocKey:    "iso27001|2022|amendment:amd1-2024",
+				Title:     "Amendment change to clause 4.1",
+				Body:      "Add the following sentence at the end of the subclause: …",
+			},
+		},
 	}
 
 	got := c.ProjectDocument(doc)
@@ -111,6 +121,16 @@ func TestProjectDocumentReduced(t *testing.T) {
 	// Paraphrased title must survive.
 	if got.Control.Title != "Account Management" {
 		t.Errorf("reduced projection should keep Control.Title, got %q", got.Control.Title)
+	}
+
+	// Amendment bodies must be stripped; structural fields survive.
+	for i, a := range got.AmendedBy {
+		if a.Body != "" {
+			t.Errorf("amended_by[%d].Body should be stripped, got %q", i, a.Body)
+		}
+		if a.Citation == "" || a.Action == "" || a.Title == "" {
+			t.Errorf("amended_by[%d] structural fields should survive: %+v", i, a)
+		}
 	}
 
 	// Chunk content must be stripped.

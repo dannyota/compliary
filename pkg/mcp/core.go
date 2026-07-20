@@ -55,7 +55,6 @@ type Core struct {
 	corpus     CorpusReader
 	log        *slog.Logger
 	projection Projection
-	scoreFloor float64
 }
 
 // Option configures the Core.
@@ -64,12 +63,6 @@ type Option func(*Core)
 // WithProjection sets the projection mode. Default: ProjectionFull.
 func WithProjection(p Projection) Option {
 	return func(c *Core) { c.projection = p }
-}
-
-// WithScoreFloor sets the score-floor abstention threshold. Hits below
-// this score trigger a low_confidence gap. Default 0 = no floor.
-func WithScoreFloor(f float64) Option {
-	return func(c *Core) { c.scoreFloor = f }
 }
 
 // NewCore builds the evidence query core.
@@ -158,6 +151,11 @@ func (c *Core) ProjectDocument(out DocumentOutput) DocumentOutput {
 		for i := range out.Chunks {
 			out.Chunks[i].Content = ""
 			out.Chunks[i].ContextPrefix = ""
+		}
+		// Amendment bodies carry verbatim instruction text; the citation,
+		// action, and neutral title are structural and survive.
+		for i := range out.AmendedBy {
+			out.AmendedBy[i].Body = ""
 		}
 		// Mapping edges and version lineage are structural (no licensed
 		// text), so they survive reduced projection unchanged.

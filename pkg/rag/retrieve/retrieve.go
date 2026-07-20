@@ -51,6 +51,10 @@ type Retriever struct {
 	embedder embed.Embedder // nil => vector arm skipped, BM25-only
 	log      *slog.Logger
 
+	// abstainFloor is the raw-cosine abstention threshold (0 = disabled);
+	// see SetAbstainFloor.
+	abstainFloor float64
+
 	// frameworkScheme maps framework_code -> citation_scheme, loaded from
 	// config.framework at construction time.
 	frameworkScheme map[string]string
@@ -177,11 +181,43 @@ func (r *Retriever) SearchEvidence(ctx context.Context, query string, opts eval.
 	ev := eval.Evidence{Hits: hits}
 	if len(hits) == 0 {
 		ev.Abstain = true
-	} else {
-		ev.TopScore = hits[0].Score
+		return ev, nil
 	}
+	ev.TopScore = hits[0].Score
+	applyAbstainFloor(&ev, r.abstainFloor)
 	return ev, nil
 }
+
+// applyAbstainFloor fills TopCosine and applies raw-cosine score-floor
+// abstention to ev. The RRF-fused score is a rank artifact with no absolute
+// scale, but cosine similarity is comparable across queries, so the floor
+// compares the best raw cosine across hits — the top fused hit can be BM25-led
+// (Similarity 0), so all hits are scanned. Only meaningful when the dense arm
+// ran: BM25-only mode has no cosine and must not abstain on it.
+func applyAbstainFloor(ev *eval.Evidence, floor float64) {
+	denseRan := false
+	for _, h := range ev.Hits {
+		if h.VectorRank > 0 {
+			denseRan = true
+		}
+		if h.Similarity > ev.TopCosine {
+			ev.TopCosine = h.Similarity
+		}
+	}
+	if floor > 0 && denseRan && ev.TopCosine < floor {
+		ev.Abstain = true
+		ev.Gaps = append(ev.Gaps, eval.Gap{
+			Kind: "low_confidence",
+			Message: fmt.Sprintf("best vector similarity %.4f is below the configured floor %.4f; the query may be outside the corpus scope",
+				ev.TopCosine, floor),
+			BlocksAnswer: true,
+		})
+	}
+}
+
+// SetAbstainFloor sets the raw-cosine abstention floor (0 disables). Callers
+// load the value from the config.setting `search_abstain_floor` row.
+func (r *Retriever) SetAbstainFloor(f float64) { r.abstainFloor = f }
 
 // searchHits runs the full retrieval pipeline.
 func (r *Retriever) searchHits(ctx context.Context, query string, opts eval.SearchOpts) ([]eval.Hit, error) {

@@ -109,15 +109,8 @@ func (c *Core) Search(ctx context.Context, in SearchInput) (SearchOutput, error)
 		out.Hits = append(out.Hits, c.projectHit(sh))
 	}
 
-	// Score-floor abstention.
-	if c.scoreFloor > 0 && len(out.Hits) > 0 && ev.TopScore < c.scoreFloor {
-		out.Abstain = true
-		out.Gaps = append(out.Gaps, SearchGap{
-			Kind:         "low_confidence",
-			Message:      fmt.Sprintf("top score %.5f is below the configured floor %.5f; the query may be outside the corpus scope", ev.TopScore, c.scoreFloor),
-			BlocksAnswer: true,
-		})
-	}
+	// Score-floor abstention lives in the retriever (raw-cosine comparison,
+	// measurable by cmd/eval); its low_confidence gap arrives via ev.Gaps below.
 
 	// No-evidence gap.
 	if len(out.Hits) == 0 {

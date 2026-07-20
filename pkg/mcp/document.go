@@ -23,6 +23,7 @@ type DocumentInput struct {
 type DocumentOutput struct {
 	Found           bool                `json:"found"`
 	Control         *ControlDetail      `json:"control,omitempty"`
+	AmendedBy       []AmendmentRef      `json:"amended_by,omitempty"`
 	Parent          *ControlBrief       `json:"parent,omitempty"`
 	Children        []ControlBrief      `json:"children,omitempty"`
 	Mappings        []MappingEdge       `json:"mappings,omitempty"`
@@ -33,6 +34,20 @@ type DocumentOutput struct {
 	Limit           int                 `json:"limit"`
 	Offset          int                 `json:"offset"`
 	NextOffset      int                 `json:"next_offset,omitempty"`
+}
+
+// AmendmentRef is one amendment patch applied to the looked-up control: a row
+// from an amendment document of the same framework version whose
+// amends_citation_norm targets this control. Title is a generated neutral
+// label; Body carries the verbatim instruction text and is stripped under the
+// reduced projection like every licensed field.
+type AmendmentRef struct {
+	Citation  string `json:"citation"`
+	Action    string `json:"action"` // add | replace | delete
+	Qualifier string `json:"qualifier,omitempty"`
+	DocKey    string `json:"doc_key"`
+	Title     string `json:"title"`
+	Body      string `json:"body,omitempty"`
 }
 
 // ControlDetail is the full control record.
@@ -173,6 +188,14 @@ func (dc *dbCorpus) Document(ctx context.Context, in DocumentInput) (DocumentOut
 
 	inc := documentIncludes(in.Include)
 
+	// Amendment patches targeting this control (always included — at most a
+	// handful of rows, and an agent that misses a patch cites stale text).
+	amendedBy, err := dc.controlAmendments(ctx, ctrl)
+	if err != nil {
+		return DocumentOutput{}, err
+	}
+	out.AmendedBy = amendedBy
+
 	// Parent context.
 	parent, err := dc.controlParent(ctx, ctrl.ControlID)
 	if err != nil {
@@ -225,6 +248,41 @@ func (dc *dbCorpus) Document(ctx context.Context, in DocumentInput) (DocumentOut
 }
 
 // --- DB helpers ---
+
+// controlAmendments returns amendment rows (doc_role 'amendment', same
+// framework and version) whose amends_citation_norm targets ctrl. For a
+// control that is itself an amendment row, this returns nothing — patches
+// target base citations.
+func (dc *dbCorpus) controlAmendments(ctx context.Context, ctrl ControlDetail) ([]AmendmentRef, error) {
+	const sql = `
+SELECT sc.citation, sc.amend_action, d.qualifier, d.doc_key, sc.title, COALESCE(sc.body, '')
+FROM silver.control sc
+JOIN silver.document d ON d.id = sc.document_id
+WHERE d.framework_code = $1
+  AND d.version_label = $2
+  AND d.doc_role = 'amendment'
+  AND sc.amends_citation_norm = $3
+ORDER BY d.qualifier, sc.citation`
+	rows, err := dc.pool.Query(ctx, sql, ctrl.FrameworkCode, ctrl.VersionLabel, ctrl.CitationNorm)
+	if err != nil {
+		return nil, fmt.Errorf("query amendments: %w", err)
+	}
+	defer rows.Close()
+
+	var out []AmendmentRef
+	for rows.Next() {
+		var a AmendmentRef
+		var action *string
+		if err := rows.Scan(&a.Citation, &action, &a.Qualifier, &a.DocKey, &a.Title, &a.Body); err != nil {
+			return nil, fmt.Errorf("scan amendment: %w", err)
+		}
+		if action != nil {
+			a.Action = *action
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
 
 func (dc *dbCorpus) findControl(ctx context.Context, citation, frameworkCode, versionLabel string) (ControlDetail, bool, error) {
 	var conds []string

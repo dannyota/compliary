@@ -67,13 +67,12 @@ func serve(ctx context.Context, pool *pgxpool.Pool, emb embed.Embedder, log *slo
 		return fmt.Errorf("build retriever: %w", err)
 	}
 
-	// Load score floor from config.setting.
-	scoreFloor := loadScoreFloor(ctx, pool, log)
+	// Raw-cosine abstention floor from config.setting, applied by the retriever.
+	retriever.SetAbstainFloor(loadScoreFloor(ctx, pool, log))
 
 	corpus := mcp.DBCorpus(pool)
 	core := mcp.NewCore(retriever, corpus, log,
 		mcp.WithProjection(mcp.ProjectionFull),
-		mcp.WithScoreFloor(scoreFloor),
 	)
 	srv := mcp.NewServer(core, log, mcp.WithVersion(version))
 
