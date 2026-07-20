@@ -112,8 +112,18 @@ milestone history.
    Eval (ONNX, 105 cases): open-corpus recall 65.0%/MRR 44.6%/current 100%/abstain 95.2%;
    filtered recall 80.0%/MRR 62.9%/current 94.2%/abstain 95.2%. No regression vs Phase A baseline.
    Tool contract in [`docs/design/MCP.md`](docs/design/MCP.md).
-3. **M4 — deploy maintainer instance** (next) — `compliary.danny.vn`: public landing, **authenticated
-   `/mcp`** (auth per open decision 1). Reuse banhmi's AWS shape (CloudFront → ECS → RDS).
+3. **M4 — deploy maintainer instance** (**live + validated 2026-07-20**) — `compliary.danny.vn`:
+   **authenticated `/mcp`** (OAuth; unauthenticated → 401). Co-located as **one extra ECS service on
+   banhmi's EC2 host** (cluster `banhmi`), calling banhmi's embedder over loopback
+   (`COMPLIARY_EMBED_ENDPOINT=http://127.0.0.1:8089`) so only the slim CGO-free MCP server ships (no
+   ONNX). Origin-verify (`X-Origin-Verify`) enforces CloudFront-only ingress; the corpus lives in a
+   `compliary` database on banhmi's shared RDS. **Validated end-to-end through CloudFront:** health
+   200, unauth `/mcp` 401, OAuth metadata, authenticated MCP handshake, `corpus_status` (11
+   frameworks / 3402 controls) and `search` returning correct evidence (PCI DSS MFA → Req 8.4/8.5/
+   8.3.11) — exercising the shared embedder. Files:
+   [`deploy/containerfiles/Containerfile.ecs.server`](deploy/containerfiles/Containerfile.ecs.server),
+   [`deploy/aws/`](deploy/aws/) (task def, CloudFront, `setup-checklist.md`); topology in
+   [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
 ### v0.1.x — patch releases
 

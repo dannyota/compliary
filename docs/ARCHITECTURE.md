@@ -140,9 +140,11 @@ cgo**; no OCR engine at all), Qwen3-Embedding-0.6B ONNX (Kaggle T4 bulk when `KA
 set + >=200 missing, local ONNX in-process for queries — CPU bulk explicitly rejected for laptop
 load), official Go MCP SDK, Apache 2.0 (code only — corpus stays operator-local).
 
-**Embedder strategy (settled):** the maintainer's deployed instance **shares banhmi's
-embedder** (same Qwen3 model + infra, one embedding service for both products — wiring decided
-at M4). **Self-deployers stay self-contained:** the embed/lexindex/retrieve code is **copied
+**Embedder strategy (settled; wiring landed at M4):** the maintainer's deployed instance **shares
+banhmi's embedder** (same Qwen3 model + infra, one embedding service for both products). `cmd/server`
+selects an OpenAI-compatible HTTP embedder when `COMPLIARY_EMBED_ENDPOINT` is set (banhmi's embedder
+on `127.0.0.1:8089`, co-located on the same ECS host), so the deployed image packages **no ONNX** —
+see [`OPERATIONS.md`](OPERATIONS.md). Unset → in-process ONNX (local/self-deploy). **Self-deployers stay self-contained:** the embed/lexindex/retrieve code is **copied
 from banhmi into this repo** when the Index stage lands (same author for both; copy, not a
 module dependency — the ported-patterns doctrine unchanged).
 

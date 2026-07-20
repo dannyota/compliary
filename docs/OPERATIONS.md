@@ -3,6 +3,40 @@
 Deployment and connector setup for compliary's maintainer instance at `compliary.danny.vn`.
 Infra mirrors banhmi's AWS shape: CloudFront (TLS termination) -> ECS -> RDS.
 
+## Deployment topology — co-located on banhmi's ECS
+
+The maintainer instance runs as **one extra ECS service on banhmi's existing EC2
+host**, not a separate stack. Full runbook: [`deploy/aws/setup-checklist.md`](../deploy/aws/setup-checklist.md).
+
+```
+                 CloudFront (TLS, X-Origin-Verify)
+   banhmi.danny.vn ─┐   laksa/… ─┐   compliary.danny.vn ─┐
+                    ▼            ▼                        ▼
+     ec2-…compute.amazonaws.com:8081  :8082 …     (same EC2 host):8084
+   ┌──────────────────── one t4g.medium (ECS cluster banhmi) ───────────────────────┐
+   │  banhmi-mcp        banhmi-embedder            compliary-mcp                     │
+   │  cmd/server        cmd/embedder  ◀─ HTTP ───  cmd/server                        │
+   │  :8081             127.0.0.1:8089  /embeddings (COMPLIARY_EMBED_ENDPOINT)       │
+   └──────────────────────────────────────┬───────────────────────────────────────┘
+                                           ▼
+                       RDS Postgres (shared instance; DB `compliary`)
+```
+
+- **Only `cmd/server` is deployed** (slim, CGO-free, no ONNX):
+  [`deploy/containerfiles/Containerfile.ecs.server`](../deploy/containerfiles/Containerfile.ecs.server).
+- **Query embedding is delegated** to banhmi's embedder over loopback
+  (`COMPLIARY_EMBED_ENDPOINT=http://127.0.0.1:8089`). That embedder binds
+  `127.0.0.1` only, so co-location on the same instance is required. Same
+  Qwen3-Embedding-0.6B / 1024-d as the Kaggle-embedded corpus, so vectors align.
+- **Shared with banhmi:** EC2 host, ECS cluster `banhmi`, embedder + its
+  `/banhmi/embed-token`, RDS instance + security group, Elastic IP / origin.
+  **New for compliary:** RDS database `compliary`, SG rule for port 8084, its
+  **own** `compliary.danny.vn` ACM cert (banhmi uses per-domain certs), a
+  CloudFront distribution, and the secrets below.
+- **`COMPLIARY_ORIGIN_VERIFY_SECRET`** enforces CloudFront-only ingress: a request
+  hitting the origin directly (or via another distribution) lacks `X-Origin-Verify`
+  and is 403'd — which is what makes the `COMPLIARY_TRUST_PROXY` XFF handling sound.
+
 ## Environment variables
 
 | Variable | Required | Description |
@@ -11,8 +45,17 @@ Infra mirrors banhmi's AWS shape: CloudFront (TLS termination) -> ECS -> RDS.
 | `COMPLIARY_OAUTH_OPERATOR_SECRET` | for OAuth | bcrypt hash of the operator's password. Generate: `htpasswd -nbBC 10 "" 'your-password' \| cut -d: -f2` |
 | `COMPLIARY_MCP_TOKEN` | for bearer / fallback | Static bearer token for CLI/script access. If set alongside OAuth, both mechanisms are accepted. |
 | `COMPLIARY_MCP_PUBLIC` | no | `true` to serve reduced projection anonymously when no auth is configured. Default: `false` (401 on `/mcp`). |
+| `COMPLIARY_EMBED_ENDPOINT` | for HTTP embed | OpenAI-compatible embeddings base URL (e.g. `http://127.0.0.1:8089`, banhmi's embedder). When set, the server calls it for query embedding and packages no ONNX. Unset → in-process ONNX (local, needs `-tags onnx`). |
+| `COMPLIARY_EMBED_TOKEN` | no | Bearer token sent to `COMPLIARY_EMBED_ENDPOINT`. For banhmi's embedder this is the value of `/banhmi/embed-token`. |
+| `COMPLIARY_ORIGIN_VERIFY_SECRET` | for CloudFront | Secret(s) that must arrive in the `X-Origin-Verify` header (injected by the CloudFront distribution). Non-`/healthz` requests without a match get 403. Comma-separated for zero-downtime rotation. Empty → disabled. |
 | `COMPLIARY_MCP_ALLOWED_ORIGINS` | no | Comma-separated origins for MCP cross-origin protection. |
 | `COMPLIARY_TRUST_PROXY` | no | `true` when behind a reverse proxy (CloudFront). The client IP for rate limiting is the entry the trusted edge **appended** to `X-Forwarded-For` (position `len − hops`), not the client-controllable leftmost entry. |
+| `COMPLIARY_DATABASE_HOST` | no | Postgres host (default `localhost`). Set to the RDS endpoint in deployment. |
+| `COMPLIARY_DATABASE_PORT` | no | Postgres port (default `10011` for the local podman stack; `5432` for RDS). |
+| `COMPLIARY_DATABASE_USER` | no | Postgres user (default `compliary`). |
+| `COMPLIARY_DATABASE_NAME` | no | Postgres database (default `compliary`). |
+| `COMPLIARY_DATABASE_SSLMODE` | no | libpq sslmode (default `disable` for local; use `require` for RDS). |
+| `COMPLIARY_DATABASE_PASSWORD` | for DB auth | Postgres password. Secret — from SSM in deployment, never the config file. |
 | `COMPLIARY_TRUSTED_PROXY_HOPS` | no | Number of appending proxies between the client and this server (default `1` for a single CloudFront edge). Set `2` behind CloudFront→ALB. Too-low over-restricts (fail-safe); too-high risks trusting a client-supplied entry. |
 | `COMPLIARY_OAUTH_RATE_PER_MIN` | no | Per-IP attempt budget for `POST /oauth/authorize` and `POST /oauth/token` (brute-force gate; default 10). |
 | `COMPLIARY_MCP_RATE_RPS` | no | Global per-IP request rate (default 50). |
