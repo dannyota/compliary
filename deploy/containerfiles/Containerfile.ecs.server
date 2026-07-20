@@ -1,0 +1,53 @@
+# compliary MCP server image (ARM64 Graviton) — slim, CGO-free, no embedder.
+#
+# This image runs ONLY the MCP evidence server (cmd/server). Query embedding is
+# delegated to a standalone OpenAI-compatible embedder service over HTTP
+# (COMPLIARY_EMBED_ENDPOINT), set in the ECS task definition — in the maintainer
+# deployment that is the co-located banhmi embedder on 127.0.0.1:8089 (same EC2
+# host, host networking). So this image packages NO ONNX model, NO ONNX Runtime,
+# and NO tokenizer: small image, sub-second restarts.
+#
+# CGO is OFF: unlike banhmi's server, compliary's cmd/server has no go-fitz/MuPDF
+# dependency (PDF extraction lives in cmd/pipeline, which is built and run locally
+# and never deployed). Confirm before a version bump: `go list -deps ./cmd/server`
+# must show no go-fitz / mupdf.
+#
+# ECS health check probes /healthz via the healthcheck binary (distroless has no
+# shell or curl):
+#   CMD ["/healthcheck", "http://localhost:8084/healthz"]
+#
+# Build (on ARM64 host, from repo root):
+#   podman build -t compliary-server -f deploy/containerfiles/Containerfile.ecs.server .
+#
+# VERSION build arg stamps corpus_status via -X main.version:
+#   podman build -t compliary-server --build-arg VERSION=0.1.0-20260720 \
+#     -f deploy/containerfiles/Containerfile.ecs.server .
+
+ARG GO_IMAGE=docker.io/golang:1.26.3-bookworm
+# distroless/cc, NOT distroless/static: Go 1.26 emits PIE binaries on linux/arm64
+# (dynamically linked, interpreter ld-linux-aarch64) even with CGO_ENABLED=0, and
+# static-debian12 ships no dynamic loader — exec fails with "no such file or
+# directory". cc ships the loader (proven in banhmi prod, 2026-07-19).
+ARG RUNTIME_IMAGE=gcr.io/distroless/cc-debian12:nonroot
+# VERSION lands in corpus_status via -X main.version (default keeps local builds honest).
+ARG VERSION=dev
+
+# ── Go builder (CGO OFF — no go-fitz, no ONNX) ───────────────────────────────
+FROM ${GO_IMAGE} AS build
+ARG VERSION
+ENV CGO_ENABLED=0 GOFLAGS=-trimpath GOOS=linux GOARCH=arm64
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN go build -ldflags="-s -w -X main.version=${VERSION}" -o /out/server ./cmd/server
+RUN go build -ldflags="-s -w" -o /out/healthcheck ./cmd/healthcheck
+
+# ── Runtime: distroless/cc (glibc loader for the PIE binary), non-root ────────
+FROM ${RUNTIME_IMAGE}
+COPY --from=build /out/server      /server
+COPY --from=build /out/healthcheck /healthcheck
+
+EXPOSE 8084
+USER nonroot:nonroot
+ENTRYPOINT ["/server"]

@@ -1,0 +1,112 @@
+{
+  "_comment": "compliary MCP server — one ECS/EC2 service co-located on banhmi's cluster (banhmi-mcp), host networking, port 8084. It calls banhmi's embedder over loopback (COMPLIARY_EMBED_ENDPOINT=http://127.0.0.1:8089) — co-location on the SAME instance is required because that embedder binds 127.0.0.1 only. No ONNX is packaged. Replace YOUR_ACCOUNT_ID / YOUR_RDS_ENDPOINT / the secret ARN suffixes before registering, and pin the image by tag or @sha256 digest (never :latest) for reproducible deploys.",
+  "family": "compliary-mcp",
+  "networkMode": "host",
+  "requiresCompatibilities": [
+    "EC2"
+  ],
+  "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "compliary-mcp",
+      "image": "YOUR_ACCOUNT_ID.dkr.ecr.ap-southeast-1.amazonaws.com/compliary-mcp:latest",
+      "essential": true,
+      "readonlyRootFilesystem": true,
+      "linuxParameters": {
+        "capabilities": {
+          "drop": [
+            "ALL"
+          ]
+        }
+      },
+      "portMappings": [
+        {
+          "containerPort": 8084,
+          "hostPort": 8084,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "PORT",
+          "value": "8084"
+        },
+        {
+          "name": "COMPLIARY_PUBLIC_URL",
+          "value": "https://compliary.danny.vn"
+        },
+        {
+          "name": "COMPLIARY_EMBED_ENDPOINT",
+          "value": "http://127.0.0.1:8089"
+        },
+        {
+          "name": "COMPLIARY_TRUST_PROXY",
+          "value": "true"
+        },
+        {
+          "name": "COMPLIARY_TRUSTED_PROXY_HOPS",
+          "value": "1"
+        },
+        {
+          "name": "COMPLIARY_DATABASE_HOST",
+          "value": "YOUR_RDS_ENDPOINT"
+        },
+        {
+          "name": "COMPLIARY_DATABASE_PORT",
+          "value": "5432"
+        },
+        {
+          "name": "COMPLIARY_DATABASE_USER",
+          "value": "compliary"
+        },
+        {
+          "name": "COMPLIARY_DATABASE_NAME",
+          "value": "compliary"
+        },
+        {
+          "name": "COMPLIARY_DATABASE_SSLMODE",
+          "value": "require"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "COMPLIARY_DATABASE_PASSWORD",
+          "valueFrom": "arn:aws:ssm:ap-southeast-1:YOUR_ACCOUNT_ID:parameter/compliary/db-password"
+        },
+        {
+          "name": "COMPLIARY_EMBED_TOKEN",
+          "valueFrom": "arn:aws:ssm:ap-southeast-1:YOUR_ACCOUNT_ID:parameter/banhmi/embed-token"
+        },
+        {
+          "name": "COMPLIARY_OAUTH_OPERATOR_SECRET",
+          "valueFrom": "arn:aws:ssm:ap-southeast-1:YOUR_ACCOUNT_ID:parameter/compliary/oauth-operator-secret"
+        },
+        {
+          "name": "COMPLIARY_ORIGIN_VERIFY_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:YOUR_ACCOUNT_ID:secret:compliary-origin-verify-SUFFIX"
+        }
+      ],
+      "memoryReservation": 300,
+      "cpu": 256,
+      "healthCheck": {
+        "command": [
+          "CMD",
+          "/healthcheck",
+          "http://localhost:8084/healthz"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/compliary-mcp",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "compliary"
+        }
+      }
+    }
+  ]
+}
