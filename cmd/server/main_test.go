@@ -14,8 +14,11 @@ func okHandler(reached *bool) http.Handler {
 	})
 }
 
-func TestClientIP_XFFFirstEntry(t *testing.T) {
-	// CloudFront puts the real client leftmost, appending proxy hops rightward.
+func TestClientIP_XFFSpoofResistant(t *testing.T) {
+	// Edge proxies (CloudFront) APPEND the viewer IP to X-Forwarded-For, so the
+	// trustworthy client IP is the entry the edge added — position len-hops
+	// (hops=1 here). The leftmost entry is client-controllable and must never
+	// be used for rate limiting.
 	tests := []struct {
 		name       string
 		xff        string
@@ -24,8 +27,18 @@ func TestClientIP_XFFFirstEntry(t *testing.T) {
 		want       string
 	}{
 		{
-			name:       "trust_proxy_takes_first",
-			xff:        "203.0.113.7, 70.132.60.1, 130.176.0.1",
+			// Client spoofs a leftmost value; CloudFront appends the real IP.
+			// We must take the appended (rightmost) value, ignoring the spoof.
+			name:       "trust_proxy_ignores_spoofed_leftmost",
+			xff:        "1.2.3.4, 203.0.113.7",
+			remoteAddr: "10.0.0.5:443",
+			trustProxy: true,
+			want:       "203.0.113.7",
+		},
+		{
+			// Different spoofed leftmost, SAME edge-appended IP → same bucket.
+			name:       "trust_proxy_spoof_rotation_same_bucket",
+			xff:        "9.9.9.9, 203.0.113.7",
 			remoteAddr: "10.0.0.5:443",
 			trustProxy: true,
 			want:       "203.0.113.7",
@@ -52,8 +65,8 @@ func TestClientIP_XFFFirstEntry(t *testing.T) {
 			want:       "198.51.100.2",
 		},
 		{
-			name:       "trust_proxy_leading_space",
-			xff:        "  203.0.113.7 , 70.132.60.1",
+			name:       "trust_proxy_trailing_space",
+			xff:        "1.2.3.4,  203.0.113.7 ",
 			remoteAddr: "10.0.0.5:443",
 			trustProxy: true,
 			want:       "203.0.113.7",

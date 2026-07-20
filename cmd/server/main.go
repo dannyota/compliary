@@ -479,16 +479,32 @@ func (rl *rateLimiter) startEvictor(ttl time.Duration) func() {
 	return func() { close(done) }
 }
 
+// trustedProxyHops is how many proxies (CloudFront, ALB, …) append to
+// X-Forwarded-For between the real client and this server. Env-tunable so a
+// deeper proxy chain still keys rate limiting on the true client.
+func trustedProxyHops() int {
+	if n := envInt("COMPLIARY_TRUSTED_PROXY_HOPS", 1); n >= 1 {
+		return n
+	}
+	return 1
+}
+
+// clientIP returns the address used for per-IP rate limiting. The LEFTMOST
+// X-Forwarded-For entry is always client-controllable (edge proxies *append*
+// rather than replace), so a security control must never key on it — an
+// attacker would rotate a spoofed leftmost value to get a fresh bucket per
+// request and bypass the limiter. Instead we take the entry the trusted edge
+// appended: position len-hops (hops=1 for a single CloudFront edge). Anything
+// the client injects sits to the left of that and cannot shift the bucket.
 func clientIP(r *http.Request, trustProxy bool) string {
 	if trustProxy {
 		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-			// CloudFront (and standard XFF semantics) put the real client IP
-			// LEFTMOST, appending each proxy hop to the right. Take the first
-			// entry so per-IP rate limiting keys on the true client, not the
-			// shared edge IP.
 			parts := strings.Split(xff, ",")
-			if ip := strings.TrimSpace(parts[0]); ip != "" {
-				return ip
+			idx := len(parts) - trustedProxyHops()
+			if idx >= 0 && idx < len(parts) {
+				if ip := strings.TrimSpace(parts[idx]); ip != "" {
+					return ip
+				}
 			}
 		}
 	}
