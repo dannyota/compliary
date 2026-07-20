@@ -140,8 +140,8 @@ The `search_abstain_floor` config setting controls when the search tool signals 
 
 | Lane | Recall@8 | MRR@8 | Current | Abstain |
 |------|----------|-------|---------|---------|
-| Open-corpus (no pins) | 69.6% | 47.7% | 100% | 92.0% |
-| Framework-filtered | 82.6% | 67.0% | 94.3% | 92.0% |
+| Open-corpus (no pins) | 72.2% | 49.5% | 100% | 92.0% |
+| Framework-filtered | 81.7% | 67.9% | 94.3% | 92.0% |
 
 Golden set v3: 125 cases (105 v2 + 20 new: 8 COBIT, 5 OOS, 4 ISO 27001 topic-phrased, 3
 27017/27018). Quality round 2 (2026-07-20): curated titles for COBIT + 27002 put every new

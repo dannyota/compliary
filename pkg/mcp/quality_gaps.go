@@ -320,8 +320,8 @@ func staticEvalFloors() []EvalFloor {
 	// against the metric — 115/125 = 0.92 is the ceiling until score-based
 	// abstention becomes viable.
 	return []EvalFloor{
-		{Metric: "recall@8", Floor: 0.66, Last: 0.696},
-		{Metric: "MRR@8", Floor: 0.44, Last: 0.477},
+		{Metric: "recall@8", Floor: 0.66, Last: 0.722},
+		{Metric: "MRR@8", Floor: 0.44, Last: 0.495},
 		{Metric: "current-version", Floor: 0.98, Last: 1.000},
 		{Metric: "abstention", Floor: 0.90, Last: 0.920},
 	}

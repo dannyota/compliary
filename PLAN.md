@@ -298,3 +298,20 @@ patch — new documents always cut v0.2.0+.
   (MRR −2.0pp from enriched-27001 vs 27002 cross-framework competition — accepted trade).
   Floors re-based: recall ≥0.66, MRR ≥0.44, current ≥0.98, abstain ≥0.90 (10 OOS structurally
   fail while score-abstention is inert). 511 chunks re-embedded (Kaggle T4).
+- **2026-07-20** — **Quality round 3: TSC + CCM curated titles (with a measured regression and
+  repair), ISO 27001 Amd 1 landed, mapping-sheet mining ruled out.** (1) 617 curated titles
+  authored + adversarially verified (TSC 393 — verifier caught a CC6.5 misattribution and a
+  CC7.3→7.5 one-position shift; CCM 224 — clean). First deploy REGRESSED retrieval (open
+  69.6→67.0, filtered 82.6→80.0): the paraphrases dropped canonical vocabulary — CCM had been
+  using official workbook titles as its public title (a pre-existing licensing seam the curated
+  titles now close). Repair agents re-authored term-preserving paraphrases (keep the searchable
+  domain nouns, change the phrasing); result beats every prior baseline: open 72.2/49.5,
+  filtered 81.7/67.9. Titles now cover all licensed frameworks: 1718 rows. (2) Amendment
+  parsing landed: `BuildISOAmendmentTree` + doc-role dispatch (gated on the base main document
+  existing in silver — ISO 22301 Amd 1 stays correctly deferred), `amends_citation_norm`/
+  `amend_action` plumbed through writeTree; ISO 27001:2022/Amd 1:2024 normalized as 2 `add`
+  rows (4.1, 4.2 climate-action edits); `findControl` now prefers main-document rows so
+  amendments never shadow base clauses. Corpus: 12 documents / 3404 controls. (3) Publisher
+  mapping sheets ruled out: CCM v4.1.0's "Scope Applicability (Mappings)" sheet is an empty
+  placeholder and the CIS v8.1.2 workbook carries no mapping sheets — OLIR/CIS mappings need
+  new acquisitions (v0.2.0). README rewritten (agent-authored, reviewed).
