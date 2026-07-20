@@ -385,10 +385,10 @@ func TestParseISOCitation(t *testing.T) {
 		want     string
 		wantSkip bool
 	}{
-		{"2022: Annex A Controls: 5.1", "5.1", false},
+		{"2022: Annex A Controls: 5.1", "A.5.1", false}, // Annex A → "A." prefix matches iso.go
 		{"2022: Mandatory Clause: 8.1", "8.1", false},
-		{"2022: Control 5.8", "5.8", false},
-		{"2022: Control  8.6", "8.6", false},            // double space
+		{"2022: Control 5.8", "A.5.8", false},           // bare "Control N.M" = Annex A shorthand
+		{"2022: Control  8.6", "A.8.6", false},          // double space, still Annex A
 		{"2022: Mandatory Clause: None", "", true},      // skip
 		{"2022: Annex A Controls:", "", true},           // bare
 		{"2022: Mandatory Clause: 7.1, 7.2", "", true},  // multi-cite

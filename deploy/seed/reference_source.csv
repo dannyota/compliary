@@ -1,7 +1,7 @@
 prefix,to_framework_code,to_version_label,mapping_source_code,enabled
 SP 800-53 Rev 5.2.0,nist80053,r5,publisher-catalog,true
 SP 800-53 Rev 5.1.1,nist80053,r5,publisher-catalog,true
-CCMv4.0,csaccm,v4.0,publisher-catalog,true
+CCMv4.0,csaccm,,publisher-catalog,true
 ISO/IEC 27001,iso27001,2022,publisher-catalog,true
 PCI DSS,pcidss,,publisher-catalog,true
 CSF v1.1,nistcsf,1.1,publisher-catalog,true

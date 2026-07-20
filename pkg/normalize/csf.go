@@ -560,27 +560,29 @@ func parseRefCitation(prefix, rest string) (string, bool) {
 }
 
 // parseISOCitation handles the ISO/IEC 27001 citation format:
-// "2022: Annex A Controls: 5.1" → "5.1"
+// "2022: Annex A Controls: 5.1" → "A.5.1"  (Annex A prefix matches iso.go's citation_norm)
 // "2022: Mandatory Clause: 8.1" → "8.1"
-// "2022: Control 5.8" → "5.8"
+// "2022: Control 5.8"           → "A.5.8"  (bare "Control N.M" is an Annex A shorthand)
 // "2022: Mandatory Clause: None" → skip
 // "2022: Annex A Controls:" (bare) → skip
 // Lines not starting with "2022:" are skipped (edition mismatch).
 func parseISOCitation(rest string) (string, bool) {
-	// Verify edition echo.
 	if !strings.HasPrefix(rest, "2022:") {
 		return "", true // edition mismatch
 	}
 	after := strings.TrimSpace(rest[5:])
 
 	var cite string
+	var annexA bool
 	switch {
 	case strings.HasPrefix(after, "Annex A Controls:"):
 		cite = strings.TrimSpace(after[len("Annex A Controls:"):])
+		annexA = true
 	case strings.HasPrefix(after, "Mandatory Clause:"):
 		cite = strings.TrimSpace(after[len("Mandatory Clause:"):])
 	case strings.HasPrefix(after, "Control"):
 		cite = strings.TrimSpace(after[len("Control"):])
+		annexA = true // bare "Control N.M" is Annex A shorthand
 	default:
 		return "", true // unknown sub-form
 	}
@@ -589,13 +591,18 @@ func parseISOCitation(rest string) (string, bool) {
 		return "", true
 	}
 
-	// Strip trailing comma (publisher typo).
 	cite = strings.TrimRight(cite, ",")
 	cite = strings.TrimSpace(cite)
 
-	// Multi-cite lines (contain comma after cleanup) are skipped.
 	if strings.Contains(cite, ",") {
 		return "", true
+	}
+
+	// The ISO 27001 normalizer stores Annex A controls as "A.x.y"; mandatory
+	// clause controls stay unprefixed ("8.1"). Match that form so the
+	// resolution query's direct citation_norm comparison succeeds.
+	if annexA {
+		cite = "A." + cite
 	}
 
 	return cite, false
