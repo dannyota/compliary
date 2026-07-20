@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -86,6 +88,73 @@ func TestClientIP_XFFSpoofResistant(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOriginVerify(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	t.Run("disabled_when_no_secret", func(t *testing.T) {
+		var reached bool
+		h := originVerify(okHandler(&reached), nil, log)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest("POST", "/mcp", nil) // no header at all
+		h.ServeHTTP(w, r)
+		if w.Code != http.StatusOK || !reached {
+			t.Errorf("no-secret should pass through: code=%d reached=%v", w.Code, reached)
+		}
+	})
+
+	secrets := []string{"edge-secret-old", "edge-secret-new"} // rotation window
+	t.Run("rejects_missing_header", func(t *testing.T) {
+		var reached bool
+		h := originVerify(okHandler(&reached), secrets, log)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest("POST", "/mcp", nil)
+		h.ServeHTTP(w, r)
+		if w.Code != http.StatusForbidden {
+			t.Errorf("missing X-Origin-Verify: got %d, want 403", w.Code)
+		}
+		if reached {
+			t.Error("handler must not be reached on 403")
+		}
+	})
+
+	t.Run("rejects_wrong_header", func(t *testing.T) {
+		var reached bool
+		h := originVerify(okHandler(&reached), secrets, log)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest("POST", "/mcp", nil)
+		r.Header.Set("X-Origin-Verify", "guessed-wrong")
+		h.ServeHTTP(w, r)
+		if w.Code != http.StatusForbidden {
+			t.Errorf("wrong secret: got %d, want 403", w.Code)
+		}
+	})
+
+	t.Run("accepts_either_rotation_secret", func(t *testing.T) {
+		for _, s := range secrets {
+			var reached bool
+			h := originVerify(okHandler(&reached), secrets, log)
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("POST", "/mcp", nil)
+			r.Header.Set("X-Origin-Verify", s)
+			h.ServeHTTP(w, r)
+			if w.Code != http.StatusOK || !reached {
+				t.Errorf("valid secret %q: code=%d reached=%v", s, w.Code, reached)
+			}
+		}
+	})
+
+	t.Run("healthz_bypasses", func(t *testing.T) {
+		var reached bool
+		h := originVerify(okHandler(&reached), secrets, log)
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest("GET", "/healthz", nil) // no header — must still pass
+		h.ServeHTTP(w, r)
+		if w.Code != http.StatusOK || !reached {
+			t.Errorf("healthz must bypass origin verification: code=%d reached=%v", w.Code, reached)
+		}
+	})
 }
 
 func TestOAuthEndpointLimit_BruteForceGate(t *testing.T) {

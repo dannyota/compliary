@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>compliary — control-framework evidence over MCP</title>
+<style>
+  :root {
+    --bg: #fbfbfa; --fg: #1a1a19; --muted: #6b6b68; --line: #e6e6e3;
+    --card: #ffffff; --accent: #3b5bdb; --ok: #2f9e44; --down: #e03131;
+    --chip: #f1f3f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16161a; --fg: #e9e9ec; --muted: #9a9aa2; --line: #2a2a30;
+      --card: #1d1d22; --accent: #91a7ff; --ok: #51cf66; --down: #ff6b6b;
+      --chip: #26262c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+  header { display: flex; align-items: baseline; gap: .75rem; flex-wrap: wrap; }
+  h1 { font-size: 1.9rem; margin: 0; letter-spacing: -.02em; }
+  .status { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; color: var(--muted); }
+  .dot { width: .6rem; height: .6rem; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 20%, transparent); }
+  .dot.down { background: var(--down); box-shadow: 0 0 0 3px color-mix(in srgb, var(--down) 20%, transparent); }
+  .tag { color: var(--muted); margin: .6rem 0 0; max-width: 62ch; }
+  .meta { margin-top: 1rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+  .chip { background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: .2rem .7rem; font-size: .8rem; color: var(--muted); }
+  .chip b { color: var(--fg); font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .75rem; margin: 2rem 0; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; }
+  .stat .n { font-size: 1.6rem; font-weight: 650; letter-spacing: -.02em; }
+  .stat .l { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
+  section h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 2rem 0 .75rem; }
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; min-width: 460px; }
+  th, td { text-align: left; padding: .6rem .85rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { font-weight: 600; color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .cur { color: var(--ok); font-weight: 600; }
+  .sup { color: var(--muted); }
+  code { background: var(--chip); border: 1px solid var(--line); border-radius: 6px; padding: .1rem .4rem; font-size: .85em; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1.1rem 1.25rem; }
+  .card p { margin: .35rem 0; }
+  a { color: var(--accent); }
+  footer { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .82rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>compliary</h1>
+    <span class="status">
+      <span class="dot{{if not .StatusOK}} down{{end}}"></span>
+      {{if .StatusOK}}operational{{else}}degraded — corpus unavailable{{end}}
+    </span>
+  </header>
+  <p class="tag">Evidence-only corpus &amp; MCP server for Information Security &amp; Cybersecurity control frameworks — exact control citations, version lineage, cross-framework mappings, provenance, and explicit gaps. It does not answer questions; your agent retrieves the evidence and decides.</p>
+  <div class="meta">
+    <span class="chip">version <b>{{.Version}}</b></span>
+    <span class="chip">MCP endpoint <b>/mcp</b></span>
+    <span class="chip">auth <b>OAuth</b></span>
+  </div>
+
+  {{if .StatusOK}}
+  <div class="grid">
+    <div class="stat"><div class="n">{{.Totals.Frameworks}}</div><div class="l">frameworks</div></div>
+    <div class="stat"><div class="n">{{.Totals.Controls}}</div><div class="l">controls</div></div>
+    <div class="stat"><div class="n">{{.Totals.Chunks}}</div><div class="l">indexed chunks</div></div>
+    <div class="stat"><div class="n">{{.Totals.Resolved}}</div><div class="l">resolved mappings</div></div>
+  </div>
+
+  <section>
+    <h2>Frameworks indexed</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Framework</th><th>Version</th><th class="num">Controls</th><th class="num">Chunks</th></tr></thead>
+        <tbody>
+        {{range .Frameworks}}
+          <tr>
+            <td>{{.FrameworkName}} <span class="sup">{{.FrameworkCode}}</span></td>
+            <td>{{.VersionLabel}}{{if .IsCurrent}} <span class="cur">· current</span>{{else}} <span class="sup">· superseded</span>{{end}}</td>
+            <td class="num">{{.Controls}}{{if .Withdrawn}} <span class="sup">(−{{.Withdrawn}})</span>{{end}}</td>
+            <td class="num">{{.Chunks}}</td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {{else}}
+  <div class="card"><p>The corpus backend is not reachable right now. The server is up (this page rendered), but live counts are unavailable — retry shortly.</p></div>
+  {{end}}
+
+  <section>
+    <h2>Connect</h2>
+    <div class="card">
+      <p>The MCP surface at <code>/mcp</code> is <b>authenticated</b> (OAuth); unauthenticated requests receive 401. Attach this instance as a custom connector in <b>claude.ai</b> or <b>chatgpt.com</b> and sign in as the maintainer.</p>
+      <p class="sup">Licensed framework text is served only to the authenticated maintainer. Everyone else self-deploys their own instance — the project ships the pipeline and MCP server, not the licensed documents.</p>
+    </div>
+  </section>
+
+  <footer>
+    compliary — compliance + library · a single-operator instance · <a href="https://github.com/dannyota/compliary">source</a>
+  </footer>
+</div>
+</body>
+</html>

@@ -167,12 +167,16 @@ func run(cfgPath, addrOverride string, log *slog.Logger) error {
 	}
 	srv := mcp.NewServer(core, log, sopts...)
 
-	return serve(ctx, listenAddr, srv, oauthSrv, token, publicURL, mcpPublic, log)
+	return serve(ctx, listenAddr, srv, core, oauthSrv, token, publicURL, mcpPublic, log)
 }
 
-func serve(ctx context.Context, addr string, srv *mcp.Server, oauthSrv *oauth.Server, token, publicURL string, mcpPublic bool, log *slog.Logger) error {
+func serve(ctx context.Context, addr string, srv *mcp.Server, core *mcp.Core, oauthSrv *oauth.Server, token, publicURL string, mcpPublic bool, log *slog.Logger) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", healthzHandler)
+
+	// Public landing page at exactly "/" ({$} prevents it becoming a catch-all):
+	// project info + live corpus counts + version, no auth, metadata only.
+	mux.HandleFunc("GET /{$}", landingHandler(version, core.CorpusStatus, log))
 
 	// Mount MCP endpoint with cross-origin protection.
 	mcpHandler := crossOriginProtected(srv.HTTPHandler(), log)
@@ -277,6 +281,14 @@ func secure(h http.Handler, oauthSrv *oauth.Server, token, publicURL string, mcp
 		h = oauthEndpointLimit(h, oauthRL)
 	}
 
+	// Origin verification sits just inside the global limiter and outside the
+	// OAuth brute-force gate + auth: it rejects any request that did not arrive
+	// through our CloudFront distribution, so only edge-fronted traffic (with a
+	// trustworthy appended XFF entry) reaches the XFF-keyed brute-force gate and
+	// the auth check below. The global limiter runs first purely as a raw flood
+	// backstop. Empty secret → disabled (local dev, no fronting edge).
+	h = originVerify(h, splitComma(os.Getenv("COMPLIARY_ORIGIN_VERIFY_SECRET")), log)
+
 	h = rl.middleware(h)
 	h = securityHeaders(h)
 	h = recoverPanic(h, log)
@@ -341,6 +353,49 @@ func securityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		next.ServeHTTP(w, r)
 	})
+}
+
+// originVerify enforces the CloudFront origin secret. When
+// COMPLIARY_ORIGIN_VERIFY_SECRET is set, every request except /healthz must
+// carry a matching X-Origin-Verify header — injected by our CloudFront
+// distribution on the path to this origin. A request that bypasses CloudFront
+// and hits the origin host directly (or arrives through someone else's
+// distribution) lacks the header and is refused with 403. Comma-separated
+// secrets allow zero-downtime rotation (accept old + new while the distribution
+// updates). Empty env → disabled (local dev; no fronting edge). /healthz
+// bypasses so the ECS health check can probe the origin directly.
+func originVerify(next http.Handler, secrets []string, log *slog.Logger) http.Handler {
+	if len(secrets) == 0 {
+		return next
+	}
+	log.Info("origin verification enabled — non-/healthz requests must arrive via CloudFront", "secrets", len(secrets))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/healthz" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if !originAllowed(strings.TrimSpace(r.Header.Get("X-Origin-Verify")), secrets) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// originAllowed compares got against every secret in constant time with no early
+// exit, so response timing does not leak which secret matched or whether the
+// prefix was right.
+func originAllowed(got string, secrets []string) bool {
+	if got == "" {
+		return false
+	}
+	ok := false
+	for _, s := range secrets {
+		if subtle.ConstantTimeCompare([]byte(got), []byte(s)) == 1 {
+			ok = true
+		}
+	}
+	return ok
 }
 
 func bodyLimit(next http.Handler) http.Handler {
@@ -516,7 +571,32 @@ func clientIP(r *http.Request, trustProxy bool) string {
 
 // --- helpers -----------------------------------------------------------------
 
+// embedModel and embedDims identify the query embedder. They MUST match the
+// model the corpus was indexed with (Qwen3-Embedding-0.6B, 1024-d) — query and
+// document vectors that come from different models live in different spaces, so
+// a mismatch silently wrecks retrieval rather than erroring.
+const (
+	embedModel = "Qwen/Qwen3-Embedding-0.6B"
+	embedDims  = 1024
+)
+
+// buildQueryEmbedder selects the query-time embedder:
+//
+//   - COMPLIARY_EMBED_ENDPOINT set → a standalone OpenAI-compatible embedder
+//     service reached over HTTP. This is the deployed path: the co-located
+//     banhmi embedder on 127.0.0.1:8089, or the operator's own service. The
+//     image then packages no ONNX model and no native runtime. The Qwen3 query
+//     instruction prefix is applied upstream by the retrieve layer
+//     (embed.FormatQuery), so it travels in the request text — nothing to do here.
+//   - otherwise → in-process ONNX (local / self-deploy path; needs a build with
+//     -tags onnx and a cached model). If ONNX is unavailable, search degrades to
+//     BM25-only rather than failing.
 func buildQueryEmbedder(log *slog.Logger) (embed.Embedder, error) {
+	if endpoint := strings.TrimSpace(os.Getenv("COMPLIARY_EMBED_ENDPOINT")); endpoint != "" {
+		log.Info("query embedder: HTTP endpoint (no in-process ONNX)", "endpoint", endpoint)
+		return embed.New(endpoint, embedModel, embedDims, strings.TrimSpace(os.Getenv("COMPLIARY_EMBED_TOKEN"))), nil
+	}
+
 	modelPath := os.Getenv("COMPLIARY_ONNX_MODEL")
 	if modelPath == "" {
 		home, _ := os.UserHomeDir()
@@ -533,8 +613,8 @@ func buildQueryEmbedder(log *slog.Logger) (embed.Embedder, error) {
 		ModelPath:     modelPath,
 		TokenizerPath: tokenizerPath,
 		LibPath:       libPath,
-		Dims:          1024,
-		Model:         "Qwen/Qwen3-Embedding-0.6B",
+		Dims:          embedDims,
+		Model:         embedModel,
 	})
 	if err != nil {
 		log.Warn("ONNX query embedder unavailable — search will use BM25-only mode", "err", err)
