@@ -271,3 +271,16 @@ patch — new documents always cut v0.2.0+.
   Eval (ONNX, both lanes): open-corpus recall 65.0%/MRR 44.6%/current 100%/abstain 95.2%;
   filtered recall 80.0%/MRR 62.9%/current 94.2%/abstain 95.2%. No regression vs Phase A baseline.
   Tool contract documented in [`docs/design/MCP.md`](docs/design/MCP.md). **Next:** deploy (M4).
+- **2026-07-20** — **Quality round 1: PCI column separation + mapping resolution.** Two evidence-
+  quality fixes, validated on the live RDS corpus. (1) PCI DSS body cleanup: `rePCIStopLine`
+  truncates each requirement body at the column boundary ("Defined Approach Testing Procedures" /
+  trailing "Guidance" — substring match because go-fitz concatenates column headers onto one line);
+  audit: 0/351 noisy bodies (was 282/351). (2) Mapping resolution: CSF ISO 27001 references now
+  emit `A.x.y` for Annex A citations (matching `iso.go`'s stored `citation_norm`; bare "Control
+  N.M" = Annex A shorthand), and the `CCMv4.0` reference_source row drops its version pin so edges
+  resolve via `is_current` (corpus has v4.1). Resolved edges 2056 → 2961 of 3254 (63.2% → 91.0%);
+  the 293 still-unresolved target framework versions not in the corpus (CSF 1.1, CIS v8.0) — real
+  gaps, correctly reported. Re-normalized + re-embedded (Kaggle T4) the 591 affected chunks.
+  Hybrid eval flat within noise (open 66.0/45.1, filtered 80.0/62.5) — the golden set measures
+  citation-finding, which the noise wasn't blocking; the wins are served-evidence quality. All
+  floors pass.

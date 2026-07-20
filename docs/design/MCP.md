@@ -18,7 +18,7 @@ structured data, never prose.
 
 1. `guide` -- read the evidence contract.
 2. `corpus_status` -- see what is indexed, which versions are current.
-3. `search` with framework filter for 80% recall (vs 65% unfiltered open-corpus).
+3. `search` with framework filter for 80% recall (vs 66% unfiltered open-corpus).
 4. `document` for citation-keyed traversal: body, mapping edges (both directions), version lineage.
 5. `quality_gaps` to surface what the corpus cannot answer.
 
@@ -140,8 +140,12 @@ The `search_abstain_floor` config setting controls when the search tool signals 
 
 | Lane | Recall@8 | MRR@8 | Current | Abstain |
 |------|----------|-------|---------|---------|
-| Open-corpus (no pins) | 65.0% | 44.6% | 100% | 95.2% |
-| Framework-filtered | 80.0% | 62.9% | 94.2% | 95.2% |
+| Open-corpus (no pins) | 66.0% | 45.1% | 100% | 95.2% |
+| Framework-filtered | 80.0% | 62.5% | 94.2% | 95.2% |
+
+(2026-07-20 quality round: PCI column separation + mapping resolution left search metrics flat
+within noise — the wins are evidence quality: PCI bodies 282-noisy → 0, mapping edges resolved
+2056 → 2961 of 3254 = 91.0%.)
 
 Floors (open-corpus lane): recall >= 0.63, MRR >= 0.41, current >= 0.98, abstain >= 0.93.
 Abstain floor is 0 (no score-based abstention); the 95.2% accuracy comes from the 5 OOS cases
