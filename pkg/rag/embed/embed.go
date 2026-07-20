@@ -50,6 +50,22 @@ func FormatQuery(query string) string {
 	return Qwen3QueryPrefix + query
 }
 
+// sameModel reports whether two model identifiers name the same model, ignoring
+// cosmetic differences in casing and an optional "org/" prefix. It lets a
+// standalone embedder that labels the model "qwen3-embedding-0.6b" satisfy a
+// caller configured with "Qwen/Qwen3-Embedding-0.6B", while still rejecting a
+// genuinely different model.
+func sameModel(a, b string) bool {
+	norm := func(s string) string {
+		s = strings.ToLower(strings.TrimSpace(s))
+		if i := strings.LastIndex(s, "/"); i >= 0 {
+			s = s[i+1:]
+		}
+		return s
+	}
+	return norm(a) == norm(b)
+}
+
 // openAIEmbedder POSTs to an OpenAI-compatible /embeddings endpoint.
 type openAIEmbedder struct {
 	endpoint string // e.g. "http://localhost:8080" — no trailing slash
@@ -140,9 +156,14 @@ func (e *openAIEmbedder) Embed(ctx context.Context, texts []string) ([][]float32
 		return nil, fmt.Errorf("embed: API error: %s", result.Error.Message)
 	}
 
-	// Model-mismatch parity guard: if the response declares a model and it
-	// differs from what we configured, reject — index/query parity is broken.
-	if result.Model != "" && result.Model != e.model {
+	// Model-mismatch parity guard: if the response declares a model and it names
+	// a genuinely different model, reject — index/query vector parity would be
+	// broken. The comparison is normalized (case-folded, org prefix stripped) so
+	// that cosmetic label differences for the SAME model do not trip it: a
+	// standalone embedder may report "qwen3-embedding-0.6b" while we configured
+	// "Qwen/Qwen3-Embedding-0.6B". A truly different model (e.g. "bge-m3") still
+	// fails.
+	if result.Model != "" && !sameModel(result.Model, e.model) {
 		return nil, fmt.Errorf("embed: model mismatch: endpoint returned %q, configured %q", result.Model, e.model)
 	}
 

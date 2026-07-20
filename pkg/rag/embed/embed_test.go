@@ -259,3 +259,22 @@ func TestFormatQuery(t *testing.T) {
 		t.Errorf("FormatQuery lost the query text")
 	}
 }
+
+func TestSameModel(t *testing.T) {
+	cases := []struct {
+		a, b string
+		want bool
+	}{
+		{"Qwen/Qwen3-Embedding-0.6B", "qwen3-embedding-0.6b", true}, // org prefix + case (the banhmi embedder case)
+		{"qwen3-embedding-0.6b", "qwen3-embedding-0.6b", true},
+		{"Qwen/Qwen3-Embedding-0.6B", "Qwen/Qwen3-Embedding-0.6B", true},
+		{" Qwen/Qwen3-Embedding-0.6B ", "qwen3-embedding-0.6b", true}, // whitespace
+		{"Qwen/Qwen3-Embedding-0.6B", "bge-m3", false},                // genuinely different
+		{"BAAI/bge-m3", "qwen3-embedding-0.6b", false},
+	}
+	for _, c := range cases {
+		if got := sameModel(c.a, c.b); got != c.want {
+			t.Errorf("sameModel(%q,%q) = %v, want %v", c.a, c.b, got, c.want)
+		}
+	}
+}
