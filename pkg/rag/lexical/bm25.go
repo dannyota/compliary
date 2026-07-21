@@ -199,14 +199,29 @@ func (e *Encoder) DocVector(text string) string {
 	return sparseLiteral(weights)
 }
 
+// queryStopwords are high-frequency terms that appear in nearly every golden-set
+// question AND every corpus chunk, contributing no discriminative BM25 signal.
+// Filtered at query time only — document vectors stay unchanged so no re-index
+// is needed. The list is deliberately short and domain-specific.
+var queryStopwords = map[string]bool{
+	"what": true, "how": true, "which": true, "does": true,
+	"the": true, "for": true, "and": true, "are": true,
+	"is": true, "of": true, "that": true, "a": true,
+	"to": true, "in": true, "an": true,
+	"control": true, "requirement": true, "cover": true, "address": true,
+}
+
 // QueryVector returns the query sparse vector — term presence (1.0) per token —
 // as a pgvector sparsevec literal. Stateless: it needs only the shared hash, so
 // query-time encoding requires no trained Encoder or persisted vocabulary. The
 // inner product with a document vector then equals that document's BM25 score.
+// High-frequency stopwords are filtered at query time to improve precision.
 func QueryVector(text string) string {
 	weights := make(map[int32]float64)
 	for _, w := range Tokenize(text) {
-		weights[termID(w)] = 1.0
+		if !queryStopwords[w] {
+			weights[termID(w)] = 1.0
+		}
 	}
 	return sparseLiteral(weights)
 }
