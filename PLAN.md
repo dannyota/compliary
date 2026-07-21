@@ -365,3 +365,25 @@ patch — new documents always cut v0.2.0+.
   validated against raw workbook row counts (200/60/309 → dedupe+skip accounted). Corpus:
   4,462 edges, 93.4% resolved. Live-verified: `document 1.1 ciscontrols` returns 7 typed
   resolved edges across all three targets.
+
+- **2026-07-21** — **Quality round 5: full-repo review → MCP consumer contract + hardening.**
+  Six-reviewer audit (MCP contract, MCP consumer seat, server security, retrieval, parsers,
+  pipeline/infra), findings adversarially scored, all confirmed items fixed. MCP surface:
+  jsonschema descriptions on every tool input; `source_url` (publisher page) on hits and
+  controls; debug fields (chunk/document IDs, per-arm scores) removed from hits; unrecognized
+  `document.include` and `quality_gaps.category` values now error naming the valid set (was:
+  silent empty response); `chunks` key now means "requested" with a `no_chunks` gap when empty;
+  `found_elsewhere` gap on framework-pinned misses; filter gaps fire advisory even with hits;
+  `corpus_status.inbound_edges` (ISO 27002 no longer reads as unmapped); recall wording aligned
+  to the eval baseline (~82/~72; server.go had stale 80/65). Hardening: OAuth client cap (50) +
+  24h idle eviction + scope validation + CIMD fetch rate limit; bearer-only mode no longer 401s
+  the landing page; CIS fetcher single-request (was downloading twice); fetch retry with backoff
+  (coded, not live-validated); pipeline stops at first failed stage; CCM empty bodies nil (was
+  `&""`); OSCAL tree walk now recursive (silent >2-level drop fixed); writeTree duplicate-citation
+  pre-check; PCI body-purity regression test; deterministic citation-scheme ordering; TopScore no
+  longer reports synthetic 1.0 pins. Validated: full `go test ./...` + live-corpus integration
+  suite green; local dev corpus resynced (re-seed + mapedges → 4,462 edges, matching recorded
+  stats). Deferred, by decision: server `WriteTimeout` (would kill MCP streaming; CloudFront
+  bounds it), honest fetch User-Agent (may break publisher WAFs — needs a live fetch round),
+  HNSW index drop, BM25-only version-lineage pass, `FormatQuery` spacing (would shift the eval
+  baseline).
