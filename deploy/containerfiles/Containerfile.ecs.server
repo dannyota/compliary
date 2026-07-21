@@ -16,14 +16,15 @@
 # shell or curl):
 #   CMD ["/healthcheck", "http://localhost:8084/healthz"]
 #
-# Build (on ARM64 host, from repo root):
-#   podman build -t compliary-server -f deploy/containerfiles/Containerfile.ecs.server .
+# Build (any host, from repo root — builder cross-compiles, runtime is arm64):
+#   podman build --platform linux/arm64 -t compliary-server \
+#     -f deploy/containerfiles/Containerfile.ecs.server .
 #
 # VERSION build arg stamps corpus_status via -X main.version:
 #   podman build -t compliary-server --build-arg VERSION=0.1.0-20260720 \
 #     -f deploy/containerfiles/Containerfile.ecs.server .
 
-ARG GO_IMAGE=docker.io/golang:1.26.3-bookworm
+ARG GO_IMAGE=docker.io/golang:1.26.5-bookworm
 # distroless/cc, NOT distroless/static: Go 1.26 emits PIE binaries on linux/arm64
 # (dynamically linked, interpreter ld-linux-aarch64) even with CGO_ENABLED=0, and
 # static-debian12 ships no dynamic loader — exec fails with "no such file or
@@ -33,7 +34,9 @@ ARG RUNTIME_IMAGE=gcr.io/distroless/cc-debian12:nonroot
 ARG VERSION=dev
 
 # ── Go builder (CGO OFF — no go-fitz, no ONNX) ───────────────────────────────
-FROM ${GO_IMAGE} AS build
+# Runs on the BUILD platform and cross-compiles via GOARCH=arm64, so an amd64
+# host builds the arm64 image without qemu; only the runtime stage is arm64.
+FROM --platform=$BUILDPLATFORM ${GO_IMAGE} AS build
 ARG VERSION
 ENV CGO_ENABLED=0 GOFLAGS=-trimpath GOOS=linux GOARCH=arm64
 WORKDIR /src

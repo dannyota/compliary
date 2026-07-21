@@ -139,8 +139,9 @@ even from a CloudFront IP, a request lacking our `X-Origin-Verify` header is 403
 ```bash
 aws ecr create-repository --repository-name compliary-mcp --region ap-southeast-1
 
-# On an ARM64 host, from repo root:
-podman build -t compliary-server --build-arg VERSION=0.1.0-$(date +%Y%m%d) \
+# Any host, from repo root (builder cross-compiles; runtime stage is arm64):
+podman build --platform linux/arm64 -t compliary-server \
+  --build-arg VERSION=<x.y.z>-$(date +%Y%m%d) \
   -f deploy/containerfiles/Containerfile.ecs.server .
 # tag + push to YOUR_ACCOUNT_ID.dkr.ecr.ap-southeast-1.amazonaws.com/compliary-mcp:<tag>
 ```
