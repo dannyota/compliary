@@ -318,15 +318,15 @@ func staticBodyQualityCaveats() []BodyQualityCaveat {
 func EvalFloors() []EvalFloor { return staticEvalFloors() }
 
 func staticEvalFloors() []EvalFloor {
-	// Open-corpus lane on the 125-case golden set (v3, 2026-07-20).
-	// Abstention uses the raw-cosine floor (search_abstain_floor = 0.5,
-	// calibrated 2026-07-21): it catches clearly-distant OOS queries at zero
-	// recall/MRR cost, but compliance-adjacent OOS still embeds close to
-	// InfoSec text, so the bands overlap and 0.936 is the calibrated optimum.
+	// Open-corpus lane on the 125-case golden set (v3), re-baselined
+	// 2026-07-21 after the FormatQuery separator fix and dev-corpus resync
+	// (invocation documented in RETRIEVAL.md). Abstention uses the raw-cosine
+	// floor (search_abstain_floor = 0.5): it catches clearly-distant OOS
+	// queries, but compliance-adjacent OOS still embeds close to InfoSec text.
 	return []EvalFloor{
-		{Metric: "recall@8", Floor: 0.66, Last: 0.722},
-		{Metric: "MRR@8", Floor: 0.44, Last: 0.495},
+		{Metric: "recall@8", Floor: 0.66, Last: 0.670},
+		{Metric: "MRR@8", Floor: 0.44, Last: 0.472},
 		{Metric: "current-version", Floor: 0.98, Last: 1.000},
-		{Metric: "abstention", Floor: 0.90, Last: 0.936},
+		{Metric: "abstention", Floor: 0.90, Last: 0.952},
 	}
 }

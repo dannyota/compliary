@@ -13,11 +13,30 @@ import (
 // SearchInput is the search tool's argument schema.
 type SearchInput struct {
 	Query            string `json:"query" jsonschema:"compliance question or control citation, in English (e.g. 'multi-factor authentication for remote access' or 'AC-2(3)')"`
-	Framework        string `json:"framework,omitempty" jsonschema:"framework code filter — raises recall to ~82% (vs ~72% unfiltered); codes are listed by corpus_status (e.g. nist80053, iso27001, pcidss, ciscontrols, soc2tsc)"`
+	Framework        string `json:"framework,omitempty" jsonschema:"framework code filter — raises recall to ~83% (vs ~67% unfiltered); codes are listed by corpus_status (e.g. nist80053, iso27001, pcidss, ciscontrols, soc2tsc)"`
 	VersionLabel     string `json:"version_label,omitempty" jsonschema:"pin one framework version (e.g. r5, 2022, v4.0.1); omit to search the current version"`
 	IncludeWithdrawn bool   `json:"include_withdrawn,omitempty" jsonschema:"also retrieve withdrawn controls (e.g. 800-53r5's incorporated-into families); default false"`
 	TopK             int    `json:"top_k,omitempty" jsonschema:"number of hits to return; default 8"`
 	Mode             string `json:"mode,omitempty" jsonschema:"retrieval arm: hybrid (default), vector, or bm25"`
+	Detail           string `json:"detail,omitempty" jsonschema:"response detail level: standard (default) returns full hit shape; compact strips content and context_prefix for cheap discovery — read full text via document include=[chunks]"`
+}
+
+// validSearchDetails lists the accepted values for SearchInput.Detail.
+var validSearchDetails = map[string]bool{
+	"standard": true,
+	"compact":  true,
+}
+
+// validateDetail rejects unknown detail values, matching the include/category
+// error style: hard error naming the valid set.
+func validateDetail(detail string) error {
+	if detail == "" {
+		return nil
+	}
+	if !validSearchDetails[detail] {
+		return fmt.Errorf("unknown detail level %q; valid: compact, standard", detail)
+	}
+	return nil
 }
 
 // SearchHit is one retrieved chunk shaped for the search tool. Retrieval
@@ -60,6 +79,9 @@ func (c *Core) Search(ctx context.Context, in SearchInput) (SearchOutput, error)
 	if c.searcher == nil {
 		return SearchOutput{}, fmt.Errorf("searcher is not configured")
 	}
+	if err := validateDetail(in.Detail); err != nil {
+		return SearchOutput{}, err
+	}
 
 	opts := eval.SearchOpts{
 		TopK:             in.TopK,
@@ -101,7 +123,12 @@ func (c *Core) Search(ctx context.Context, in SearchInput) (SearchOutput, error)
 			Cite:          citeString(h.Citation, h.FrameworkCode, h.VersionLabel),
 			SourceURL:     sourceURLs[h.DocumentID],
 		}
-		out.Hits = append(out.Hits, c.projectHit(sh))
+		hit := c.projectHit(sh)
+		if in.Detail == "compact" {
+			hit.Content = ""
+			hit.ContextPrefix = ""
+		}
+		out.Hits = append(out.Hits, hit)
 	}
 
 	// Score-floor abstention lives in the retriever (raw-cosine comparison,

@@ -10,7 +10,7 @@ structured data, never prose.
 |------|---------|-------|------------|
 | **guide** | Playbook: scope, citation forms, query tips, evidence contract | none | static structured payload |
 | **corpus_status** | Live per-framework/version counts | none | frameworks[] (incl. mapping_edges outbound + inbound_edges resolved-into), totals, notes |
-| **search** | Hybrid retrieval (dense + BM25, RRF-fused) | query, framework?, version_label?, include_withdrawn?, top_k?, mode? | hits[], gaps[], abstain |
+| **search** | Hybrid retrieval (dense + BM25, RRF-fused) | query, framework?, version_label?, include_withdrawn?, top_k?, mode?, detail? | hits[], gaps[], abstain |
 | **document** | Citation lookup: control + mappings + lineage + chunks | citation, framework_code?, version_label?, include? | control, amended_by, parent, children, mappings, inbound_mappings, version_lineage, chunks, gaps |
 | **quality_gaps** | Known corpus gaps and caveats | category?, limit? | unresolved_mappings, deferred_docs, manifest_gaps, body_quality_caveats, eval_floors |
 
@@ -18,7 +18,7 @@ structured data, never prose.
 
 1. `guide` -- read the evidence contract.
 2. `corpus_status` -- see what is indexed, which versions are current.
-3. `search` with framework filter for ~82% recall (vs ~72% unfiltered open-corpus).
+3. `search` with framework filter for ~83% recall (vs ~67% unfiltered open-corpus). Use `detail=compact` for cheap discovery (citations, scores, version badges only); then read full text via `document include=["chunks"]`.
 4. `document` for citation-keyed traversal: body, mapping edges (both directions), version lineage.
 5. `quality_gaps` to surface what the corpus cannot answer.
 
@@ -157,10 +157,16 @@ embedder) never abstain on the floor — there is no cosine to compare.
 - **Hit shape:** citation, content, RRF score, version badge, ready-to-paste cite, and
   `source_url` (official publisher page from bronze provenance — also on `document`'s control).
   Retrieval internals (chunk/document IDs, per-arm scores/ranks) are not exposed.
+- **Search detail levels:** `detail=standard` (default) returns the full hit shape including
+  content and context_prefix. `detail=compact` strips content and context_prefix from every hit
+  (keeps citation, citation_norm, framework_code, version_label, score, version badge, cite,
+  source_url) — the cheap discovery pass for token economy. The agent then reads full text via
+  `document include=["chunks"]`. Compact composes orthogonally with reduced projection
+  (projection stripping still applies; compact is additive).
 - **Input validation:** `document.citation` is required (schema + runtime); an unrecognized
   `include` section name is a hard error naming the valid set (`chunks`, `mappings`, `lineage`,
   `children`) — never a silently empty response. `quality_gaps.category` errors list the valid
-  categories.
+  categories. `search.detail` rejects unknown values naming the valid set (`compact`, `standard`).
 - **Operator-tunable** via the config.setting seed row; re-calibrate with
   `cmd/eval -abstain-floor <f>` when the corpus grows.
 
@@ -168,8 +174,8 @@ embedder) never abstain on the floor — there is no cosine to compare.
 
 | Lane | Recall@8 | MRR@8 | Current | Abstain |
 |------|----------|-------|---------|---------|
-| Open-corpus (no pins) | 72.2% | 49.5% | 100% | 93.6% |
-| Framework-filtered | 81.7% | 67.9% | 94.3% | 93.6% |
+| Open-corpus (no pins) | 67.0% | 47.2% | 100% | 95.2% |
+| Framework-filtered | 83.5% | 67.7% | 94.3% | 93.6% |
 
 Golden set v3: 125 cases (105 v2 + 20 new: 8 COBIT, 5 OOS, 4 ISO 27001 topic-phrased, 3
 27017/27018). Quality round 2 (2026-07-20): curated titles for COBIT + 27002 put every new
@@ -180,9 +186,10 @@ cross-framework competition between enriched 27001 chunks and their 27002 twins 
 trade; the MCP-recommended filtered path improved).
 
 Floors (open-corpus lane, 125-case set): recall >= 0.66, MRR >= 0.44, current >= 0.98,
-abstain >= 0.90. The raw-cosine floor (0.5) catches the two clearly-distant OOS cases; the
-remaining 8 compliance-adjacent OOS cases embed too close to InfoSec text to separate, so
-93.6% is the calibrated optimum at this corpus size.
+abstain >= 0.90. The raw-cosine floor (0.5) catches the clearly-distant OOS cases; the
+remaining compliance-adjacent OOS cases embed too close to InfoSec text to separate —
+95.2% open-lane abstention accuracy is the calibrated optimum at this corpus size
+(re-baselined 2026-07-21; invocation in RETRIEVAL.md).
 
 **Truth about abstain floors:** the raw-cosine floor (0.5) separates only the clearly-distant
 out-of-scope queries — 2 of the 10 OOS golden cases abstain; the other 8 are compliance-adjacent
