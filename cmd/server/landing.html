@@ -10,53 +10,218 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://compliary.danny.vn/">
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📚</text></svg>'>
+<script>
+(function(){var t=localStorage.getItem('compliary-theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t)}})();
+</script>
 <style>
   :root {
-    --bg: #fbfbfa; --fg: #1a1a19; --muted: #6b6b68; --line: #e6e6e3;
-    --card: #ffffff; --accent: #3b5bdb; --ok: #2f9e44; --down: #e03131;
-    --chip: #f1f3f5;
+    --bg: #f8f8f6;
+    --fg: #1c1c1a;
+    --muted: #65655f;
+    --line: #e0dfdb;
+    --card: #ffffff;
+    --card-shadow: rgba(0,0,0,.04);
+    --accent: #3658b1;
+    --accent-hover: #2a4690;
+    --ok: #2d8f3e;
+    --ok-glow: rgba(45,143,62,.15);
+    --down: #c62828;
+    --down-glow: rgba(198,40,40,.15);
+    --chip-bg: #eeeee9;
+    --th-bg: #f4f4f1;
+    --hover-row: rgba(0,0,0,.025);
+    --sup-dim: .7;
+    --feature-icon-bg: #eef1f8;
+    --feature-icon-fg: var(--accent);
   }
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #16161a; --fg: #e9e9ec; --muted: #9a9aa2; --line: #2a2a30;
-      --card: #1d1d22; --accent: #91a7ff; --ok: #51cf66; --down: #ff6b6b;
-      --chip: #26262c;
+    :root:not([data-theme="light"]) {
+      --bg: #161619;
+      --fg: #e4e4e8;
+      --muted: #929298;
+      --line: #2b2b31;
+      --card: #1e1e23;
+      --card-shadow: rgba(0,0,0,.2);
+      --accent: #8ba4e6;
+      --accent-hover: #a5bbf5;
+      --ok: #4caf60;
+      --ok-glow: rgba(76,175,96,.18);
+      --down: #ef5350;
+      --down-glow: rgba(239,83,80,.18);
+      --chip-bg: #25252b;
+      --th-bg: #222228;
+      --hover-row: rgba(255,255,255,.03);
+      --sup-dim: .55;
+      --feature-icon-bg: #252a36;
+      --feature-icon-fg: var(--accent);
     }
   }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--fg);
-    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
+  :root[data-theme="dark"] {
+    --bg: #161619;
+    --fg: #e4e4e8;
+    --muted: #929298;
+    --line: #2b2b31;
+    --card: #1e1e23;
+    --card-shadow: rgba(0,0,0,.2);
+    --accent: #8ba4e6;
+    --accent-hover: #a5bbf5;
+    --ok: #4caf60;
+    --ok-glow: rgba(76,175,96,.18);
+    --down: #ef5350;
+    --down-glow: rgba(239,83,80,.18);
+    --chip-bg: #25252b;
+    --th-bg: #222228;
+    --hover-row: rgba(255,255,255,.03);
+    --sup-dim: .55;
+    --feature-icon-bg: #252a36;
+    --feature-icon-fg: var(--accent);
   }
-  .wrap { max-width: 860px; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
-  header { display: flex; align-items: baseline; gap: .75rem; flex-wrap: wrap; }
-  h1 { font-size: 1.9rem; margin: 0; letter-spacing: -.02em; }
-  .status { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; color: var(--muted); }
-  .dot { width: .6rem; height: .6rem; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 20%, transparent); }
-  .dot.down { background: var(--down); box-shadow: 0 0 0 3px color-mix(in srgb, var(--down) 20%, transparent); }
-  .tag { color: var(--muted); margin: .6rem 0 0; max-width: 62ch; }
+  :root[data-theme="light"] {
+    --bg: #f8f8f6;
+    --fg: #1c1c1a;
+    --muted: #65655f;
+    --line: #e0dfdb;
+    --card: #ffffff;
+    --card-shadow: rgba(0,0,0,.04);
+    --accent: #3658b1;
+    --accent-hover: #2a4690;
+    --ok: #2d8f3e;
+    --ok-glow: rgba(45,143,62,.15);
+    --down: #c62828;
+    --down-glow: rgba(198,40,40,.15);
+    --chip-bg: #eeeee9;
+    --th-bg: #f4f4f1;
+    --hover-row: rgba(0,0,0,.025);
+    --sup-dim: .7;
+    --feature-icon-bg: #eef1f8;
+    --feature-icon-fg: var(--accent);
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+
+  /* ---- header ---- */
+  header { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+  h1 { font-size: 2rem; font-weight: 700; letter-spacing: -.03em; margin: 0; }
+  .status { display: inline-flex; align-items: center; gap: .4rem; font-size: .84rem; color: var(--muted); }
+  .dot {
+    width: .55rem; height: .55rem; border-radius: 50%;
+    background: var(--ok); box-shadow: 0 0 0 3px var(--ok-glow);
+  }
+  .dot.down { background: var(--down); box-shadow: 0 0 0 3px var(--down-glow); }
+  .theme-toggle {
+    margin-left: auto;
+    background: var(--chip-bg); border: 1px solid var(--line); border-radius: 8px;
+    width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1rem; line-height: 1; padding: 0;
+    color: var(--muted); transition: background .15s, border-color .15s;
+  }
+  .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .theme-toggle .icon-sun, .theme-toggle .icon-moon { display: none; }
+
+  /* ---- tagline ---- */
+  .tag { color: var(--muted); margin: .75rem 0 0; max-width: 64ch; line-height: 1.55; }
+
+  /* ---- meta chips ---- */
   .meta { margin-top: 1rem; display: flex; gap: .5rem; flex-wrap: wrap; }
-  .chip { background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: .2rem .7rem; font-size: .8rem; color: var(--muted); }
+  .chip {
+    background: var(--chip-bg); border: 1px solid var(--line); border-radius: 999px;
+    padding: .2rem .75rem; font-size: .8rem; color: var(--muted);
+  }
   .chip b { color: var(--fg); font-weight: 600; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .75rem; margin: 2rem 0; }
-  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; }
-  .stat .n { font-size: 1.6rem; font-weight: 650; letter-spacing: -.02em; }
-  .stat .l { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
-  section h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 2rem 0 .75rem; }
-  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
-  table { width: 100%; border-collapse: collapse; font-size: .88rem; min-width: 460px; }
-  th, td { text-align: left; padding: .6rem .85rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  th { font-weight: 600; color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
+
+  /* ---- stat tiles ---- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .75rem; margin: 2.25rem 0; }
+  .stat {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 1rem 1.1rem;
+    box-shadow: 0 1px 3px var(--card-shadow);
+  }
+  .stat .n { font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: .76rem; color: var(--muted); margin-top: .2rem; text-transform: uppercase; letter-spacing: .03em; }
+
+  /* ---- sections ---- */
+  section h2 {
+    font-size: .76rem; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--muted); margin: 2.5rem 0 .85rem; font-weight: 700;
+  }
+
+  /* ---- tables ---- */
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 1px 3px var(--card-shadow); }
+  table { width: 100%; border-collapse: collapse; font-size: .87rem; min-width: 460px; }
+  th {
+    text-align: left; padding: .6rem .85rem; border-bottom: 1px solid var(--line);
+    font-weight: 700; color: var(--muted); font-size: .73rem; text-transform: uppercase;
+    letter-spacing: .05em; background: var(--th-bg); white-space: nowrap;
+  }
+  td { text-align: left; padding: .55rem .85rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
   tbody tr:last-child td { border-bottom: 0; }
+  tbody tr { transition: background .1s; }
+  tbody tr:hover { background: var(--hover-row); }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .cur { color: var(--ok); font-weight: 600; }
   .sup { color: var(--muted); }
-  code { background: var(--chip); border: 1px solid var(--line); border-radius: 6px; padding: .1rem .4rem; font-size: .85em; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 1.1rem 1.25rem; }
-  .card p { margin: .35rem 0; }
-  a { color: var(--accent); }
-  footer { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .82rem; }
+  tr.superseded td { opacity: var(--sup-dim); }
+
+  /* ---- code ---- */
+  code { background: var(--chip-bg); border: 1px solid var(--line); border-radius: 5px; padding: .1rem .4rem; font-size: .84em; }
+
+  /* ---- cards ---- */
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 1px 3px var(--card-shadow);
+  }
+  .card p { margin: .4rem 0; }
+
+  /* ---- links ---- */
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+  /* ---- feature cards ---- */
+  .features {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; margin-top: .85rem;
+  }
+  .feature {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 1rem 1.15rem;
+    box-shadow: 0 1px 3px var(--card-shadow);
+  }
+  .feature-head { display: flex; align-items: center; gap: .55rem; margin-bottom: .35rem; }
+  .feature-icon {
+    width: 1.7rem; height: 1.7rem; border-radius: 7px;
+    background: var(--feature-icon-bg); color: var(--feature-icon-fg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85rem; flex-shrink: 0;
+  }
+  .feature h3 { font-size: .88rem; font-weight: 650; }
+  .feature p { font-size: .82rem; color: var(--muted); line-height: 1.5; margin: 0; }
+
+  /* ---- eval table ---- */
+  .eval-caption { font-size: .78rem; color: var(--muted); margin-top: .5rem; line-height: 1.5; max-width: 72ch; }
+  table.eval { min-width: 380px; }
+  table.eval td:first-child { font-weight: 600; }
+
+  /* ---- footer ---- */
+  footer {
+    margin-top: 3rem; padding-top: 1.25rem;
+    border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem;
+  }
+
+  /* ---- mobile ---- */
+  @media (max-width: 640px) {
+    .wrap { padding: 2rem 1rem 3rem; }
+    h1 { font-size: 1.6rem; }
+    .features { grid-template-columns: 1fr; }
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    .stat .n { font-size: 1.35rem; }
+  }
 </style>
 </head>
 <body>
@@ -67,6 +232,10 @@
       <span class="dot{{if not .StatusOK}} down{{end}}"></span>
       {{if .StatusOK}}operational{{else}}degraded — corpus unavailable{{end}}
     </span>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <span class="icon-sun">&#9788;</span>
+      <span class="icon-moon">&#9790;</span>
+    </button>
   </header>
   <p class="tag">Evidence-only corpus &amp; MCP server for Information Security &amp; Cybersecurity control frameworks — exact control citations, version lineage, cross-framework mappings, provenance, and explicit gaps. It does not answer questions; your agent retrieves the evidence and decides.</p>
   <div class="meta">
@@ -91,10 +260,10 @@
         <thead><tr><th>Framework</th><th>Version</th><th class="num">Controls</th><th class="num">Chunks</th><th class="num">Mappings</th></tr></thead>
         <tbody>
         {{range .Frameworks}}
-          <tr>
+          <tr{{if not .IsCurrent}} class="superseded"{{end}}>
             <td>{{.FrameworkName}} <span class="sup">{{.FrameworkCode}}</span></td>
             <td>{{.VersionLabel}}{{if .IsCurrent}} <span class="cur">· current</span>{{else}} <span class="sup">· superseded</span>{{end}}</td>
-            <td class="num">{{.Controls}}{{if .Withdrawn}} <span class="sup">(−{{.Withdrawn}})</span>{{end}}</td>
+            <td class="num">{{.Controls}}{{if .Withdrawn}} <span class="sup">(-{{.Withdrawn}})</span>{{end}}</td>
             <td class="num">{{.Chunks}}</td>
             <td class="num">{{if .MappingEdges}}{{.Resolved}}<span class="sup">/{{.MappingEdges}}</span>{{else}}<span class="sup">—</span>{{end}}</td>
           </tr>
@@ -103,9 +272,57 @@
       </table>
     </div>
   </section>
+
+  <section>
+    <h2>Retrieval quality</h2>
+    <div class="scroll">
+      <table class="eval">
+        <thead><tr><th>Lane (golden set v3, 125 cases)</th><th class="num">Recall@8</th><th class="num">MRR@8</th><th class="num">Current-ver</th><th class="num">Abstention</th></tr></thead>
+        <tbody>
+          <tr><td>Open-corpus</td><td class="num">72.2%</td><td class="num">49.5%</td><td class="num">100%</td><td class="num">93.6%</td></tr>
+          <tr><td>Framework-filtered</td><td class="num">81.7%</td><td class="num">67.9%</td><td class="num">94.3%</td><td class="num">93.6%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="eval-caption">Adversarially-verified eval with accepted floors (recall &ge;66%, MRR &ge;44%, current &ge;98%, abstain &ge;90%); measured 2026-07-21. The <code>quality_gaps</code> tool serves the floors live.</p>
+  </section>
   {{else}}
   <div class="card"><p>The corpus backend is not reachable right now. The server is up (this page rendered), but live counts are unavailable — retry shortly.</p></div>
   {{end}}
+
+  <section>
+    <h2>Main features</h2>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-head">
+          <div class="feature-icon">#</div>
+          <h3>Exact citations</h3>
+        </div>
+        <p>A.5.1, AC-2(3), Req 8.3.6 — never paraphrased references.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-head">
+          <div class="feature-icon">&darr;</div>
+          <h3>Version lineage</h3>
+        </div>
+        <p>Superseded text never served as current; amendments tracked.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-head">
+          <div class="feature-icon">&harr;</div>
+          <h3>Cross-framework mappings</h3>
+        </div>
+        <p>4,400+ typed edges: NIST OLIR, CIS workbooks, structural derivation.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-head">
+          <div class="feature-icon">?</div>
+          <h3>Honest gaps</h3>
+        </div>
+        <p>Abstention, unresolved edges, quality_gaps — the corpus tells you what it can't answer.</p>
+      </div>
+    </div>
+  </section>
 
   <section>
     <h2>MCP tools</h2>
@@ -126,14 +343,47 @@
     <h2>Connect</h2>
     <div class="card">
       <p>The MCP surface at <code>https://compliary.danny.vn/mcp</code> is <b>authenticated</b> (OAuth 2.0 with PKCE and dynamic client registration); unauthenticated requests receive 401.</p>
-      <p>In <b>claude.ai</b> (Settings → Connectors) or <b>chatgpt.com</b> (Settings → Connectors, developer mode): add a custom connector with that URL — the OAuth metadata is discovered automatically and the sign-in form appears. Only the maintainer's credential is authorized.</p>
+      <p>In <b>claude.ai</b> (Settings &rarr; Connectors) or <b>chatgpt.com</b> (Settings &rarr; Connectors, developer mode): add a custom connector with that URL — the OAuth metadata is discovered automatically and the sign-in form appears. Only the maintainer's credential is authorized.</p>
       <p class="sup">Licensed framework text is served only to the authenticated maintainer. Everyone else self-deploys their own instance — the project ships the pipeline and MCP server, not the licensed documents.</p>
     </div>
   </section>
 
   <footer>
-    compliary — compliance + library · a single-operator instance · <a href="https://github.com/dannyota/compliary">source</a>
+    compliary — compliance + library &middot; a single-operator instance &middot; <a href="https://github.com/dannyota/compliary">source</a>
   </footer>
 </div>
+<script>
+(function(){
+  var btn = document.getElementById('themeToggle');
+  var root = document.documentElement;
+  function resolveTheme(){
+    return root.getAttribute('data-theme') ||
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  }
+  function applyIcons(){
+    var t = resolveTheme();
+    var sun = btn.querySelector('.icon-sun');
+    var moon = btn.querySelector('.icon-moon');
+    if(t === 'dark'){
+      sun.style.display = 'inline';
+      moon.style.display = 'none';
+    } else {
+      sun.style.display = 'none';
+      moon.style.display = 'inline';
+    }
+  }
+  applyIcons();
+  btn.addEventListener('click', function(){
+    var cur = resolveTheme();
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('compliary-theme', next);
+    applyIcons();
+  });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(){
+    if(!root.getAttribute('data-theme')) applyIcons();
+  });
+})();
+</script>
 </body>
 </html>
