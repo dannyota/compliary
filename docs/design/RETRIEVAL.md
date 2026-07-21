@@ -16,7 +16,8 @@ Schema in [`SCHEMA.md`](SCHEMA.md); pipeline + stack in [`../ARCHITECTURE.md`](.
   citations do a direct `citation_norm` DB lookup, returned as pinned hits (rank 0, score 1.0),
   remaining slots filled by hybrid search.
 - **BM25-only degradation:** if no embeddings exist (untagged build), retriever falls back to
-  BM25 arm only.
+  BM25 arm only. The non-current version disclosure pass also runs BM25-only in this mode
+  (sparse arm against non-current chunks, same badging/limits as the dense path).
 
 ## Embedding strategy
 
@@ -46,20 +47,27 @@ Review evaluated banhmi `pkg/rag/{embed,lexical,retrieve}` + `cmd/{lexindex,eval
 (so-ky-hieu patterns), `identifierScope`, `WithDiacriticDict`, `attachArticles`. These are
 language- or jurisdiction-specific; compliary is English-only with citation-keyed controls.
 
-**Dropped scale machinery:** HNSW (exact scan wins at 3.4k), rollup/section-aggregate
-(1 chunk/control), SageMaker bulk embed, doc_cap (12 documents total).
+**Dropped scale machinery:** HNSW index dropped from schema (exact scan wins at 3.4k;
+re-evaluate at 10k+), rollup/section-aggregate (1 chunk/control), SageMaker bulk embed,
+doc_cap (12 documents total).
 
 ## Baselines
 
 ### Golden v3 baseline (125 cases — 2026-07-21, current)
 
 125 adversarially-verified cases (105 v2 + 20 v3: 8 COBIT, 5 OOS, 4 ISO 27001 topic-phrased,
-3 ISO 27017/27018). Hybrid ONNX, raw-cosine abstention floor 0.5. Two lanes:
+3 ISO 27017/27018). Hybrid ONNX, raw-cosine abstention floor 0.5. Reproducible invocation
+(the embedder MUST initialize — a missing `COMPLIARY_ONNX_LIB` silently degrades to BM25-only):
+`COMPLIARY_ONNX_LIB=$HOME/.local/lib/libonnxruntime.so CGO_LDFLAGS=-L$HOME/.local/lib
+COMPLIARY_DATABASE_PASSWORD=… go run -tags onnx ./cmd/eval -abstain-floor 0.5`.
+Re-baselined 2026-07-21 after the FormatQuery separator fix and the dev-corpus resync
+(re-seed + mapedges); the earlier recorded open lane (72.2/49.5, abstain 93.6) did not
+reproduce on the resynced corpus and is superseded by these numbers. Two lanes:
 
 | Lane | Recall@8 | MRR@8 | Current | Abstain | Floor |
 |------|----------|-------|---------|---------|-------|
-| Open-corpus (no pins) | 72.2% | 49.5% | 100% | 93.6% | recall ≥66%, MRR ≥44%, current ≥98%, abstain ≥90% |
-| Framework-filtered | 81.7% | 67.9% | 94.3% | 93.6% | — |
+| Open-corpus (no pins) | 67.0% | 47.2% | 100% | 95.2% | recall ≥66%, MRR ≥44%, current ≥98%, abstain ≥90% |
+| Framework-filtered | 83.5% | 67.7% | 94.3% | 93.6% | — |
 
 The withdrawn-control cases (`SC-19`, `ID.GV`) pass in the filtered lane via the
 `include_withdrawn` flag. Current numbers and floors also live in

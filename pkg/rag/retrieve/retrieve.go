@@ -346,10 +346,19 @@ func (r *Retriever) searchHits(ctx context.Context, query string, opts eval.Sear
 	}
 
 	// Non-current pass: surface a small set of non-current version matches.
-	if res.surfaceNonCurrent && queryVec != nil {
-		nc, err := r.nonCurrentHits(ctx, *queryVec, res)
-		if err != nil {
-			r.log.Warn("retrieve: non-current pass failed", "err", err)
+	// Dense path when queryVec is available; sparse path when the lexical arm ran
+	// but there's no embedder (BM25-only deployments).
+	if res.surfaceNonCurrent {
+		var nc []eval.Hit
+		var ncErr error
+		switch {
+		case queryVec != nil:
+			nc, ncErr = r.nonCurrentHits(ctx, *queryVec, res)
+		case len(bm25List) > 0:
+			nc, ncErr = r.nonCurrentHitsBM25(ctx, query, res)
+		}
+		if ncErr != nil {
+			r.log.Warn("retrieve: non-current pass failed", "err", ncErr)
 		} else {
 			hits = appendNonCurrent(hits, nc)
 		}
@@ -489,6 +498,10 @@ WITH version_filter AS (
 // --- Lexical (BM25) arm ---
 
 func (r *Retriever) sparseArm(ctx context.Context, query string, res resolved) ([]ranked, error) {
+	return r.sparseArmInner(ctx, query, res, false)
+}
+
+func (r *Retriever) sparseArmInner(ctx context.Context, query string, res resolved, nonCurrent bool) ([]ranked, error) {
 	qv := lexical.QueryVector(query)
 	args := []any{qv, res.bm25K}
 
@@ -508,10 +521,15 @@ WHERE c.content_sparse IS NOT NULL
 ORDER BY c.content_sparse <#> $1::sparsevec
 LIMIT $2`, statusPred)
 
-	cte, fargs := buildVersionFilterCTE(res, len(args)+1)
 	var sql string
-	if cte == "" {
-		sql = fmt.Sprintf(`
+	if nonCurrent {
+		cte, fargs := buildNonCurrentCTE(res, len(args)+1)
+		args = append(args, fargs...)
+		sql = cte + filteredBody
+	} else {
+		cte, fargs := buildVersionFilterCTE(res, len(args)+1)
+		if cte == "" {
+			sql = fmt.Sprintf(`
 SELECT c.id, (c.content_sparse <#> $1::sparsevec) AS neg_ip
 FROM gold.chunk c
 JOIN silver.control sc ON sc.id = c.control_id
@@ -520,9 +538,10 @@ WHERE c.content_sparse IS NOT NULL
   AND (c.content_sparse <#> $1::sparsevec) < 0
 ORDER BY c.content_sparse <#> $1::sparsevec
 LIMIT $2`, statusPred)
-	} else {
-		args = append(args, fargs...)
-		sql = cte + filteredBody
+		} else {
+			args = append(args, fargs...)
+			sql = cte + filteredBody
+		}
 	}
 
 	rows, err := r.pool.Query(ctx, sql, args...)
@@ -781,6 +800,29 @@ func (r *Retriever) nonCurrentHits(ctx context.Context, queryVec pgvector.Vector
 		return nil, fmt.Errorf("non-current hydrate: %w", err)
 	}
 	// Best hit per framework (not per document — one chunk per control).
+	return bestHitPerFramework(hits), nil
+}
+
+// nonCurrentHitsBM25 is the BM25-only equivalent of nonCurrentHits. It runs the
+// sparse arm against non-current versions so BM25-only deployments (no embedder)
+// still surface version lineage. Same badging/limits as the dense path.
+func (r *Retriever) nonCurrentHitsBM25(ctx context.Context, query string, res resolved) ([]eval.Hit, error) {
+	list, err := r.sparseArmInner(ctx, query, res, true)
+	if err != nil {
+		return nil, fmt.Errorf("non-current bm25 arm: %w", err)
+	}
+	fused := fuseRRF(nil, list, res.rrfK, 1.0)
+	limit := nonCurrentCap
+	if res.topK < limit {
+		limit = res.topK
+	}
+	if len(fused) > limit {
+		fused = fused[:limit]
+	}
+	hits, err := r.hydrate(ctx, fused)
+	if err != nil {
+		return nil, fmt.Errorf("non-current bm25 hydrate: %w", err)
+	}
 	return bestHitPerFramework(hits), nil
 }
 

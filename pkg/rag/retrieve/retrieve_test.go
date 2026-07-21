@@ -171,6 +171,37 @@ func TestBuildVersionFilterCTE_NoFilter(t *testing.T) {
 	}
 }
 
+func TestBuildNonCurrentCTE_NoFramework(t *testing.T) {
+	res := resolved{currentOnly: true}
+	cte, args := buildNonCurrentCTE(res, 1)
+	if cte == "" {
+		t.Fatal("expected CTE, got empty")
+	}
+	if len(args) != 0 {
+		t.Errorf("expected 0 args for no framework pin, got %d", len(args))
+	}
+	if !strings.Contains(cte, "fv.is_current = false") {
+		t.Errorf("CTE should filter on is_current = false: %s", cte)
+	}
+}
+
+func TestBuildNonCurrentCTE_WithFramework(t *testing.T) {
+	res := resolved{framework: "iso27001", currentOnly: true}
+	cte, args := buildNonCurrentCTE(res, 3)
+	if cte == "" {
+		t.Fatal("expected CTE, got empty")
+	}
+	if len(args) != 1 || args[0] != "iso27001" {
+		t.Errorf("expected [iso27001], got %v", args)
+	}
+	if !strings.Contains(cte, "$3") {
+		t.Errorf("CTE should use startParam $3: %s", cte)
+	}
+	if !strings.Contains(cte, "fv.is_current = false") {
+		t.Errorf("CTE must include is_current = false: %s", cte)
+	}
+}
+
 func findSubstring(s, sub string) bool {
 	for i := 0; i+len(sub) <= len(s); i++ {
 		if s[i:i+len(sub)] == sub {

@@ -30,7 +30,7 @@ CREATE INDEX idx_gold_chunk_control ON gold.chunk (control_id);
 
 -- gold.chunk_embedding: one embedding per (chunk, model, dims) so multiple
 -- embedders coexist and re-embedding is non-destructive. Qwen3-Embedding-0.6B,
--- 1024 dims, HNSW cosine.
+-- 1024 dims, exact cosine scan (no HNSW — re-evaluate at 10k+ chunks).
 CREATE TABLE gold.chunk_embedding (
     id        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     chunk_id  BIGINT NOT NULL,
@@ -43,6 +43,3 @@ CREATE TABLE gold.chunk_embedding (
 );
 
 CREATE INDEX idx_gold_embedding_chunk ON gold.chunk_embedding (chunk_id);
-
-CREATE INDEX idx_gold_embedding_hnsw ON gold.chunk_embedding
-    USING hnsw (embedding vector_cosine_ops);

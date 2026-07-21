@@ -53,7 +53,7 @@ const CanonicalDims = 1024
 // Qwen3-Embedding is asymmetric: queries get an instruction prefix,
 // documents do not. The task instruction is tuned for security/compliance
 // framework retrieval.
-const Qwen3QueryPrefix = "Instruct: Given a security or compliance query, retrieve relevant controls and framework text that address the query\nQuery:"
+const Qwen3QueryPrefix = "Instruct: Given a security or compliance query, retrieve relevant controls and framework text that address the query\nQuery: "
 
 // FormatQuery prepends the Qwen3 instruction prefix to a query string.
 // Documents are embedded as-is (no prefix).
