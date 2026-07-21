@@ -60,7 +60,7 @@ learn what the corpus cannot answer. Full contract: [docs/design/MCP.md](docs/de
 
 ## Frameworks
 
-12 documents / 3404 controls / 4461 mapping edges (93.4% resolved) / 1718 curated titles.
+12 documents / 3404 controls / 4462 mapping edges (93.4% resolved) / 1718 curated titles.
 
 | Source access | Ingestion | Frameworks |
 |---|---|---|

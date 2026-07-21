@@ -160,6 +160,14 @@ func parseCISMappingPairs(raw json.RawMessage, normalize func(string) (string, b
 				continue // header row
 			}
 			mapped, ok := cisRelationships[rel]
+			if rel == "" {
+				// Publisher data gap: the target is asserted but its
+				// relationship cell is blank (e.g. the 800-53 workbook's
+				// safeguard 8.11 → AU-7(1) row). Unspecified strength is
+				// exactly what 'related' means — same typing the OLIR
+				// crosswalk gets for lacking types entirely.
+				mapped, ok = "related", true
+			}
 			if !ok {
 				skipped++
 				continue

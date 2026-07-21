@@ -17,7 +17,8 @@ const syntheticCISMap = `{
       {"ref": "C5", "value": "4.0999999999999996"}, {"ref": "F5", "value": "Enforce Automatic Device Lockout on Portable End-User Devices"}, {"ref": "K5", "value": "Equivalent"}, {"ref": "L5", "value": "A8.1"},
       {"ref": "C6", "value": "4.2"}, {"ref": "F6", "value": "Establish and Maintain a Secure Configuration Process for Network Infrastructure"}, {"ref": "K6", "value": "Superset"}, {"ref": "L6", "value": "7.5.1"},
       {"ref": "C7", "value": "4.3"}, {"ref": "F7", "value": "Some Safeguard"}, {"ref": "K7", "value": "Related"}, {"ref": "L7", "value": "A8.2"},
-      {"ref": "C8", "value": "4.4"}, {"ref": "F8", "value": "Another Safeguard"}, {"ref": "K8", "value": "Subset"}, {"ref": "L8", "value": "see note"}
+      {"ref": "C8", "value": "4.4"}, {"ref": "F8", "value": "Another Safeguard"}, {"ref": "K8", "value": "Subset"}, {"ref": "L8", "value": "see note"},
+      {"ref": "C9", "value": "8.11"}, {"ref": "F9", "value": "Conduct Audit Log Reviews"}, {"ref": "L9", "value": "A8.15"}
     ]},
     {"name": "Unmapped CIS", "rows": [
       {"ref": "K1", "value": "Subset"}, {"ref": "L1", "value": "A9.9"}, {"ref": "F1", "value": "Should not be parsed"}
@@ -30,10 +31,11 @@ func TestParseCISMappingPairs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parseCISMappingPairs: %v", err)
 	}
-	// Rows 4,5,6 parse; row 7 (unknown relationship "Related") and row 8
-	// (unparseable target) are skipped; the Unmapped sheet is ignored.
-	if len(pairs) != 3 {
-		t.Fatalf("pairs=%d, want 3; got %+v", len(pairs), pairs)
+	// Rows 4,5,6 parse; row 9 (blank relationship, asserted target) parses as
+	// 'related'; row 7 (unknown relationship "Related") and row 8 (unparseable
+	// target) are skipped; the Unmapped sheet is ignored.
+	if len(pairs) != 4 {
+		t.Fatalf("pairs=%d, want 4; got %+v", len(pairs), pairs)
 	}
 	if skipped != 2 {
 		t.Errorf("skipped=%d, want 2", skipped)
@@ -54,6 +56,11 @@ func TestParseCISMappingPairs(t *testing.T) {
 	p3 := byTitle["Establish and Maintain a Secure Configuration Process for Network Infrastructure"]
 	if p3.TargetNorm != "7.5.1" || p3.Relationship != "superset-of" {
 		t.Errorf("clause row: %+v", p3)
+	}
+	// Blank relationship with an asserted target → 'related', never guessed stronger.
+	p4 := byTitle["Conduct Audit Log Reviews"]
+	if p4.TargetNorm != "A.8.15" || p4.Relationship != "related" {
+		t.Errorf("blank-relationship row: %+v", p4)
 	}
 }
 
