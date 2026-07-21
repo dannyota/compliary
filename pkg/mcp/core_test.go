@@ -43,10 +43,11 @@ func (f *fakeSearcher) SearchEvidence(ctx context.Context, query string, opts ev
 }
 
 type fakeCorpus struct {
-	status CorpusStatusOutput
-	gaps   QualityGapsOutput
-	doc    DocumentOutput
-	err    error
+	frameworkVersions map[string][]string
+	status            CorpusStatusOutput
+	gaps              QualityGapsOutput
+	doc               DocumentOutput
+	err               error
 }
 
 func (f *fakeCorpus) CorpusStatus(ctx context.Context) (CorpusStatusOutput, error) {
@@ -59,6 +60,13 @@ func (f *fakeCorpus) QualityGaps(ctx context.Context, in QualityGapsInput) (Qual
 
 func (f *fakeCorpus) Document(ctx context.Context, in DocumentInput) (DocumentOutput, error) {
 	return f.doc, f.err
+}
+
+func (f *fakeCorpus) FrameworkVersions(_ context.Context) (map[string][]string, error) {
+	if f.frameworkVersions == nil {
+		return map[string][]string{}, nil
+	}
+	return f.frameworkVersions, nil
 }
 
 // --- Tests ---

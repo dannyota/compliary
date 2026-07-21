@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -145,6 +146,7 @@ func (c *Core) Document(ctx context.Context, in DocumentInput) (DocumentOutput, 
 	if citation == "" {
 		return DocumentOutput{}, fmt.Errorf("citation is required")
 	}
+	in.Citation = normalizeCitationInput(citation)
 	out, err := c.corpus.Document(ctx, in)
 	if err != nil {
 		c.log.Error("mcp: document", "err", err)
@@ -181,10 +183,35 @@ func (dc *dbCorpus) Document(ctx context.Context, in DocumentInput) (DocumentOut
 			Message:      fmt.Sprintf("control not found by citation %q", citation),
 			BlocksAnswer: true,
 		}}
+		// If a version pin caused the miss, say so and name the versions that
+		// DO carry the citation — the agent should never have to guess whether
+		// the citation or the version was wrong.
+		if in.VersionLabel != "" {
+			if vers, err := dc.citationVersions(ctx, citation, in.FrameworkCode); err == nil && len(vers) > 0 {
+				out.Gaps = append(out.Gaps, SearchGap{
+					Kind:         "version_not_found",
+					Message:      fmt.Sprintf("citation %q exists but not in version %q; found in: %s", citation, in.VersionLabel, strings.Join(vers, ", ")),
+					BlocksAnswer: true,
+				})
+			}
+		}
 		return out, nil
 	}
 	out.Found = true
 	out.Control = &ctrl
+
+	// Ambiguity notice: bare numeric citations (5.1, 8.1) exist in several
+	// frameworks. When the caller pinned no framework, report the alternatives
+	// so the agent knows this pick was a ranking choice, not the only match.
+	if in.FrameworkCode == "" {
+		if others, err := dc.citationFrameworks(ctx, citation, ctrl.FrameworkCode); err == nil && len(others) > 0 {
+			out.Gaps = append(out.Gaps, SearchGap{
+				Kind:         "ambiguous_citation",
+				Message:      fmt.Sprintf("citation %q also exists in: %s — pass framework_code to pin", citation, strings.Join(others, ", ")),
+				BlocksAnswer: false,
+			})
+		}
+	}
 
 	inc := documentIncludes(in.Include)
 
@@ -238,9 +265,12 @@ func (dc *dbCorpus) Document(ctx context.Context, in DocumentInput) (DocumentOut
 		if err != nil {
 			return DocumentOutput{}, err
 		}
-		out.Chunks = chunks
-		if len(chunks) == limit {
+		// The query probed limit+1 rows: an extra row proves a next page.
+		if len(chunks) > limit {
+			out.Chunks = chunks[:limit]
 			out.NextOffset = offset + limit
+		} else {
+			out.Chunks = chunks
 		}
 	}
 
@@ -280,6 +310,82 @@ ORDER BY d.qualifier, sc.citation`
 			a.Action = *action
 		}
 		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
+// citationVersions lists version labels (per framework when pinned) whose
+// documents carry the citation — for the version_not_found diagnostic.
+func (dc *dbCorpus) citationVersions(ctx context.Context, citation, frameworkCode string) ([]string, error) {
+	sql := `
+SELECT DISTINCT d.framework_code || ' ' || d.version_label
+FROM silver.control sc
+JOIN silver.document d ON d.id = sc.document_id
+WHERE (upper(sc.citation_norm) = upper($1) OR upper(sc.citation_norm) = upper($2))`
+	args := []any{citation, zeroPadCitation(citation)}
+	if frameworkCode != "" {
+		sql += ` AND d.framework_code = $3`
+		args = append(args, frameworkCode)
+	}
+	sql += ` ORDER BY 1 LIMIT 10`
+	rows, err := dc.pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query citation versions: %w", err)
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var v string
+		if err := rows.Scan(&v); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+// citationFrameworks lists OTHER frameworks whose current version carries the
+// citation — for the ambiguous_citation notice.
+func (dc *dbCorpus) citationFrameworks(ctx context.Context, citation, chosenFramework string) ([]string, error) {
+	rows, err := dc.pool.Query(ctx, `
+SELECT DISTINCT d.framework_code
+FROM silver.control sc
+JOIN silver.document d ON d.id = sc.document_id
+JOIN config.framework_version fv
+  ON fv.framework_code = d.framework_code AND fv.version_label = d.version_label
+WHERE (upper(sc.citation_norm) = upper($1) OR upper(sc.citation_norm) = upper($2))
+  AND fv.is_current AND d.framework_code <> $3
+ORDER BY 1 LIMIT 10`, citation, zeroPadCitation(citation), chosenFramework)
+	if err != nil {
+		return nil, fmt.Errorf("query citation frameworks: %w", err)
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var v string
+		if err := rows.Scan(&v); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+// FrameworkVersions maps framework code → version labels present in silver.
+func (dc *dbCorpus) FrameworkVersions(ctx context.Context) (map[string][]string, error) {
+	rows, err := dc.pool.Query(ctx,
+		`SELECT DISTINCT framework_code, version_label FROM silver.document ORDER BY framework_code, version_label`)
+	if err != nil {
+		return nil, fmt.Errorf("query framework versions: %w", err)
+	}
+	defer rows.Close()
+	out := map[string][]string{}
+	for rows.Next() {
+		var fw, vl string
+		if err := rows.Scan(&fw, &vl); err != nil {
+			return nil, err
+		}
+		out[fw] = append(out[fw], vl)
 	}
 	return out, rows.Err()
 }
@@ -332,7 +438,7 @@ JOIN config.framework_version fv
   ON fv.framework_code = d.framework_code
  AND fv.version_label = d.version_label
 WHERE %s
-ORDER BY fv.is_current DESC, (d.doc_role = 'main') DESC, d.framework_code, sc.citation_norm
+ORDER BY fv.is_current DESC, (d.doc_role = 'main') DESC, d.framework_code, sc.citation_norm, sc.id
 LIMIT 1`, strings.Join(conds, " AND "))
 
 	var ctrl ControlDetail
@@ -359,6 +465,22 @@ LIMIT 1`, strings.Join(conds, " AND "))
 	}
 	ctrl.VersionStatus = versionStatus(ctrl.IsCurrent)
 	return ctrl, true, nil
+}
+
+// reDotEnhancement matches the dot-separated enhancement notation some humans
+// type for 800-53-style citations: "AC-2.3" (canonical form is "AC-2(3)").
+var reDotEnhancement = regexp.MustCompile(`^([A-Za-z]{2,3}-\d+)\.(\d+)$`)
+
+// normalizeCitationInput cleans common human citation typography before the
+// DB lookup: internal whitespace ("AC-2 (3)" → "AC-2(3)") and dot-separated
+// enhancements ("AC-2.3" → "AC-2(3)"). Dotted decimal citations without a
+// letter prefix (PCI "8.3.6", ISO "7.5.1") are left untouched.
+func normalizeCitationInput(s string) string {
+	s = strings.Join(strings.Fields(s), "")
+	if m := reDotEnhancement.FindStringSubmatch(s); m != nil {
+		s = m[1] + "(" + m[2] + ")"
+	}
+	return s
 }
 
 // zeroPadCitation pads bare single-digit numbers in a citation to two digits
@@ -419,7 +541,8 @@ func (dc *dbCorpus) controlChildren(ctx context.Context, controlID int64) ([]Con
 SELECT id, citation, citation_norm, kind, status, title
 FROM silver.control
 WHERE parent_control_id = $1
-ORDER BY ordinal, id`
+ORDER BY ordinal, id
+LIMIT 500`
 
 	rows, err := dc.pool.Query(ctx, q, controlID)
 	if err != nil {
@@ -606,7 +729,10 @@ WHERE c.control_id = $1
 ORDER BY c.ordinal, c.id
 LIMIT $2 OFFSET $3`
 
-	rows, err := dc.pool.Query(ctx, q, controlID, limit, offset)
+	// limit+1 probe: fetch one extra row so NextOffset is set only when a
+	// further page actually exists (an exact-limit final page must not
+	// produce a wasted empty follow-up call).
+	rows, err := dc.pool.Query(ctx, q, controlID, limit+1, offset)
 	if err != nil {
 		return nil, fmt.Errorf("query control chunks: %w", err)
 	}

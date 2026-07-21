@@ -219,8 +219,6 @@ SELECT
     CASE
         WHEN mf.doc_role = 'amendment' THEN 'amendment parsing deferred'
         WHEN mf.doc_role = 'companion-workbook' THEN 'companion-workbook parsing deferred (e.g. CAIQ)'
-        WHEN mf.doc_role = 'changelog' THEN 'changelog — not parsed (metadata only)'
-        WHEN mf.doc_role = 'guide' THEN 'guide — recorded, not parsed'
         ELSE 'parsing not yet implemented'
     END AS reason
 FROM ingest.manifest_file mf

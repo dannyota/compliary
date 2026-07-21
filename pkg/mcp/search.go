@@ -3,6 +3,8 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"slices"
+	"sort"
 	"strings"
 
 	"danny.vn/compliary/pkg/eval"
@@ -120,6 +122,10 @@ func (c *Core) Search(ctx context.Context, in SearchInput) (SearchOutput, error)
 			Message:      "no chunks matched the query",
 			BlocksAnswer: true,
 		})
+		// Distinguish "nothing matched" from "the filter itself is wrong":
+		// an unknown framework code or a version not in the corpus produces
+		// the same empty result, and the agent cannot tell without a gap.
+		out.Gaps = append(out.Gaps, c.filterGaps(ctx, in.Framework, in.VersionLabel)...)
 	}
 
 	// Carry through retriever gaps.
@@ -132,4 +138,39 @@ func (c *Core) Search(ctx context.Context, in SearchInput) (SearchOutput, error)
 	}
 
 	return out, nil
+}
+
+// filterGaps checks a search's framework/version filter against the corpus
+// and returns explicit gaps when the filter names something that is not there.
+// Nil corpus (tests, degraded mode) → no gaps.
+func (c *Core) filterGaps(ctx context.Context, framework, versionLabel string) []SearchGap {
+	if framework == "" || c.corpus == nil {
+		return nil
+	}
+	fv, err := c.corpus.FrameworkVersions(ctx)
+	if err != nil {
+		c.log.Warn("mcp: framework versions lookup failed", "err", err)
+		return nil
+	}
+	versions, ok := fv[framework]
+	if !ok {
+		known := make([]string, 0, len(fv))
+		for k := range fv {
+			known = append(known, k)
+		}
+		sort.Strings(known)
+		return []SearchGap{{
+			Kind:         "unknown_framework",
+			Message:      fmt.Sprintf("framework %q is not in the corpus; known codes: %s", framework, strings.Join(known, ", ")),
+			BlocksAnswer: true,
+		}}
+	}
+	if versionLabel != "" && !slices.Contains(versions, versionLabel) {
+		return []SearchGap{{
+			Kind:         "version_not_found",
+			Message:      fmt.Sprintf("framework %q has no version %q in the corpus; available: %s", framework, versionLabel, strings.Join(versions, ", ")),
+			BlocksAnswer: true,
+		}}
+	}
+	return nil
 }

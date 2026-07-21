@@ -173,6 +173,9 @@ ORDER BY f.code, fv.version_label`
 
 func corpusStatusNotes(t CorpusTotals) []string {
 	var notes []string
+	if t.Chunks > 0 && t.Embeddings == 0 {
+		notes = append(notes, "no dense embeddings stored — search runs BM25-only until the index stage embeds the corpus.")
+	}
 	if t.Chunks == 0 {
 		notes = append(notes, "gold.chunk is empty; run the pipeline (manifest/extract/normalize/index) before using search.")
 	}

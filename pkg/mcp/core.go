@@ -36,6 +36,10 @@ type CorpusReader interface {
 	CorpusStatus(ctx context.Context) (CorpusStatusOutput, error)
 	QualityGaps(ctx context.Context, in QualityGapsInput) (QualityGapsOutput, error)
 	Document(ctx context.Context, in DocumentInput) (DocumentOutput, error)
+	// FrameworkVersions maps framework code → version labels present in the
+	// corpus (silver documents). Used to turn "no results" into explicit
+	// unknown_framework / version_not_found gaps.
+	FrameworkVersions(ctx context.Context) (map[string][]string, error)
 }
 
 // Projection controls whether the response includes verbatim licensed text

@@ -190,6 +190,8 @@ func buildInstructions(core *Core) string {
 			base += fmt.Sprintf(" Corpus: %d frameworks, %d controls, %d chunks, %d mapping edges (%d resolved, %d unresolved).",
 				status.Totals.Frameworks, status.Totals.Controls, status.Totals.Chunks,
 				status.Totals.MappingEdges, status.Totals.Resolved, status.Totals.Unresolved)
+		} else {
+			base += " (Corpus stats unavailable at startup — call corpus_status for live counts.)"
 		}
 	}
 	return base
