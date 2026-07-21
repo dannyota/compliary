@@ -91,6 +91,36 @@ func CIS(c *http.Client, dataDir string, report func(string)) error {
 	return nil
 }
 
+// cisMappingFiles are the CIS-published mapping workbooks (same CC BY-NC-ND
+// terms as the Controls). The learn.cisecurity.org URLs are direct XLSX
+// downloads; destinations are pinned so file_rule patterns stay stable.
+var cisMappingFiles = []struct {
+	url  string
+	dest string
+}{
+	{"https://learn.cisecurity.org/controls-v8.1-mapping-iso-iec-27001-2022", "cis/cis-controls-v8.1-mapping-to-iso-iec-27001-2022.xlsx"},
+	{"https://learn.cisecurity.org/cis-controls-v8.1-mapping-nist-csf-v2", "cis/cis-controls-v8.1-mapping-to-nist-csf-2.0.xlsx"},
+	{"https://learn.cisecurity.org/controls-v8.1-mapping-nist-sp-800-53-rev5", "cis/cis-controls-v8.1-mapping-to-nist-sp-800-53-r5.xlsx"},
+}
+
+// CISMappings downloads the CIS mapping workbooks. Runs after CIS() and uses
+// per-file existence checks (CIS() skips when data/cis is non-empty, which
+// would strand these files on corpora fetched before mappings were added).
+func CISMappings(c *http.Client, dataDir string, report func(string)) error {
+	for _, f := range cisMappingFiles {
+		dest := filepath.Join(dataDir, f.dest)
+		if exists(dest) {
+			report("skip (exists): " + f.dest)
+			continue
+		}
+		if err := downloadFile(c, f.url, dest, []byte("PK")); err != nil {
+			return fmt.Errorf("cis mappings: %w", err)
+		}
+		report("downloaded: " + f.dest)
+	}
+	return nil
+}
+
 // saveByFinalName downloads u and names the file after the redirect-resolved
 // URL's basename (the CIS links resolve to versioned storage filenames),
 // normalized to the data/ kebab-case convention.

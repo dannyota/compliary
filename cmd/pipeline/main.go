@@ -274,11 +274,44 @@ func runMapEdges(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) erro
 		return fmt.Errorf("mapedges: olir: %w", err)
 	}
 
+	// CIS mapping workbooks (safeguards → ISO 27001 / CSF 2.0 / 800-53 r5).
+	cisSum, err := runCISMappingEdges(ctx, pool, silverQ, log)
+	if err != nil {
+		return fmt.Errorf("mapedges: cis mappings: %w", err)
+	}
+
 	log.Info("mapedges complete",
-		"emitted", sum.Emitted+olirSum.Emitted,
-		"resolved", sum.Resolved+olirSum.Resolved,
+		"emitted", sum.Emitted+olirSum.Emitted+cisSum.Emitted,
+		"resolved", sum.Resolved+olirSum.Resolved+cisSum.Resolved,
 	)
 	return nil
+}
+
+// runCISMappingEdges emits edges from each CIS mapping workbook whose capture
+// exists in bronze. Missing workbooks are deferrals, not errors.
+func runCISMappingEdges(ctx context.Context, pool *pgxpool.Pool, silverQ *dbsilver.Queries, log *slog.Logger) (normalize.MapEdgesSummary, error) {
+	var total normalize.MapEdgesSummary
+	for _, spec := range normalize.CISMappingSpecs {
+		var raw []byte
+		err := pool.QueryRow(ctx, `
+SELECT re.content_jsonb
+FROM bronze.raw_extract re
+JOIN bronze.source_file sf ON sf.id = re.source_file_id
+WHERE sf.manifest_rel_path = $1 AND re.kind = 'workbook-rows-json'
+ORDER BY re.id DESC LIMIT 1`, spec.RelPath).Scan(&raw)
+		if err != nil {
+			log.Info("mapedges: CIS mapping workbook not in bronze — skipping", "rel_path", spec.RelPath)
+			continue
+		}
+		s, err := normalize.EmitCISMappingEdges(ctx, pool, silverQ, spec, raw, log)
+		if err != nil {
+			return total, err
+		}
+		log.Info("mapedges: CIS mapping workbook", "rel_path", spec.RelPath, "emitted", s.Emitted, "resolved", s.Resolved)
+		total.Emitted += s.Emitted
+		total.Resolved += s.Resolved
+	}
+	return total, nil
 }
 
 // runOLIREdges locates the OLIR crosswalk capture in bronze (by the manifest

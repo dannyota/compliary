@@ -52,6 +52,9 @@ func main() {
 	if err := fetch.CIS(client, *dataDir, report); err != nil {
 		fail(err)
 	}
+	if err := fetch.CISMappings(client, *dataDir, report); err != nil {
+		fail(err)
+	}
 
 	report("== Gated sources ==")
 	fetch.Manual(*dataDir, report)
