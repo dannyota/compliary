@@ -1,8 +1,10 @@
 package fetch
 
 import (
+	"bytes"
 	"fmt"
 	"html"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -71,17 +73,47 @@ func CIS(c *http.Client, dataDir string, report func(string)) error {
 		return fmt.Errorf("cis page: download links not found (pdf %d, excel %d)", len(pdfPages), len(excels))
 	}
 
-	// The PDF anchor points at a small viewer page embedding the real file.
-	viewer, err := getBody(c, pdfPages[0])
+	// The PDF anchor may return a small HTML viewer embedding the real file
+	// (browser UAs) or the PDF directly (non-browser UAs, observed 2026-07-21).
+	// Peek at the first bytes to distinguish the two cases.
+	pdfResp, err := get(c, pdfPages[0])
 	if err != nil {
-		return fmt.Errorf("cis pdf viewer: %w", err)
-	}
-	m := embedRe.FindSubmatch(viewer)
-	if m == nil {
-		return fmt.Errorf("cis pdf viewer: embedded pdf url not found")
-	}
-	if err := saveByFinalName(c, string(m[1]), destDir, pdfMagic, report); err != nil {
 		return fmt.Errorf("cis pdf: %w", err)
+	}
+	head := make([]byte, len(pdfMagic))
+	if _, err := io.ReadFull(pdfResp.Body, head); err != nil {
+		pdfResp.Body.Close()
+		return fmt.Errorf("cis pdf peek: %w", err)
+	}
+	// Reconstruct the full body with the peeked bytes prepended.
+	pdfResp.Body = io.NopCloser(io.MultiReader(bytes.NewReader(head), pdfResp.Body))
+	if bytes.Equal(head, pdfMagic) {
+		// Direct PDF response.
+		defer pdfResp.Body.Close()
+		name := resolvedName(pdfResp, "cis-controls.pdf")
+		dest := filepath.Join(destDir, name)
+		if exists(dest) {
+			report("skip (exists): cis/" + name)
+		} else {
+			if err := saveResponse(pdfResp, dest, pdfMagic); err != nil {
+				return fmt.Errorf("cis pdf: %w", err)
+			}
+			report("downloaded: cis/" + name)
+		}
+	} else {
+		// HTML viewer page — extract the embedded PDF URL.
+		viewer, err := io.ReadAll(pdfResp.Body)
+		pdfResp.Body.Close()
+		if err != nil {
+			return fmt.Errorf("cis pdf viewer read: %w", err)
+		}
+		m := embedRe.FindSubmatch(viewer)
+		if m == nil {
+			return fmt.Errorf("cis pdf viewer: embedded pdf url not found")
+		}
+		if err := saveByFinalName(c, string(m[1]), destDir, pdfMagic, report); err != nil {
+			return fmt.Errorf("cis pdf: %w", err)
+		}
 	}
 	for _, u := range excels {
 		if err := saveByFinalName(c, u, destDir, []byte("PK"), report); err != nil {
@@ -119,6 +151,18 @@ func CISMappings(c *http.Client, dataDir string, report func(string)) error {
 		report("downloaded: " + f.dest)
 	}
 	return nil
+}
+
+// resolvedName returns a kebab-case filename from the response's final
+// (redirect-resolved) URL, falling back to fallback if the URL has no
+// usable basename.
+func resolvedName(resp *http.Response, fallback string) string {
+	final := resp.Request.URL
+	name, err := url.PathUnescape(path.Base(final.Path))
+	if err != nil || name == "" || name == "/" || name == "." {
+		return fallback
+	}
+	return kebabName(name)
 }
 
 // saveByFinalName downloads u and names the file after the redirect-resolved

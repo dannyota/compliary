@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-const userAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+const userAgent = "compliary/0.1 (+https://github.com/dannyota/compliary)"
 
 // NewClient returns an HTTP client with a cookie jar, suitable for the
 // session-and-form flows publishers use.
