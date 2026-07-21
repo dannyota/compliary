@@ -23,13 +23,6 @@ import (
 // import the index package.
 type Embedder = embed.Embedder
 
-// Summary holds the result counters from an index run.
-type Summary struct {
-	ChunksCreated    int
-	ChunksDeleted    int
-	EmbeddingsUpsert int
-}
-
 // GoldQuerier is the subset of dbgold.Querier needed by the indexer.
 type GoldQuerier interface {
 	DeleteOrphanChunks(ctx context.Context) (int64, error)

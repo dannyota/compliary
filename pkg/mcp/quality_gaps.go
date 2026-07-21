@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -156,12 +157,7 @@ func gapCategories(category string) ([]string, error) {
 }
 
 func gapIncludes(categories []string, category string) bool {
-	for _, got := range categories {
-		if got == category {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(categories, category)
 }
 
 // --- DB queries ---

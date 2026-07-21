@@ -9,8 +9,10 @@ gaps -- served to your agent over MCP. compliance + library.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-Streamable_HTTP-6E40C9)](https://modelcontextprotocol.io)
-[![Status](https://img.shields.io/badge/status-v0.1.17-green.svg)](PLAN.md)
+[![Status](https://img.shields.io/badge/status-v0.1.18-green.svg)](PLAN.md)
 [![CI](https://github.com/dannyota/compliary/actions/workflows/ci.yml/badge.svg)](https://github.com/dannyota/compliary/actions/workflows/ci.yml)
+[![Go](https://img.shields.io/badge/Go-1.26+-00ADD8.svg)](https://go.dev)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL_17-pgvector-336791.svg)](https://www.postgresql.org)
 
 </div>
 
@@ -29,23 +31,17 @@ Design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Roadmap: [PLAN.md](PLAN.md
 
 ## How it works
 
+```mermaid
+graph LR
+    A["data/<br/>(operator-built)"] --> B[Manifest]
+    B --> C["Extract<br/><sub>OSCAL / XLSX / PDF</sub>"]
+    C --> D[Normalize]
+    D --> E[MapEdges]
+    E --> F["Index<br/><sub>dense + BM25</sub>"]
+    F --> G["PostgreSQL<br/>+ pgvector"]
+    G --> H["MCP<br/><sub>5 tools</sub>"]
+    H --> I[Your Agent]
 ```
-data/              cmd/pipeline stages                              your agent
-(operator-built)   ────────────────────────────────────────────     ──────────
-     │                                                                  │
-     ▼                                                                  │
-  Manifest ─▶ Extract ─▶ Normalize ─▶ MapEdges ─▶ Index ─▶ PostgreSQL ─▶ MCP ◀─┘
-               OSCAL      controls      OLIR/CIS     dense    + pgvector    five
-               XLSX       versions      crosswalks   + BM25                tools
-               PDF        amendments    structural   vectors
-```
-
-1. **Manifest** -- scans `data/`, hashes files, classifies by framework via config registry.
-2. **Extract** -- OSCAL JSON, XLSX, born-digital PDF (go-fitz, no OCR).
-3. **Normalize** -- control trees, citation keys, amendments, version supersession, embedded mappings.
-4. **MapEdges** -- cross-framework edges from mapping workbooks (NIST OLIR, CIS) + structural derivation.
-5. **Index + LexIndex** -- dense embeddings (Qwen3-Embedding-0.6B) + BM25 sparse vectors.
-6. **MCP** -- five read-only tools over stdio or Streamable HTTP.
 
 ## MCP tools
 
@@ -69,6 +65,17 @@ learn what the corpus cannot answer. Full contract: [docs/design/MCP.md](docs/de
 | **Public / direct** | auto-fetch | NIST CSF 2.0, NIST SP 800-53 r5 (OSCAL), CIS Controls v8.1 |
 | **Free, form-gated** | `cmd/fetch` fills the click-through with the operator's identity | PCI DSS v4.0.1 |
 | **Sign-in / purchase** | manual drop-in into `data/` | SOC 2 (AICPA TSC), ISO/IEC 27001, 27002, 27017, 27018, 27701, ISO 22301, ISO/IEC 42001, SWIFT CSCF, COBIT 2019, CSA CCM v4.1 |
+
+## Retrieval quality
+
+Adversarially-verified eval on a 175-case golden set:
+
+| Lane | Recall@8 | MRR@8 | Current-version | Abstention |
+|------|----------|-------|-----------------|------------|
+| Open-corpus | 83.8% | 62.4% | 100% | 95.4% |
+| Framework-filtered | 90.6% | 79.0% | 100% | 94.9% |
+
+Accepted floors gate every corpus change. The `quality_gaps` tool serves these numbers live.
 
 ## Quickstart (self-deploy)
 
@@ -107,35 +114,19 @@ go run ./cmd/mcp
 go run ./cmd/server
 ```
 
-## Licensing model
+## Licensing and data trust
 
 Most framework documents are copyrighted; compliary never redistributes them.
 
 - **The repo ships code + metadata only** -- never licensed document text.
 - **Each operator builds their own corpus** locally, under licenses they accepted.
-- **Licensed text is served privately only.** There is no public MCP service. The maintainer's
-  instance at `compliary.danny.vn` has a public landing page and an `/mcp` endpoint
-  **authenticated for the maintainer alone** (OAuth). Unauthenticated requests receive 401.
-  Anyone else self-deploys.
-- **Official publisher sources only.** License kind, source URL, and retrieval date are recorded
-  per document.
-
-## What makes the data trustworthy
-
 - **Official publisher sources only** -- never pirated, leaked, or third-party re-hosted copies.
   Every document carries license provenance (source URL, license kind, retrieval date).
-- **Version lineage** -- supersession relations (`27001:2013 -> :2022`, `CSF 1.1 -> 2.0`) are
-  first-class. Superseded text is never presented as current.
-- **Adversarially-verified retrieval eval** -- 175 golden cases, two eval lanes (open-corpus
-  84% recall, framework-filtered 91%), with accepted floors that a corpus change must clear
-  before it ships. Current numbers live in [docs/design/MCP.md](docs/design/MCP.md).
-- **quality_gaps tool** -- the corpus reports what it cannot answer: unresolved mapping edges,
-  deferred documents, body-quality caveats, and eval-floor status. Honest gaps, not hidden ones.
-
-## Technology
-
-Go, PostgreSQL 17 + pgvector, sqlc, go-fitz (purego, no CGO), Qwen3-Embedding-0.6B (ONNX
-in-process or HTTP embedder), official Go MCP SDK. Module path: `danny.vn/compliary`.
+- **Licensed text is served privately only.** The maintainer's instance at `compliary.danny.vn`
+  has an `/mcp` endpoint **authenticated for the maintainer alone** (OAuth 2.0); unauthenticated
+  requests receive 401. Anyone else self-deploys.
+- **Version lineage is first-class** -- supersession relations (`27001:2013 -> :2022`,
+  `CSF 1.1 -> 2.0`) are tracked; superseded text is never presented as current.
 
 ## License
 

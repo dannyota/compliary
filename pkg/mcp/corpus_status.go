@@ -43,6 +43,7 @@ type CorpusTotals struct {
 	MappingEdges int64 `json:"mapping_edges"`
 	Resolved     int64 `json:"resolved"`
 	Unresolved   int64 `json:"unresolved"`
+	InboundEdges int64 `json:"inbound_edges"`
 }
 
 // CorpusStatus returns live per-framework/version counts.
@@ -169,6 +170,7 @@ ORDER BY f.code, fv.version_label`
 		totals.MappingEdges += fvs.MappingEdges
 		totals.Resolved += fvs.Resolved
 		totals.Unresolved += fvs.Unresolved
+		totals.InboundEdges += fvs.InboundEdges
 	}
 	if err := rows.Err(); err != nil {
 		return CorpusStatusOutput{}, fmt.Errorf("corpus status rows: %w", err)

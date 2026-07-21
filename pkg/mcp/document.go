@@ -360,7 +360,7 @@ func (dc *dbCorpus) citationVersions(ctx context.Context, citation, frameworkCod
 SELECT DISTINCT d.framework_code || ' ' || d.version_label
 FROM silver.control sc
 JOIN silver.document d ON d.id = sc.document_id
-WHERE (upper(sc.citation_norm) = upper($1) OR upper(sc.citation_norm) = upper($2))`
+WHERE (sc.citation_norm = upper($1) OR sc.citation_norm = upper($2))`
 	args := []any{citation, zeroPadCitation(citation)}
 	if frameworkCode != "" {
 		sql += ` AND d.framework_code = $3`
@@ -392,7 +392,7 @@ FROM silver.control sc
 JOIN silver.document d ON d.id = sc.document_id
 JOIN config.framework_version fv
   ON fv.framework_code = d.framework_code AND fv.version_label = d.version_label
-WHERE (upper(sc.citation_norm) = upper($1) OR upper(sc.citation_norm) = upper($2))
+WHERE (sc.citation_norm = upper($1) OR sc.citation_norm = upper($2))
   AND fv.is_current AND d.framework_code <> $3
 ORDER BY 1 LIMIT 10`, citation, zeroPadCitation(citation), chosenFramework)
 	if err != nil {
@@ -468,7 +468,7 @@ func (dc *dbCorpus) findControl(ctx context.Context, citation, frameworkCode, ve
 	// Exact match on citation_norm (case-insensitive). Also try replacing
 	// bare single-digit family numbers with zero-padded (e.g. AC-2 -> AC-02)
 	// to handle both agent input styles.
-	conds = append(conds, fmt.Sprintf("(upper(sc.citation_norm) = upper($%d) OR upper(sc.citation_norm) = upper($%d))", p, p+1))
+	conds = append(conds, fmt.Sprintf("(sc.citation_norm = upper($%d) OR sc.citation_norm = upper($%d))", p, p+1))
 	args = append(args, citation, zeroPadCitation(citation))
 	p += 2
 

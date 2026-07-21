@@ -85,7 +85,7 @@ func NewServer(core *Core, log *slog.Logger, opts ...ServerOption) *Server {
 	mcpsdk.AddTool(srv, &mcpsdk.Tool{
 		Annotations: &mcpsdk.ToolAnnotations{ReadOnlyHint: true, OpenWorldHint: &closedWorld, DestructiveHint: &notDestructive, Title: "Guide: how to use compliary"},
 		Name:        "guide",
-		Description: "Playbook for using compliary's evidence tools: scope, citation forms per framework, version-pin semantics, mapping-edge semantics, gaps philosophy, query tips including the framework filter's recall advantage (~91% (vs ~84% unfiltered)).",
+		Description: "Playbook for using compliary's evidence tools: scope, citation forms per framework, version-pin semantics, mapping-edge semantics, gaps philosophy, query tips including the framework filter's recall advantage (~92% filtered vs ~84% unfiltered).",
 	}, s.handleGuide)
 
 	mcpsdk.AddTool(srv, &mcpsdk.Tool{
@@ -182,7 +182,7 @@ func buildInstructions(core *Core) string {
 		"CSA CCM, COBIT). It returns exact control citations, version lineage, cross-framework mapping edges, " +
 		"provenance, and explicit gaps. It never answers — you retrieve evidence and decide the answer. " +
 		"Query in English (the frameworks' publication language). " +
-		"Use the framework filter for higher recall (~91% (vs ~84% unfiltered) unfiltered)."
+		"Use the framework filter for higher recall (~92% filtered vs ~84% unfiltered)."
 
 	if core.corpus != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
@@ -225,7 +225,7 @@ func frameworkCodes(frameworks []FrameworkVersionStatus) []string {
 func inputSchemaFor[T any]() any {
 	schema, err := jsonschema.ForType(reflect.TypeFor[T](), &jsonschema.ForOptions{})
 	if err != nil {
-		return nil
+		panic(fmt.Sprintf("inputSchemaFor[%s]: %v", reflect.TypeFor[T]().Name(), err))
 	}
 	for _, prop := range schema.Properties {
 		if len(prop.Types) != 2 {

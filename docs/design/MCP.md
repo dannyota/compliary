@@ -175,7 +175,7 @@ embedder) never abstain on the floor — there is no cosine to compare.
 | Lane | Recall@8 | MRR@8 | Current | Abstain |
 |------|----------|-------|---------|---------|
 | Open-corpus (no pins) | 83.8% | 62.4% | 100% | 95.4% |
-| Framework-filtered | 90.6% | 79.0% | 100% | 94.9% |
+| Framework-filtered | 91.9% | 80.1% | 100% | 94.9% |
 
 Golden set v3: 175 cases (105 v2 + 20 new: 8 COBIT, 5 OOS, 4 ISO 27001 topic-phrased, 3
 27017/27018). Re-baselined 2026-07-21 after 6 golden-label corrections and the

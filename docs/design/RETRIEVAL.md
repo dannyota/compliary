@@ -69,7 +69,7 @@ as version-correct, fixing filtered-lane current from 94.3% to 100%). Two lanes:
 | Lane | Recall@8 | MRR@8 | Current | Abstain | Floor |
 |------|----------|-------|---------|---------|-------|
 | Open-corpus (no pins) | 83.8% | 62.4% | 100% | 95.4% | recall ≥66%, MRR ≥44%, current ≥98%, abstain ≥90% |
-| Framework-filtered | 90.6% | 79.0% | 100% | 94.9% | — |
+| Framework-filtered | 91.9% | 80.1% | 100% | 94.9% | — |
 
 The withdrawn-control cases (`SC-19`, `ID.GV`) pass in the filtered lane via the
 `include_withdrawn` flag. Current numbers and floors also live in
