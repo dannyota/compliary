@@ -303,3 +303,15 @@ lives in [`PLAN.md`](../PLAN.md); this file only grows.
   counting correctly-returned superseded hits as currency failures). Results: open 67.0→72.2%
   recall (+5.2pp), 47.2→50.5% MRR, filtered 83.5→87.8% recall, 67.7→72.8% MRR, filtered
   current 94.3→100%. All floors pass with healthy margins.
+
+- **2026-07-21** — **Retrieval round 9 (0.1.18): golden set v4 + SOC2 title application.**
+  Golden set grown from 125 to 175 adversarially-verified cases (50 new: 12 SOC2, 10 PCI,
+  8 ISO 27001, 8 COBIT, 5 cross-framework, 5 OOS/abstention, 2 version-pin — each SQL-verified
+  against the corpus). SOC2 curated titles (393, authored in quality round 3) had never been
+  applied to the silver layer — normalize + index re-run fixed all 4 SOC2 misses
+  (CC7.2/A1.1/PI1.1/CC6.1 all rank 1-3). 27001 Annex A enrichment audit: zero gaps (all 93
+  annex-controls have resolved structural edges + enriched chunks — the A.5.23 flag was a false
+  alarm). Authoritative eval on 175 cases: open 83.8%/62.4%/100%/95.4%, filtered
+  90.6%/79.0%/100%/94.9% — all floors pass with wide margins. README updated (badges, stats,
+  eval numbers); og:image (branded SVG) served at /og.svg with og + twitter meta tags.
+  RDS backup verified: 7-day retention, deletion protection on.

@@ -55,7 +55,7 @@ doc_cap (12 documents total).
 
 ### Golden v3 baseline (125 cases — 2026-07-21, current)
 
-125 adversarially-verified cases (105 v2 + 20 v3: 8 COBIT, 5 OOS, 4 ISO 27001 topic-phrased,
+175 adversarially-verified cases (105 v2 + 20 v3 + 50 v4: 8 COBIT, 5 OOS, 4 ISO 27001 topic-phrased,
 3 ISO 27017/27018). Hybrid ONNX, raw-cosine abstention floor 0.5. Reproducible invocation
 (the embedder MUST initialize — a missing `COMPLIARY_ONNX_LIB` silently degrades to BM25-only):
 `COMPLIARY_ONNX_LIB=$HOME/.local/lib/libonnxruntime.so CGO_LDFLAGS=-L$HOME/.local/lib
@@ -68,8 +68,8 @@ as version-correct, fixing filtered-lane current from 94.3% to 100%). Two lanes:
 
 | Lane | Recall@8 | MRR@8 | Current | Abstain | Floor |
 |------|----------|-------|---------|---------|-------|
-| Open-corpus (no pins) | 72.2% | 50.5% | 100% | 95.2% | recall ≥66%, MRR ≥44%, current ≥98%, abstain ≥90% |
-| Framework-filtered | 87.8% | 72.8% | 100% | 93.6% | — |
+| Open-corpus (no pins) | 83.8% | 62.4% | 100% | 95.4% | recall ≥66%, MRR ≥44%, current ≥98%, abstain ≥90% |
+| Framework-filtered | 90.6% | 79.0% | 100% | 94.9% | — |
 
 The withdrawn-control cases (`SC-19`, `ID.GV`) pass in the filtered lane via the
 `include_withdrawn` flag. Current numbers and floors also live in

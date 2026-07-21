@@ -18,7 +18,7 @@ structured data, never prose.
 
 1. `guide` -- read the evidence contract.
 2. `corpus_status` -- see what is indexed, which versions are current.
-3. `search` with framework filter for ~88% recall (vs ~72% unfiltered open-corpus). Use `detail=compact` for cheap discovery (citations, scores, version badges only); then read full text via `document include=["chunks"]`.
+3. `search` with framework filter for ~91% (vs ~84% unfiltered) unfiltered open-corpus). Use `detail=compact` for cheap discovery (citations, scores, version badges only); then read full text via `document include=["chunks"]`.
 4. `document` for citation-keyed traversal: body, mapping edges (both directions), version lineage.
 5. `quality_gaps` to surface what the corpus cannot answer.
 
@@ -174,10 +174,10 @@ embedder) never abstain on the floor — there is no cosine to compare.
 
 | Lane | Recall@8 | MRR@8 | Current | Abstain |
 |------|----------|-------|---------|---------|
-| Open-corpus (no pins) | 72.2% | 50.5% | 100% | 95.2% |
-| Framework-filtered | 87.8% | 72.8% | 100% | 93.6% |
+| Open-corpus (no pins) | 83.8% | 62.4% | 100% | 95.4% |
+| Framework-filtered | 90.6% | 79.0% | 100% | 94.9% |
 
-Golden set v3: 125 cases (105 v2 + 20 new: 8 COBIT, 5 OOS, 4 ISO 27001 topic-phrased, 3
+Golden set v3: 175 cases (105 v2 + 20 new: 8 COBIT, 5 OOS, 4 ISO 27001 topic-phrased, 3
 27017/27018). Re-baselined 2026-07-21 after 6 golden-label corrections and the
 CurrentPrecision version-pin refinement (details in RETRIEVAL.md baseline section).
 
