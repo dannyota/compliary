@@ -123,21 +123,15 @@ func CISMappings(c *http.Client, dataDir string, report func(string)) error {
 
 // saveByFinalName downloads u and names the file after the redirect-resolved
 // URL's basename (the CIS links resolve to versioned storage filenames),
-// normalized to the data/ kebab-case convention.
+// normalized to the data/ kebab-case convention. The response body is
+// consumed directly — no second request is issued.
 func saveByFinalName(c *http.Client, u, destDir string, magic []byte, report func(string)) error {
-	req, err := http.NewRequest(http.MethodGet, u, nil)
+	resp, err := get(c, u)
 	if err != nil {
-		return fmt.Errorf("build request %s: %w", u, err)
+		return err
 	}
-	req.Header.Set("User-Agent", userAgent)
-	resp, err := c.Do(req)
-	if err != nil {
-		return fmt.Errorf("get %s: %w", u, err)
-	}
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("get %s: status %s", u, resp.Status)
-	}
+	defer resp.Body.Close()
+
 	final := resp.Request.URL
 	name, err := url.PathUnescape(path.Base(final.Path))
 	if err != nil || name == "" || name == "/" || name == "." {
@@ -149,7 +143,7 @@ func saveByFinalName(c *http.Client, u, destDir string, magic []byte, report fun
 		report("skip (exists): cis/" + name)
 		return nil
 	}
-	if err := downloadFile(c, final.String(), dest, magic); err != nil {
+	if err := saveResponse(resp, dest, magic); err != nil {
 		return err
 	}
 	report("downloaded: cis/" + name)
