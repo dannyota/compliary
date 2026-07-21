@@ -264,12 +264,47 @@ func runMapEdges(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) erro
 	if err != nil {
 		return fmt.Errorf("mapedges: %w", err)
 	}
+	log.Info("mapedges: ISO structural", "emitted", sum.Emitted, "resolved", sum.Resolved)
+
+	// NIST OLIR crosswalk (800-53 r5 → ISO 27001:2022), if its workbook has
+	// been extracted into bronze. Absence is a deferral, not an error — the
+	// operator may not have fetched the crosswalk.
+	olirSum, err := runOLIREdges(ctx, pool, silverQ, log)
+	if err != nil {
+		return fmt.Errorf("mapedges: olir: %w", err)
+	}
 
 	log.Info("mapedges complete",
-		"emitted", sum.Emitted,
-		"resolved", sum.Resolved,
+		"emitted", sum.Emitted+olirSum.Emitted,
+		"resolved", sum.Resolved+olirSum.Resolved,
 	)
 	return nil
+}
+
+// runOLIREdges locates the OLIR crosswalk capture in bronze (by the manifest
+// rel_path the file_rule seed pins) and emits its mapping edges. Returns a
+// zero summary when the crosswalk is not in the corpus.
+func runOLIREdges(ctx context.Context, pool *pgxpool.Pool, silverQ *dbsilver.Queries, log *slog.Logger) (normalize.MapEdgesSummary, error) {
+	const olirRelPath = "nist/nist-sp-800-53r5-to-iso27001-2022-olir.xlsx"
+
+	var raw []byte
+	err := pool.QueryRow(ctx, `
+SELECT re.content_jsonb
+FROM bronze.raw_extract re
+JOIN bronze.source_file sf ON sf.id = re.source_file_id
+WHERE sf.manifest_rel_path = $1 AND re.kind = 'workbook-rows-json'
+ORDER BY re.id DESC LIMIT 1`, olirRelPath).Scan(&raw)
+	if err != nil {
+		log.Info("mapedges: OLIR crosswalk not in bronze — skipping", "rel_path", olirRelPath)
+		return normalize.MapEdgesSummary{}, nil
+	}
+
+	olirSum, err := normalize.EmitOLIREdges(ctx, pool, silverQ, raw, log)
+	if err != nil {
+		return normalize.MapEdgesSummary{}, err
+	}
+	log.Info("mapedges: OLIR crosswalk", "emitted", olirSum.Emitted, "resolved", olirSum.Resolved)
+	return olirSum, nil
 }
 
 // defaultONNXModelDir returns ~/.cache/banhmi/qwen3-embedding — the shared

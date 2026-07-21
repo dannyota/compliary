@@ -288,8 +288,8 @@ func TestFileRuleSeed(t *testing.T) {
 	}
 
 	rows := readCSV(t, "file_rule.csv")[1:]
-	if len(rows) != 26 {
-		t.Fatalf("file_rule.csv: want 26 rules, got %d", len(rows))
+	if len(rows) != 27 {
+		t.Fatalf("file_rule.csv: want 27 rules, got %d", len(rows))
 	}
 
 	seenPattern := map[string]bool{}
