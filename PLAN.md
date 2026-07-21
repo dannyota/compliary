@@ -1,7 +1,7 @@
 # compliary plan
 
 Living roadmap and progress tracker. Conventions and the canonical agent guide in
-[`CLAUDE.md`](CLAUDE.md). Last updated: 2026-07-19.
+[`CLAUDE.md`](CLAUDE.md). Last updated: 2026-07-21.
 
 ## Vision
 

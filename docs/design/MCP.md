@@ -18,7 +18,7 @@ structured data, never prose.
 
 1. `guide` -- read the evidence contract.
 2. `corpus_status` -- see what is indexed, which versions are current.
-3. `search` with framework filter for 83% recall (vs 70% unfiltered open-corpus).
+3. `search` with framework filter for ~82% recall (vs ~72% unfiltered open-corpus).
 4. `document` for citation-keyed traversal: body, mapping edges (both directions), version lineage.
 5. `quality_gaps` to surface what the corpus cannot answer.
 
@@ -168,10 +168,12 @@ abstain >= 0.90. The raw-cosine floor (0.5) catches the two clearly-distant OOS 
 remaining 8 compliance-adjacent OOS cases embed too close to InfoSec text to separate, so
 93.6% is the calibrated optimum at this corpus size.
 
-**Truth about abstain floors:** at the current corpus size, score-floor abstention cannot distinguish
-OOS queries from in-scope queries. The `abstain` field works for `no_evidence` (empty result set)
-but the `low_confidence` path is effectively inert (floor=0). This is honest: the machinery is
-wired and operators can tune it as the corpus grows.
+**Truth about abstain floors:** the raw-cosine floor (0.5) separates only the clearly-distant
+out-of-scope queries — 2 of the 10 OOS golden cases abstain; the other 8 are compliance-adjacent
+(export controls, medical devices, environmental management) and embed too close to InfoSec text
+to separate at this corpus size. `no_evidence` fires on empty result sets regardless. This is
+honest: the floor catches what it can prove, and the remaining overlap is documented rather than
+papered over.
 
 ## ISO-family structural equivalence edges
 
@@ -194,8 +196,8 @@ access. Four tasks:
    frameworks (nist80053, iso27001, ciscontrols, pcidss, csaccm, nistcsf) + 1 inbound mapping.
 3. **ISO 27001 A.5.1 currency + 27002 equivalent** -- `document` returned version_status=current,
    1 outbound iso-structural equivalent edge to iso27002 5.1 (resolved=true), 1 inbound mapping.
-4. **Out-of-scope query (GDPR)** -- `search` returned 3 hits, `abstain=false`, 0 gaps (expected:
-   floor=0 means no score-based abstention; the InfoSec hits are low-relevance tangential matches).
+4. **Out-of-scope query (GDPR)** -- `search` returned 3 hits, `abstain=false`, 0 gaps (expected at
+   the time: the floor was 0 during this validation; the raw-cosine floor landed later).
 
 **Verdict:** an agent can work through MCP alone. The tool contract is functional for real
 compliance work. See the full transcript in `.superpowers/sdd/m3-task-3-report.md`.

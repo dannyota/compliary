@@ -60,7 +60,6 @@ host**, not a separate stack. Full runbook: [`deploy/aws/setup-checklist.md`](..
 | `COMPLIARY_OAUTH_RATE_PER_MIN` | no | Per-IP attempt budget for `POST /oauth/authorize` and `POST /oauth/token` (brute-force gate; default 10). |
 | `COMPLIARY_MCP_RATE_RPS` | no | Global per-IP request rate (default 50). |
 | `COMPLIARY_MCP_RATE_BURST` | no | Global per-IP burst capacity (default 100). |
-| `COMPLIARY_OAUTH_RATE_PER_MIN` | no | Tight per-IP limit on `POST /oauth/authorize` and `POST /oauth/token` (brute-force gate; default 10/min). |
 | `PORT` | no | Listen port (default 8088). |
 
 ## Generating the operator password hash

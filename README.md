@@ -9,7 +9,7 @@ gaps -- served to your agent over MCP. compliance + library.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-Streamable_HTTP-6E40C9)](https://modelcontextprotocol.io)
-[![Status](https://img.shields.io/badge/status-v0.1.0--dev-orange.svg)](PLAN.md)
+[![Status](https://img.shields.io/badge/status-v0.1.0-green.svg)](PLAN.md)
 
 </div>
 
@@ -24,7 +24,7 @@ Built for compliance and GRC engineers wiring AI agents to citable framework evi
 ISO 27001, SOC 2, PCI DSS, NIST CSF, NIST 800-53, CIS Controls, and more.
 
 Sibling of [banhmi](https://banhmi.danny.vn) (binding law per jurisdiction).
-Design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Roadmap: [PLAN.md](PLAN.md).
+Design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Roadmap: [PLAN.md](PLAN.md). Deploy: [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
 ## How it works
 
@@ -33,17 +33,18 @@ data/              cmd/pipeline stages                              your agent
 (operator-built)   ────────────────────────────────────────────     ──────────
      │                                                                  │
      ▼                                                                  │
-  Manifest ─▶ Extract ─▶ Normalize ─▶ Index ─▶ PostgreSQL ─▶ MCP ◀────┘
-               OSCAL      controls      dense    + pgvector    five
-               XLSX       versions      + BM25                tools
-               PDF        mappings      vectors
+  Manifest ─▶ Extract ─▶ Normalize ─▶ MapEdges ─▶ Index ─▶ PostgreSQL ─▶ MCP ◀─┘
+               OSCAL      controls      OLIR/CIS     dense    + pgvector    five
+               XLSX       versions      crosswalks   + BM25                tools
+               PDF        amendments    structural   vectors
 ```
 
 1. **Manifest** -- scans `data/`, hashes files, classifies by framework via config registry.
 2. **Extract** -- OSCAL JSON, XLSX, born-digital PDF (go-fitz, no OCR).
-3. **Normalize** -- control trees, citation keys, version supersession, cross-framework mappings.
-4. **Index + LexIndex** -- dense embeddings (Qwen3-Embedding-0.6B) + BM25 sparse vectors.
-5. **MCP** -- five read-only tools over stdio or Streamable HTTP.
+3. **Normalize** -- control trees, citation keys, amendments, version supersession, embedded mappings.
+4. **MapEdges** -- cross-framework edges from mapping workbooks (NIST OLIR, CIS) + structural derivation.
+5. **Index + LexIndex** -- dense embeddings (Qwen3-Embedding-0.6B) + BM25 sparse vectors.
+6. **MCP** -- five read-only tools over stdio or Streamable HTTP.
 
 ## MCP tools
 
@@ -94,6 +95,7 @@ go run ./cmd/fetch
 go run ./cmd/pipeline -stage manifest
 go run ./cmd/pipeline -stage extract
 go run ./cmd/pipeline -stage normalize
+go run ./cmd/pipeline -stage mapedges
 go run ./cmd/pipeline -stage index       # bulk embed (Kaggle T4 when KAGGLE_API_TOKEN set)
 go run ./cmd/pipeline -stage lexindex
 

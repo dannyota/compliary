@@ -47,16 +47,28 @@ Review evaluated banhmi `pkg/rag/{embed,lexical,retrieve}` + `cmd/{lexindex,eval
 language- or jurisdiction-specific; compliary is English-only with citation-keyed controls.
 
 **Dropped scale machinery:** HNSW (exact scan wins at 3.4k), rollup/section-aggregate
-(1 chunk/control), SageMaker bulk embed, doc_cap (11 documents total).
+(1 chunk/control), SageMaker bulk embed, doc_cap (12 documents total).
 
 ## Baselines
 
-### Golden v2 baseline (105 cases — 2026-07-20)
+### Golden v3 baseline (125 cases — 2026-07-21, current)
+
+125 adversarially-verified cases (105 v2 + 20 v3: 8 COBIT, 5 OOS, 4 ISO 27001 topic-phrased,
+3 ISO 27017/27018). Hybrid ONNX, raw-cosine abstention floor 0.5. Two lanes:
+
+| Lane | Recall@8 | MRR@8 | Current | Abstain | Floor |
+|------|----------|-------|---------|---------|-------|
+| Open-corpus (no pins) | 72.2% | 49.5% | 100% | 93.6% | recall ≥66%, MRR ≥44%, current ≥98%, abstain ≥90% |
+| Framework-filtered | 81.7% | 67.9% | 94.3% | 93.6% | — |
+
+The withdrawn-control cases (`SC-19`, `ID.GV`) pass in the filtered lane via the
+`include_withdrawn` flag. Current numbers and floors also live in
+[`MCP.md`](MCP.md) (single source: MCP.md wins on conflict).
+
+### Golden v2 baseline (105 cases — 2026-07-20, superseded)
 
 105 adversarially-verified cases (63 v2 + 42 v1 survivors), 11 frameworks, 10+ citation
-schemes. 2 withdrawn-control cases (`SC-19`, `ID.GV`) marked `expect_fail` — retriever
-`status='active'` filter excludes them; they record honest unreachability, not a retrieval
-bug. Numbers are **not comparable** to the 50-case v1 baseline (different set composition).
+schemes. Numbers are **not comparable** to v1 or v3 (different set compositions).
 
 | Metric | Value | Floor |
 |--------|-------|-------|
@@ -94,16 +106,18 @@ Superseded by golden v2. Kept for reference; not comparable (different set size/
 
 ## Known gaps
 
-- **No score-floor abstention** — 5/5 OOS queries return hits instead of abstaining
-  (no score threshold; M3 follow-up).
-- **Withdrawn controls unreachable** — `status='active'` filter on both retrieval arms and
-  citation lookup excludes all 273 withdrawn controls. Version-pin queries about withdrawn
-  controls (SC-19, ID.GV) fail; marked `expect_fail` in golden set. Future: optional
-  `include_withdrawn` search flag.
+- **Abstention separates only clearly-distant OOS** — the raw-cosine floor (0.5, in the
+  retriever) abstains 2 of 10 OOS golden cases; the other 8 are compliance-adjacent and embed
+  too close to InfoSec text at this corpus size.
+- **Withdrawn controls need the flag** — the default `status='active'` filter excludes all 273
+  withdrawn controls; the `include_withdrawn` search flag reaches them (implemented; the
+  SC-19/ID.GV golden cases pass with it).
 - **ISO 27018 recall 0%** — all 6 cases target short annex controls (A.x.x) with minimal
   textual signal; dense and sparse arms both miss. Same root cause as short-chunk weakness.
 - **Short-chunk framework recall weak** — ISO/SOC2/PCI one-liner controls lack signal for both
-  dense and sparse arms. Ancestor-title enrichment attempted but net-negative; column-separation
-  (PCI body noise) and structured-title expansion remain as potential next steps.
+  dense and sparse arms. Ancestor-title enrichment attempted but net-negative. PCI column separation landed
+  (0/351 noisy bodies), curated titles cover all licensed frameworks (1718), and 27001 Annex A
+  chunks are enriched with their 27002 equivalents' guidance — the remaining weakness is
+  genuinely short controls with little text anywhere.
 - **Bare-numeric citation ambiguity** — `5.1` matches 4+ schemes; resolved only by ranking
   when no framework filter is set.

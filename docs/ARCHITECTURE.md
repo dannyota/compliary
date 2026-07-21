@@ -59,31 +59,37 @@ Full model in [`design/SCHEMA.md`](design/SCHEMA.md).
 `cmd/pipeline` with direct stage calls (no orchestrator), reusing banhmi's stage shape minus
 crawling. Stages: **Manifest** (scan `data/`, hash, classify via `config.file_rule`, diff against
 `ingest`) → **Extract** (per file: OSCAL JSON / XLSX / PDF via go-fitz) → **Normalize** (per
-framework version: control tree, citations, version + mapping relations) → **Index** (chunks +
-embeddings; bulk embed on Kaggle T4 like banhmi) → **LexIndex** (BM25 sparse vectors).
+framework version: control tree, citations, amendments, version + embedded mapping relations) →
+**MapEdges** (cross-framework edges: ISO structural derivation, the NIST OLIR crosswalk, the CIS
+mapping workbooks) → **Index** (chunks + embeddings; 27001 Annex A chunks enriched with their
+27002 equivalents' guidance; bulk embed on Kaggle T4 like banhmi) → **LexIndex** (BM25 sparse
+vectors).
 
-**All M2 pipeline stages landed.** Manifest (26 files, 23 matched / 3 ignored), Extract (OSCAL JSON
-+ XLSX + PDF via go-fitz purego), Normalize (8 parsers: 800-53/CSF/CIS/CCM/PCI/TSC/ISO/COBIT;
-11 docs / 3402 controls / 3068 edges / 1870 resolved), Index (3402 chunks + 3402 Qwen3 dense
-embeddings — bulk via Kaggle T4 GPU engine, auto-selected when `KAGGLE_API_TOKEN` set + >=200
-missing; local ONNX for queries), LexIndex (3402 BM25 sparse vectors, English citation-aware
-tokenizer). Retrieval design in [`design/RETRIEVAL.md`](design/RETRIEVAL.md). Deferred: amendments
-(27001+22301 amd1-2024) role-guarded; CAIQ; 27001 Annex A bodies table-shallow; column-separation
-(PCI body noise); retrieval tuning.
+**All pipeline stages landed and live.** Manifest (30 files, 27 matched / 3 ignored), Extract
+(OSCAL JSON + XLSX + PDF via go-fitz purego), Normalize (8 framework parsers + the ISO amendment
+parser; 12 docs / 3404 controls incl. ISO 27001 Amd 1:2024 as `amends`-typed rows), MapEdges
+(4462 edges, 93.4% resolved: publisher-catalog 3068 + nist-olir 643 + cis-v8.1-mappings 565 +
+iso-structural 186), Index (3404 chunks + Qwen3 dense embeddings — bulk via Kaggle T4, canonical
+model string `embed.CanonicalModel`; PCI bodies column-truncated, 0/351 noisy), LexIndex (3404
+BM25 sparse vectors). Retrieval design in [`design/RETRIEVAL.md`](design/RETRIEVAL.md).
+Still deferred: CAIQ (assessment questions are not controls, by design) and the ISO 22301
+amendment (base document not acquired).
 
 **M3 MCP evidence service landed.** Five tools (`guide`, `corpus_status`, `quality_gaps`, `search`,
 `document`) over the query core (`pkg/mcp`). Transports: stdio (`cmd/mcp`, full projection) +
 Streamable HTTP (`cmd/server`, auth-gated projection). ISO-family structural equivalence edges
-(186 bidirectional, all resolved). Score-floor abstention wired (floor=0 at current corpus size).
-Haiku stand-in agent validated the tool contract end-to-end over real stdio. Tool contract in
-[`design/MCP.md`](design/MCP.md). **Next:** deploy (M4).
+(186 bidirectional, all resolved). Score-floor abstention: raw-cosine floor 0.5 in the retriever
+(calibrated on the 125-case golden set; BM25-only deployments exempt). The `document` tool also
+returns `amended_by` patches. Tool contract in [`design/MCP.md`](design/MCP.md). **M4 is live:**
+co-located deployment on banhmi's ECS — see [`OPERATIONS.md`](OPERATIONS.md).
 
 ```mermaid
 graph LR
   D["data/ (operator-built, licensed)"] --> M["Manifest<br/>INGEST"]
   M --> E["Extract<br/>OSCAL · XLSX · PDF (go-fitz)<br/>BRONZE"]
-  E --> N["Normalize<br/>controls · versions · mappings<br/>SILVER"]
-  N --> I["Index + LexIndex<br/>chunks · dense + sparse vectors<br/>GOLD"]
+  E --> N["Normalize<br/>controls · amendments · versions<br/>SILVER"]
+  N --> X["MapEdges<br/>OLIR · CIS workbooks · structural<br/>SILVER"]
+  X --> I["Index + LexIndex<br/>chunks · dense + sparse vectors<br/>GOLD"]
   I --> DB[("PostgreSQL + pgvector<br/>one DB: compliary")]
   DB --> MCP["MCP evidence service<br/>guide · corpus_status · quality_gaps · search · document"]
   MCP --> A["user-owned agent (BYO model)"]
@@ -103,7 +109,9 @@ edges (as relations, not text), license/provenance, and explicit gaps. Framework
 
 stdio for local clients, Streamable HTTP for the deployed instance; evidence logic in shared
 packages, not surfaces. **Maintainer instance (`compliary.danny.vn/mcp`) requires auth** —
-licensed text is never served publicly (mechanism decided at M4; see PLAN.md open decisions).
+licensed text is never served publicly. Auth is OAuth 2.0 (MCP auth spec: PKCE + DCR + CIMD) with
+an optional static-bearer fallback; unauthenticated requests get 401 — see
+[`design/MCP.md`](design/MCP.md) and [`OPERATIONS.md`](OPERATIONS.md).
 
 ## Repository layout
 
