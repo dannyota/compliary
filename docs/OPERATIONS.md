@@ -70,8 +70,11 @@ live version chip, `/healthz`, and the 401 on unauthenticated `/mcp`.
 
 ## Monitoring (one-time, requires admin credentials)
 
-The deploy CLI credential is deliberately deploy-scoped and cannot manage monitoring. Run these
-once from an admin profile (`--profile admin` or the console):
+**Done 2026-07-21:** scan-on-push enabled, `compliary-alerts` SNS topic + email subscription,
+Route53 healthz check (30s interval) + `compliary-healthz-down` alarm (state OK). The commands
+below are the re-creation reference. The deploy CLI credential is deliberately deploy-scoped
+and cannot manage monitoring; run these from an admin profile (or a temporary least-privilege
+grant, removed after):
 
 ```bash
 # 1. Vulnerability scan on every image push:
