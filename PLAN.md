@@ -339,3 +339,16 @@ patch — new documents always cut v0.2.0+.
   startup logs "dense arm ready … embeddings=3404", in-scope hits carry real similarities and
   vector ranks, and the abstention floor fires (clearly-OOS query → `abstain: true`,
   `low_confidence`, top sim 0.26 < 0.5).
+- **2026-07-21** — **NIST OLIR 800-53↔27001 crosswalk ingested: +643 publisher mapping edges,
+  all resolved.** Official artifact: OLIR informative reference #155 v1.0.0 (NIST-developed,
+  focal SP 800-53 r5.1.1 → ISO/IEC 27001:2022), auto-fetched from csrc.nist.gov (public
+  domain; the catalog's published SHA3-256 mismatches the "UPDATED" file — authenticity is
+  origin-anchored, noted in the file_rule provenance). Pipeline: new `cmd/fetch` entry,
+  `file_rule` row (nist80053|r5|companion-workbook:iso27001-olir), existing XLSX extract, and a
+  mapedges sub-step (`EmitOLIREdges`) that parses the bronze capture — strict citation gates
+  (zero-padded focals incl. 49 enhancements; 204 clause + 439 Annex A targets) validated
+  against the real file with zero rejects. This edition carries no per-row relationship type
+  and NIST's submission warns against equivalency assumptions, so all edges are `related`
+  under mapping_source `nist-olir`, pinned to 27001:2022. Result: 3,897 total edges, 92.5%
+  resolved (nist-olir 643/643); the corpus's two largest frameworks are now directly linked
+  (e.g. AC-01 → 12 resolved ISO 27001 targets, verified via the live document tool).
