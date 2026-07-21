@@ -136,6 +136,9 @@ even from a CloudFront IP, a request lacking our `X-Origin-Verify` header is 403
 
 ## 5. ECR — build and push (ARM64)
 
+> Steps 5-6 are automated by `deploy/aws/release.sh <x.y.z>` once the repo,
+> service, and secrets exist; the commands below are the first-time/manual path.
+
 ```bash
 aws ecr create-repository --repository-name compliary-mcp --region ap-southeast-1
 

@@ -8,6 +8,12 @@ Infra mirrors banhmi's AWS shape: CloudFront (TLS termination) -> ECS -> RDS.
 The maintainer instance runs as **one extra ECS service on banhmi's existing EC2
 host**, not a separate stack. Full runbook: [`deploy/aws/setup-checklist.md`](../deploy/aws/setup-checklist.md).
 
+**Releases are one command** once the stack exists:
+[`deploy/aws/release.sh <x.y.z>`](../deploy/aws/release.sh) — builds the arm64
+image (cross-compiled, any host), pushes version+latest to ECR, registers a
+digest-pinned task-definition revision, rolls the service, and verifies the
+live version chip, `/healthz`, and the 401 on unauthenticated `/mcp`.
+
 ```
                  CloudFront (TLS, X-Origin-Verify)
    banhmi.danny.vn ─┐   laksa/… ─┐   compliary.danny.vn ─┐

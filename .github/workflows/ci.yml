@@ -1,0 +1,38 @@
+# CI gates — the same checks CLAUDE.md requires locally, on every push/PR.
+# Zero secrets by design (public repo): build/vet/test only, no AWS, no deploy.
+# The data/ submodule is private and update=none, so golden tests self-skip;
+# the synthetic suite runs fully.
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: gofmt
+        run: |
+          out="$(gofmt -l .)"
+          if [ -n "$out" ]; then echo "unformatted files:"; echo "$out"; exit 1; fi
+
+      - name: build
+        run: go build ./...
+
+      - name: vet
+        run: go vet ./...
+
+      - name: test
+        run: go test ./...
