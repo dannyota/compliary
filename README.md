@@ -9,7 +9,7 @@ gaps -- served to your agent over MCP. compliance + library.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-Streamable_HTTP-6E40C9)](https://modelcontextprotocol.io)
-[![Status](https://img.shields.io/badge/status-v0.1.18-green.svg)](PLAN.md)
+[![Status](https://img.shields.io/badge/status-v0.1.19-green.svg)](PLAN.md)
 [![CI](https://github.com/dannyota/compliary/actions/workflows/ci.yml/badge.svg)](https://github.com/dannyota/compliary/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/badge/Go-1.26+-00ADD8.svg)](https://go.dev)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL_17-pgvector-336791.svg)](https://www.postgresql.org)
@@ -33,14 +33,27 @@ Design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Roadmap: [PLAN.md](PLAN.md
 
 ```mermaid
 graph LR
-    A["data/<br/>(operator-built)"] --> B[Manifest]
-    B --> C["Extract<br/><sub>OSCAL / XLSX / PDF</sub>"]
-    C --> D[Normalize]
-    D --> E[MapEdges]
-    E --> F["Index<br/><sub>dense + BM25</sub>"]
-    F --> G["PostgreSQL<br/>+ pgvector"]
-    G --> H["MCP<br/><sub>5 tools</sub>"]
-    H --> I[Your Agent]
+    subgraph sources ["Official publisher sources"]
+        S1["ISO standards<br/>PCI DSS<br/>SOC 2 / AICPA"]
+        S2["NIST publications<br/>CIS Controls<br/>CSA CCM / COBIT"]
+    end
+
+    subgraph pipeline ["Build pipeline (operator runs locally)"]
+        direction LR
+        P1["Download /<br/>drop-in"] --> P2["Parse<br/>PDF · XLSX · JSON"]
+        P2 --> P3["Normalize<br/>citations · versions<br/>mappings"]
+        P3 --> P4["Embed + Index<br/>dense vectors<br/>+ BM25"]
+    end
+
+    subgraph serve ["MCP server"]
+        M["search · document<br/>corpus_status<br/>quality_gaps · guide"]
+    end
+
+    S1 --> P1
+    S2 --> P1
+    P4 --> DB[("PostgreSQL<br/>+ pgvector")]
+    DB --> M
+    M -- "evidence<br/>(citations, mappings,<br/>gaps)" --> Agent["Your AI agent<br/>Claude · ChatGPT<br/>custom"]
 ```
 
 ## MCP tools
@@ -73,7 +86,7 @@ Adversarially-verified eval on a 175-case golden set:
 | Lane | Recall@8 | MRR@8 | Current-version | Abstention |
 |------|----------|-------|-----------------|------------|
 | Open-corpus | 83.8% | 62.4% | 100% | 95.4% |
-| Framework-filtered | 90.6% | 79.0% | 100% | 94.9% |
+| Framework-filtered | 91.9% | 80.1% | 100% | 94.9% |
 
 Accepted floors gate every corpus change. The `quality_gaps` tool serves these numbers live.
 
