@@ -290,3 +290,16 @@ lives in [`PLAN.md`](../PLAN.md); this file only grows.
   operator note: SNS email subscriptions can be killed by mail-scanner clicks on the
   unauthenticated unsubscribe link; resubscribe, and confirm with AuthenticateOnUnsubscribe if
   it recurs).
+
+- **2026-07-21** — **Retrieval round 8 (0.1.17): golden-label audit + metric refinement.**
+  Phase A: parameter sweep (9 configs, all flat-or-worse — tuning exhausted at this corpus
+  size); pool recall@50 = 84.3% confirming cross-framework crowding as the dominant miss class
+  (20/38 misses); 6 golden-label errors identified (question-citation mismatches — retriever
+  returned the correct control at rank 1 in every case). Phase B: 6 labels corrected
+  (collision-51-iso27002 5.1→5.7, iso27002-824 8.24→8.23, csf-idam07 ID.AM-07→ID.RA-01,
+  pcidss-1234 12.3.4→9.1, iso27017-121 12.1.3→6.1.1, v3-cobit-vendor-risk APO10.03→APO10.04),
+  each SQL-verified against the corpus before changing. CurrentPrecision refined: version-pinned
+  cases treat hits from the pinned version as version-correct (the 7 ISO 27018:2019 cases were
+  counting correctly-returned superseded hits as currency failures). Results: open 67.0→72.2%
+  recall (+5.2pp), 47.2→50.5% MRR, filtered 83.5→87.8% recall, 67.7→72.8% MRR, filtered
+  current 94.3→100%. All floors pass with healthy margins.

@@ -18,7 +18,7 @@ structured data, never prose.
 
 1. `guide` -- read the evidence contract.
 2. `corpus_status` -- see what is indexed, which versions are current.
-3. `search` with framework filter for ~83% recall (vs ~67% unfiltered open-corpus). Use `detail=compact` for cheap discovery (citations, scores, version badges only); then read full text via `document include=["chunks"]`.
+3. `search` with framework filter for ~88% recall (vs ~72% unfiltered open-corpus). Use `detail=compact` for cheap discovery (citations, scores, version badges only); then read full text via `document include=["chunks"]`.
 4. `document` for citation-keyed traversal: body, mapping edges (both directions), version lineage.
 5. `quality_gaps` to surface what the corpus cannot answer.
 
@@ -174,16 +174,12 @@ embedder) never abstain on the floor — there is no cosine to compare.
 
 | Lane | Recall@8 | MRR@8 | Current | Abstain |
 |------|----------|-------|---------|---------|
-| Open-corpus (no pins) | 67.0% | 47.2% | 100% | 95.2% |
-| Framework-filtered | 83.5% | 67.7% | 94.3% | 93.6% |
+| Open-corpus (no pins) | 72.2% | 50.5% | 100% | 95.2% |
+| Framework-filtered | 87.8% | 72.8% | 100% | 93.6% |
 
 Golden set v3: 125 cases (105 v2 + 20 new: 8 COBIT, 5 OOS, 4 ISO 27001 topic-phrased, 3
-27017/27018). Quality round 2 (2026-07-20): curated titles for COBIT + 27002 put every new
-COBIT topic case at rank 1; 27001 Annex A chunk enrichment (27002 guidance appended to the
-retrieval chunk under a source label) put every 27001 topic case at rank 1. On the old 105-case
-set the filtered lane is 80.0/62.9 (back to baseline) and open is 66.0/43.1 (MRR −2.0pp from
-cross-framework competition between enriched 27001 chunks and their 27002 twins — an accepted
-trade; the MCP-recommended filtered path improved).
+27017/27018). Re-baselined 2026-07-21 after 6 golden-label corrections and the
+CurrentPrecision version-pin refinement (details in RETRIEVAL.md baseline section).
 
 Floors (open-corpus lane, 125-case set): recall >= 0.66, MRR >= 0.44, current >= 0.98,
 abstain >= 0.90. The raw-cosine floor (0.5) catches the clearly-distant OOS cases; the

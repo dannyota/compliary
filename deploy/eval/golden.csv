@@ -7,7 +7,7 @@ nist53-sc7,What control establishes boundary protection requirements?,nist80053,
 nist53-si4,What control requires information system monitoring?,nist80053,r5,SI-04,false,false,NIST 800-53 r5 system monitoring
 csf-praa01,What subcategory covers identity management and authentication?,nistcsf,2.0,PR.AA-01,false,false,CSF 2.0 identity management subcategory
 csf-gvoc01,What subcategory addresses organizational context for cybersecurity?,nistcsf,2.0,GV.OC-01,false,false,CSF 2.0 organizational context
-csf-idam07,What subcategory covers asset vulnerability identification?,nistcsf,2.0,ID.AM-07,false,false,CSF 2.0 vulnerability identification
+csf-idam07,What subcategory covers asset vulnerability identification?,nistcsf,2.0,ID.RA-01,false,false,CSF 2.0 vulnerability identification; corrected from ID.AM-07 (data inventory) 2026-07-21
 csf-deae02,What subcategory addresses analysis of anomalies and events?,nistcsf,2.0,DE.AE-02,false,false,CSF 2.0 anomaly analysis
 cis-41,What safeguard addresses establishing and maintaining a secure configuration process?,ciscontrols,v8.1,4.1,false,false,CIS Controls v8.1 secure configuration
 cis-61,What safeguard covers establishing an access granting process?,ciscontrols,v8.1,6.1,false,false,CIS Controls v8.1 access granting
@@ -16,19 +16,19 @@ cis-71,What safeguard establishes a vulnerability management process?,ciscontrol
 pcidss-836,What requirement addresses multi-factor authentication?,pcidss,v4.0.1,8.3.6,false,false,PCI DSS v4.0.1 MFA requirement
 pcidss-121,What requirement covers firewall and network security controls?,pcidss,v4.0.1,1.2.1,false,false,PCI DSS v4.0.1 network controls
 pcidss-632,What requirement addresses reviewing custom code for vulnerabilities?,pcidss,v4.0.1,6.3.2,false,false,PCI DSS v4.0.1 custom code review
-pcidss-1234,What requirement covers restricting physical access to cardholder data?,pcidss,v4.0.1,12.3.4,false,false,PCI DSS v4.0.1 physical access restrictions
+pcidss-1234,What requirement covers restricting physical access to cardholder data?,pcidss,v4.0.1,9.1,false,false,PCI DSS v4.0.1 physical access restrictions; corrected from 12.3.4 (tech currency review) 2026-07-21
 soc2-cc72,What criterion covers system operations monitoring?,soc2tsc,2017,CC7.2,false,false,SOC 2 TSC CC7.2 monitoring
 soc2-a11,What criterion addresses capacity planning for availability?,soc2tsc,2017,A1.1,false,false,SOC 2 TSC A1.1 availability
 soc2-pi11,What criterion covers data processing integrity?,soc2tsc,2017,PI1.1,false,false,SOC 2 TSC PI1.1 processing integrity
 iso27001-a824,What control addresses web filtering?,iso27001,2022,A.8.24,false,false,ISO 27001:2022 Annex A web filtering reference
-iso27002-824,What control provides guidance on web filtering implementation?,iso27002,2022,8.24,false,false,ISO 27002:2022 web filtering
+iso27002-824,What control provides guidance on web filtering implementation?,iso27002,2022,8.23,false,false,ISO 27002:2022 web filtering; corrected from 8.24 (cryptography) 2026-07-21
 iso27017-cld614,What cloud-specific control covers shared responsibilities?,iso27017,2015,CLD.6.3.1,false,false,ISO 27017:2015 cloud shared responsibility
-iso27017-121,What control covers information security responsibilities for cloud?,iso27017,2015,12.1.3,false,false,ISO 27017:2015 capacity management cloud implementation
+iso27017-121,What control covers information security responsibilities for cloud?,iso27017,2015,6.1.1,false,false,ISO 27017:2015 cloud security roles; corrected from 12.1.3 (capacity planning) 2026-07-21
 iso27018-a21,What control covers conditions for collecting PII?,iso27018,2019,A.2.1,false,false,ISO 27018:2019 PII collection conditions (2019 edition)
 ccm-ais01,What control addresses application and interface security?,csaccm,v4.1,AIS-01,false,false,CSA CCM v4.1 application interface security
 ccm-dsp17,What control covers data protection and privacy compliance?,csaccm,v4.1,DSP-17,false,false,CSA CCM v4.1 data protection
 cobit-edm0101,What management practice covers evaluating the governance system?,cobit,2019,EDM01.01,false,false,COBIT 2019 evaluate governance system
-collision-51-iso27002,What ISO 27002 control covers threat intelligence?,iso27002,2022,5.1,false,false,Bare-ID collision: 5.1 in ISO 27002 (threat intelligence)
+collision-51-iso27002,What ISO 27002 control covers threat intelligence?,iso27002,2022,5.7,false,false,Bare-ID collision: 5.7 in ISO 27002 (threat intelligence); corrected from 5.1 (info-sec policy) 2026-07-21
 collision-51-iso27017,What ISO 27017 control covers information security policies for cloud?,iso27017,2015,5.1,false,false,Bare-ID collision: 5.1 in ISO 27017 (cloud info-sec policy)
 collision-a51-iso27001,What ISO 27001 annex control covers policies for information security?,iso27001,2022,A.5.1,false,false,Bare-ID collision: A.5.1 is unique to ISO 27001 Annex A
 collision-11-multi,What ISO 27018 control numbered A.2.1 addresses PII handling?,iso27018,2019,A.2.1,false,false,Bare-ID collision: control identifiers that overlap numbering schemes across ISO family
@@ -111,7 +111,7 @@ v3-cobit-internal-controls,How should an organization monitor its internal contr
 v3-cobit-staff-skills,What practice addresses maintaining adequate skills and competencies for IT staff?,cobit,2019,APO07.03,false,false,Semantic: COBIT 2019 APO07 — manage human resources; practice 03 covers skills maintenance
 v3-cobit-asset-identify,How does COBIT address identifying and tracking IT assets?,cobit,2019,BAI09.01,false,false,Semantic: COBIT 2019 BAI09 — manage assets; practice 01 covers asset identification
 v3-cobit-bcp-policy,What practice defines the policy and scope for business continuity?,cobit,2019,DSS04.01,false,false,Semantic: COBIT 2019 DSS04 — manage continuity; practice 01 covers BCP policy
-v3-cobit-vendor-risk,What practice covers assessing and monitoring risk from third-party vendors and suppliers?,cobit,2019,APO10.03,false,false,Semantic: COBIT 2019 APO10 — manage vendors; practice 03 covers vendor risk management
+v3-cobit-vendor-risk,What practice covers assessing and monitoring risk from third-party vendors and suppliers?,cobit,2019,APO10.04,false,false,Semantic: COBIT 2019 APO10 — manage vendors; corrected from APO10.03 (contracts) to APO10.04 (vendor risk) 2026-07-21
 v3-abstain-export-controls,What controls does ITAR require for exporting defense articles?,,,,true,false,Out of scope: ITAR export controls are not an InfoSec framework in the corpus
 v3-abstain-medical-devices,What are the IEC 62304 requirements for medical device software lifecycle?,,,,true,false,Out of scope: IEC 62304 is a medical device standard not in the corpus
 v3-abstain-tax-reporting,What are the transfer pricing documentation requirements under OECD guidelines?,,,,true,false,Out of scope: OECD tax guidance is not a compliance framework in the corpus

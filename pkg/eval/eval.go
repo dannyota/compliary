@@ -137,12 +137,29 @@ func ReciprocalRank(c Case, hits []Hit, m Matcher) (rr float64, rank int) {
 }
 
 // CurrentPrecision computes the fraction of returned hits that are
-// current-version, excluding the trailing badged non-current run (evidence
+// version-correct, excluding the trailing badged non-current run (evidence
 // disclosure, not a leak). Any non-current hit ABOVE the last current hit
 // counts against precision. No hits returns (0, 0, 0).
-func CurrentPrecision(hits []Hit, isCurrent CurrentFn) (frac float64, ok, total int) {
+//
+// A hit is version-correct when it satisfies isCurrent OR when it matches a
+// version explicitly pinned by the golden case (pinnedVersions). This
+// prevents penalizing cases that deliberately request a superseded version
+// (e.g. ISO 27018:2019): hits from the pinned version are correct even
+// though that version is not the framework's current release.
+func CurrentPrecision(hits []Hit, isCurrent CurrentFn, pinnedVersions map[string]bool) (frac float64, ok, total int) {
+	isOK := func(h Hit) bool {
+		if isCurrent != nil && isCurrent(h) {
+			return true
+		}
+		if len(pinnedVersions) > 0 {
+			key := strings.ToLower(h.FrameworkCode + "/" + h.VersionLabel)
+			return pinnedVersions[key]
+		}
+		return false
+	}
+
 	end := len(hits)
-	for end > 0 && (isCurrent == nil || !isCurrent(hits[end-1])) {
+	for end > 0 && !isOK(hits[end-1]) {
 		end--
 	}
 	if end == 0 && len(hits) > 0 {
@@ -154,7 +171,7 @@ func CurrentPrecision(hits []Hit, isCurrent CurrentFn) (frac float64, ok, total 
 		return 0, 0, 0
 	}
 	for _, h := range scored {
-		if isCurrent != nil && isCurrent(h) {
+		if isOK(h) {
 			ok++
 		}
 	}
@@ -173,7 +190,20 @@ func Score(c Case, hits []Hit, abstained bool, isCurrent CurrentFn, m Matcher) C
 	r := CaseResult{Case: c, Abstained: abstained}
 	r.RecallAtK, r.RecallHits, r.RecallWant = Recall(c, hits, m)
 	r.MRRAtK, r.Rank = ReciprocalRank(c, hits, m)
-	r.CurrentPrecision, r.HitsCurrent, r.HitsTotal = CurrentPrecision(hits, isCurrent)
+
+	// Build pinned-version set from the case's expected citations so that
+	// version-pinned cases (e.g. "ISO 27018:2019") treat hits from the
+	// requested version as version-correct even if it is superseded.
+	var pinned map[string]bool
+	for _, ec := range c.ExpectedCitations {
+		if ec.VersionLabel != "" {
+			if pinned == nil {
+				pinned = make(map[string]bool)
+			}
+			pinned[strings.ToLower(ec.FrameworkCode+"/"+ec.VersionLabel)] = true
+		}
+	}
+	r.CurrentPrecision, r.HitsCurrent, r.HitsTotal = CurrentPrecision(hits, isCurrent, pinned)
 	r.AbstainCorrect = AbstainCorrect(c, abstained)
 	return r
 }

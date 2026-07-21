@@ -60,14 +60,16 @@ doc_cap (12 documents total).
 (the embedder MUST initialize — a missing `COMPLIARY_ONNX_LIB` silently degrades to BM25-only):
 `COMPLIARY_ONNX_LIB=$HOME/.local/lib/libonnxruntime.so CGO_LDFLAGS=-L$HOME/.local/lib
 COMPLIARY_DATABASE_PASSWORD=… go run -tags onnx ./cmd/eval -abstain-floor 0.5`.
-Re-baselined 2026-07-21 after the FormatQuery separator fix and the dev-corpus resync
-(re-seed + mapedges); the earlier recorded open lane (72.2/49.5, abstain 93.6) did not
-reproduce on the resynced corpus and is superseded by these numbers. Two lanes:
+Re-baselined 2026-07-21 after 6 golden-label corrections (collision-51-iso27002 5.1->5.7,
+iso27002-824 8.24->8.23, csf-idam07 ID.AM-07->ID.RA-01, pcidss-1234 12.3.4->9.1,
+iso27017-121 12.1.3->6.1.1, v3-cobit-vendor-risk APO10.03->APO10.04) and the
+CurrentPrecision metric refinement (version-pinned cases treat hits from the pinned version
+as version-correct, fixing filtered-lane current from 94.3% to 100%). Two lanes:
 
 | Lane | Recall@8 | MRR@8 | Current | Abstain | Floor |
 |------|----------|-------|---------|---------|-------|
-| Open-corpus (no pins) | 67.0% | 47.2% | 100% | 95.2% | recall ≥66%, MRR ≥44%, current ≥98%, abstain ≥90% |
-| Framework-filtered | 83.5% | 67.7% | 94.3% | 93.6% | — |
+| Open-corpus (no pins) | 72.2% | 50.5% | 100% | 95.2% | recall ≥66%, MRR ≥44%, current ≥98%, abstain ≥90% |
+| Framework-filtered | 87.8% | 72.8% | 100% | 93.6% | — |
 
 The withdrawn-control cases (`SC-19`, `ID.GV`) pass in the filtered lane via the
 `include_withdrawn` flag. Current numbers and floors also live in

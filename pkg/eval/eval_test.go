@@ -136,14 +136,14 @@ func TestCurrentPrecision(t *testing.T) {
 	}
 
 	t.Run("all current", func(t *testing.T) {
-		frac, ok, total := CurrentPrecision(hits, func(h Hit) bool { return true })
+		frac, ok, total := CurrentPrecision(hits, func(h Hit) bool { return true }, nil)
 		if frac != 1 || ok != 3 || total != 3 {
 			t.Errorf("got (%v, %d, %d), want (1, 3, 3)", frac, ok, total)
 		}
 	})
 
 	t.Run("non-current leak above current", func(t *testing.T) {
-		frac, ok, total := CurrentPrecision(hits, func(h Hit) bool { return h.IsCurrent })
+		frac, ok, total := CurrentPrecision(hits, func(h Hit) bool { return h.IsCurrent }, nil)
 		want := 2.0 / 3.0
 		if frac != want || ok != 2 || total != 3 {
 			t.Errorf("got (%v, %d, %d), want (%v, 2, 3)", frac, ok, total, want)
@@ -151,30 +151,67 @@ func TestCurrentPrecision(t *testing.T) {
 	})
 
 	t.Run("trailing non-current excluded", func(t *testing.T) {
-		frac, ok, total := CurrentPrecision(hits, func(h Hit) bool { return h.DocumentID == 1 })
+		frac, ok, total := CurrentPrecision(hits, func(h Hit) bool { return h.DocumentID == 1 }, nil)
 		if frac != 1 || ok != 1 || total != 1 {
 			t.Errorf("got (%v, %d, %d), want (1, 1, 1)", frac, ok, total)
 		}
 	})
 
 	t.Run("nothing current scores over all", func(t *testing.T) {
-		frac, ok, total := CurrentPrecision(hits, func(Hit) bool { return false })
+		frac, ok, total := CurrentPrecision(hits, func(Hit) bool { return false }, nil)
 		if frac != 0 || ok != 0 || total != 3 {
 			t.Errorf("got (%v, %d, %d), want (0, 0, 3)", frac, ok, total)
 		}
 	})
 
 	t.Run("no hits", func(t *testing.T) {
-		frac, ok, total := CurrentPrecision(nil, func(Hit) bool { return true })
+		frac, ok, total := CurrentPrecision(nil, func(Hit) bool { return true }, nil)
 		if frac != 0 || ok != 0 || total != 0 {
 			t.Errorf("got (%v, %d, %d), want (0, 0, 0)", frac, ok, total)
 		}
 	})
 
 	t.Run("nil predicate counts none current", func(t *testing.T) {
-		frac, ok, total := CurrentPrecision(hits, nil)
+		frac, ok, total := CurrentPrecision(hits, nil, nil)
 		if frac != 0 || ok != 0 || total != 3 {
 			t.Errorf("got (%v, %d, %d), want (0, 0, 3)", frac, ok, total)
+		}
+	})
+
+	t.Run("pinned version treats superseded hit as correct", func(t *testing.T) {
+		// Simulate a version-pin case: iso27018:2019 is superseded (IsCurrent=false)
+		// but the golden case explicitly requests it.
+		pinHits := []Hit{
+			{DocumentID: 1, FrameworkCode: "iso27018", VersionLabel: "2019", CitationNorm: "A.2.1", IsCurrent: false},
+			{DocumentID: 2, FrameworkCode: "iso27018", VersionLabel: "2019", CitationNorm: "A.3.1", IsCurrent: false},
+		}
+		pinned := map[string]bool{"iso27018/2019": true}
+		frac, ok, total := CurrentPrecision(pinHits, func(h Hit) bool { return h.IsCurrent }, pinned)
+		if frac != 1 || ok != 2 || total != 2 {
+			t.Errorf("got (%v, %d, %d), want (1, 2, 2)", frac, ok, total)
+		}
+	})
+
+	t.Run("pinned version does not override unrelated hits", func(t *testing.T) {
+		// A hit from a different framework should still be judged by isCurrent.
+		mixHits := []Hit{
+			{DocumentID: 1, FrameworkCode: "iso27018", VersionLabel: "2019", CitationNorm: "A.2.1", IsCurrent: false},
+			{DocumentID: 2, FrameworkCode: "nist80053", VersionLabel: "r4", CitationNorm: "AC-2", IsCurrent: false},
+		}
+		pinned := map[string]bool{"iso27018/2019": true}
+		// The nist80053/r4 hit is after the pinned one; it's not current and not
+		// pinned, so it trails and gets excluded.
+		frac, ok, total := CurrentPrecision(mixHits, func(h Hit) bool { return h.IsCurrent }, pinned)
+		if frac != 1 || ok != 1 || total != 1 {
+			t.Errorf("got (%v, %d, %d), want (1, 1, 1)", frac, ok, total)
+		}
+	})
+
+	t.Run("no pin nil map behaves like original", func(t *testing.T) {
+		frac, ok, total := CurrentPrecision(hits, func(h Hit) bool { return h.IsCurrent }, nil)
+		want := 2.0 / 3.0
+		if frac != want || ok != 2 || total != 3 {
+			t.Errorf("got (%v, %d, %d), want (%v, 2, 3)", frac, ok, total, want)
 		}
 	})
 }
