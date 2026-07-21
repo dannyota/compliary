@@ -204,7 +204,15 @@ func (r *Retriever) SearchEvidence(ctx context.Context, query string, opts eval.
 		ev.Abstain = true
 		return ev, nil
 	}
-	ev.TopScore = hits[0].Score
+	// TopScore reports the highest RRF-fused score among non-pinned hits.
+	// Pinned citation hits carry a synthetic Score of 1.0 which is misleading
+	// for consumers judging retrieval quality; when only pinned hits exist,
+	// TopScore stays 0.
+	for _, h := range hits {
+		if h.Score < 1.0 && h.Score > ev.TopScore {
+			ev.TopScore = h.Score
+		}
+	}
 	applyAbstainFloor(&ev, r.abstainFloor)
 	return ev, nil
 }

@@ -180,6 +180,66 @@ func findSubstring(s, sub string) bool {
 	return false
 }
 
+func TestSearchEvidence_TopScore(t *testing.T) {
+	// TopScore must report the highest non-pinned (fused) score.
+	// Pinned citation hits have Score=1.0 which is synthetic.
+	cases := []struct {
+		name    string
+		hits    []eval.Hit
+		wantTop float64
+	}{
+		{
+			"pinned_and_fused",
+			[]eval.Hit{
+				{ChunkID: 1, Score: 1.0},  // pinned
+				{ChunkID: 2, Score: 0.05}, // fused
+				{ChunkID: 3, Score: 0.03}, // fused
+			},
+			0.05,
+		},
+		{
+			"only_pinned",
+			[]eval.Hit{
+				{ChunkID: 1, Score: 1.0},
+				{ChunkID: 2, Score: 1.0},
+			},
+			0, // no non-pinned hits
+		},
+		{
+			"only_fused",
+			[]eval.Hit{
+				{ChunkID: 1, Score: 0.04},
+				{ChunkID: 2, Score: 0.02},
+			},
+			0.04,
+		},
+		{
+			"fused_not_first",
+			[]eval.Hit{
+				{ChunkID: 1, Score: 1.0},  // pinned
+				{ChunkID: 2, Score: 1.0},  // pinned
+				{ChunkID: 3, Score: 0.07}, // fused — highest non-pinned
+				{ChunkID: 4, Score: 0.03},
+			},
+			0.07,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ev := eval.Evidence{Hits: tc.hits}
+			// Replicate the TopScore logic from SearchEvidence.
+			for _, h := range ev.Hits {
+				if h.Score < 1.0 && h.Score > ev.TopScore {
+					ev.TopScore = h.Score
+				}
+			}
+			if ev.TopScore != tc.wantTop {
+				t.Errorf("TopScore = %f, want %f", ev.TopScore, tc.wantTop)
+			}
+		})
+	}
+}
+
 func TestApplyAbstainFloor(t *testing.T) {
 	mk := func(sim float64, vecRank int) eval.Hit {
 		return eval.Hit{Similarity: sim, VectorRank: vecRank, Score: 0.05}

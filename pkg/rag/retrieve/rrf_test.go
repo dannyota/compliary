@@ -145,3 +145,22 @@ func TestFuseRRF_SkipsZeroRank(t *testing.T) {
 		t.Fatalf("expected nil for zero-rank input, got %d results", len(got))
 	}
 }
+
+func TestFuseRRF_DefaultLexWeight(t *testing.T) {
+	// lexWeight <= 0 should use defaultLexWeight (0.5), not 1.0.
+	vec := []ranked{{chunkID: 1, rank: 1, similarity: 0.9}}
+	bm25 := []ranked{{chunkID: 2, rank: 1, bm25Score: 5.0}}
+	got := fuseRRF(vec, bm25, 60, 0)
+	if len(got) != 2 {
+		t.Fatalf("expected 2, got %d", len(got))
+	}
+	vecScore := 1.0 / 61
+	bm25Score := defaultLexWeight / 61
+	if math.Abs(got[0].score-vecScore) > 1e-10 {
+		t.Errorf("vector chunk score: want %f, got %f", vecScore, got[0].score)
+	}
+	if math.Abs(got[1].score-bm25Score) > 1e-10 {
+		t.Errorf("bm25 chunk score: want %f (defaultLexWeight=%v), got %f",
+			bm25Score, defaultLexWeight, got[1].score)
+	}
+}

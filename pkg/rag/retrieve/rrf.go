@@ -31,7 +31,7 @@ func fuseRRF(vectorList, bm25List []ranked, rrfK int, lexWeight float64) []fused
 		rrfK = defaultRRFK
 	}
 	if lexWeight <= 0 {
-		lexWeight = 1.0
+		lexWeight = defaultLexWeight
 	}
 	k := float64(rrfK)
 

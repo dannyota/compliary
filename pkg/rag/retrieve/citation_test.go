@@ -208,3 +208,53 @@ func TestMatchCitation_UnknownFramework(t *testing.T) {
 		t.Errorf("expected no matches for unknown framework, got %d", len(ms))
 	}
 }
+
+func TestMatchCitation_NoFramework_DeterministicOrder(t *testing.T) {
+	// Without a framework filter, matches must be returned in the
+	// documented specificity order (most-constrained scheme first).
+	// Run the matcher many times to confirm the order is stable
+	// (the prior map-based iteration was nondeterministic).
+	query := "Tell me about AC-2 and 5.1 and PR.AA-01"
+	var baseline []CitationMatch
+	for i := 0; i < 50; i++ {
+		ms := MatchCitation(query, "", testSchemes)
+		if i == 0 {
+			baseline = ms
+			if len(baseline) == 0 {
+				t.Fatal("expected matches, got none")
+			}
+			continue
+		}
+		if len(ms) != len(baseline) {
+			t.Fatalf("run %d: got %d matches, baseline had %d", i, len(ms), len(baseline))
+		}
+		for j, m := range ms {
+			if m.Scheme != baseline[j].Scheme || m.Citation != baseline[j].Citation {
+				t.Fatalf("run %d: match[%d] = {%s %s}, baseline = {%s %s}",
+					i, j, m.Scheme, m.Citation, baseline[j].Scheme, baseline[j].Citation)
+			}
+		}
+	}
+
+	// Verify that more-specific schemes appear before less-specific ones.
+	// "PR.AA-01" matches csf-workbook (index 1 in schemePatterns);
+	// "AC-2" matches oscal-catalog (index 2);
+	// "5.1" matches several broad schemes.
+	// csf-workbook should precede oscal-catalog in the output.
+	csfIdx, oscalIdx := -1, -1
+	for i, m := range baseline {
+		if m.Scheme == "csf-workbook" && csfIdx == -1 {
+			csfIdx = i
+		}
+		if m.Scheme == "oscal-catalog" && oscalIdx == -1 {
+			oscalIdx = i
+		}
+	}
+	if csfIdx == -1 || oscalIdx == -1 {
+		t.Fatalf("expected both csf-workbook and oscal-catalog matches, csf=%d oscal=%d", csfIdx, oscalIdx)
+	}
+	if csfIdx > oscalIdx {
+		t.Errorf("csf-workbook (specificity 2) should precede oscal-catalog (specificity 3): csf@%d oscal@%d",
+			csfIdx, oscalIdx)
+	}
+}
