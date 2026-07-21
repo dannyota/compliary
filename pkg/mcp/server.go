@@ -83,7 +83,7 @@ func NewServer(core *Core, log *slog.Logger, opts ...ServerOption) *Server {
 	mcpsdk.AddTool(srv, &mcpsdk.Tool{
 		Annotations: &mcpsdk.ToolAnnotations{ReadOnlyHint: true, OpenWorldHint: &closedWorld, DestructiveHint: &notDestructive, Title: "Guide: how to use compliary"},
 		Name:        "guide",
-		Description: "Playbook for using compliary's evidence tools: scope, citation forms per framework, version-pin semantics, mapping-edge semantics, gaps philosophy, query tips including the framework filter's recall advantage (80% vs 65%).",
+		Description: "Playbook for using compliary's evidence tools: scope, citation forms per framework, version-pin semantics, mapping-edge semantics, gaps philosophy, query tips including the framework filter's recall advantage (~82% vs ~72%).",
 	}, s.handleGuide)
 
 	mcpsdk.AddTool(srv, &mcpsdk.Tool{
@@ -180,7 +180,7 @@ func buildInstructions(core *Core) string {
 		"CSA CCM, COBIT). It returns exact control citations, version lineage, cross-framework mapping edges, " +
 		"provenance, and explicit gaps. It never answers — you retrieve evidence and decide the answer. " +
 		"Query in English (the frameworks' publication language). " +
-		"Use the framework filter for higher recall (80% vs 65% unfiltered)."
+		"Use the framework filter for higher recall (~82% vs ~72% unfiltered)."
 
 	if core.corpus != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)

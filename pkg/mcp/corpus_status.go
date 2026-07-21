@@ -28,6 +28,7 @@ type FrameworkVersionStatus struct {
 	MappingEdges  int64  `json:"mapping_edges"`
 	Resolved      int64  `json:"resolved"`
 	Unresolved    int64  `json:"unresolved"`
+	InboundEdges  int64  `json:"inbound_edges"`
 }
 
 // CorpusTotals are aggregate counts across all frameworks.
@@ -67,7 +68,8 @@ SELECT
     COALESCE(embed_counts.embeddings, 0) AS embeddings,
     COALESCE(map_counts.total_edges, 0) AS mapping_edges,
     COALESCE(map_counts.resolved, 0) AS resolved,
-    COALESCE(map_counts.unresolved, 0) AS unresolved
+    COALESCE(map_counts.unresolved, 0) AS unresolved,
+    COALESCE(inbound_counts.inbound_edges, 0) AS inbound_edges
 FROM config.framework f
 JOIN config.framework_version fv
   ON fv.framework_code = f.code
@@ -109,6 +111,15 @@ LEFT JOIN LATERAL (
     JOIN silver.document d ON d.id = sc.document_id
     WHERE d.framework_code = f.code AND d.version_label = fv.version_label
 ) map_counts ON true
+LEFT JOIN LATERAL (
+    -- mapping_edges counts edges FROM this version; a framework rich in
+    -- inbound mappings (e.g. ISO 27002) would otherwise read as unmapped.
+    SELECT count(*) AS inbound_edges
+    FROM silver.control_mapping cm
+    JOIN silver.control tc ON tc.id = cm.to_control_id
+    JOIN silver.document td ON td.id = tc.document_id
+    WHERE td.framework_code = f.code AND td.version_label = fv.version_label
+) inbound_counts ON true
 WHERE COALESCE(doc_counts.docs, 0) > 0
    OR COALESCE(ctrl_counts.controls, 0) > 0
 ORDER BY f.code, fv.version_label`
@@ -139,6 +150,7 @@ ORDER BY f.code, fv.version_label`
 			&fvs.MappingEdges,
 			&fvs.Resolved,
 			&fvs.Unresolved,
+			&fvs.InboundEdges,
 		); err != nil {
 			return CorpusStatusOutput{}, fmt.Errorf("scan corpus status: %w", err)
 		}

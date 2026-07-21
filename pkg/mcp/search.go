@@ -12,18 +12,18 @@ import (
 
 // SearchInput is the search tool's argument schema.
 type SearchInput struct {
-	Query            string `json:"query"`
-	Framework        string `json:"framework,omitempty"`
-	VersionLabel     string `json:"version_label,omitempty"`
-	IncludeWithdrawn bool   `json:"include_withdrawn,omitempty"`
-	TopK             int    `json:"top_k,omitempty"`
-	Mode             string `json:"mode,omitempty"`
+	Query            string `json:"query" jsonschema:"compliance question or control citation, in English (e.g. 'multi-factor authentication for remote access' or 'AC-2(3)')"`
+	Framework        string `json:"framework,omitempty" jsonschema:"framework code filter — raises recall to ~82% (vs ~72% unfiltered); codes are listed by corpus_status (e.g. nist80053, iso27001, pcidss, ciscontrols, soc2tsc)"`
+	VersionLabel     string `json:"version_label,omitempty" jsonschema:"pin one framework version (e.g. r5, 2022, v4.0.1); omit to search the current version"`
+	IncludeWithdrawn bool   `json:"include_withdrawn,omitempty" jsonschema:"also retrieve withdrawn controls (e.g. 800-53r5's incorporated-into families); default false"`
+	TopK             int    `json:"top_k,omitempty" jsonschema:"number of hits to return; default 8"`
+	Mode             string `json:"mode,omitempty" jsonschema:"retrieval arm: hybrid (default), vector, or bm25"`
 }
 
-// SearchHit is one retrieved chunk shaped for the search tool.
+// SearchHit is one retrieved chunk shaped for the search tool. Retrieval
+// internals (chunk/document IDs, per-arm scores and ranks) stay server-side —
+// an agent can act only on the citation, content, score, and version badge.
 type SearchHit struct {
-	ChunkID       int64   `json:"chunk_id"`
-	DocumentID    int64   `json:"document_id"`
 	FrameworkCode string  `json:"framework_code"`
 	VersionLabel  string  `json:"version_label"`
 	Citation      string  `json:"citation"`
@@ -31,13 +31,10 @@ type SearchHit struct {
 	ContextPrefix string  `json:"context_prefix,omitempty"`
 	Content       string  `json:"content"`
 	Score         float64 `json:"score"`
-	Similarity    float64 `json:"similarity,omitempty"`
-	BM25Score     float64 `json:"bm25_score,omitempty"`
-	VectorRank    int     `json:"vector_rank,omitempty"`
-	BM25Rank      int     `json:"bm25_rank,omitempty"`
 	IsCurrent     bool    `json:"is_current"`
 	VersionStatus string  `json:"version_status"`
 	Cite          string  `json:"cite,omitempty"`
+	SourceURL     string  `json:"source_url,omitempty"`
 }
 
 // SearchGap is a reason the evidence is incomplete.
@@ -89,10 +86,9 @@ func (c *Core) Search(ctx context.Context, in SearchInput) (SearchOutput, error)
 		Abstain: ev.Abstain,
 	}
 
+	sourceURLs := c.hitSourceURLs(ctx, ev.Hits)
 	for _, h := range ev.Hits {
 		sh := SearchHit{
-			ChunkID:       h.ChunkID,
-			DocumentID:    h.DocumentID,
 			FrameworkCode: h.FrameworkCode,
 			VersionLabel:  h.VersionLabel,
 			Citation:      h.Citation,
@@ -100,13 +96,10 @@ func (c *Core) Search(ctx context.Context, in SearchInput) (SearchOutput, error)
 			ContextPrefix: h.ContextPrefix,
 			Content:       h.Content,
 			Score:         h.Score,
-			Similarity:    h.Similarity,
-			BM25Score:     h.BM25Score,
-			VectorRank:    h.VectorRank,
-			BM25Rank:      h.BM25Rank,
 			IsCurrent:     h.IsCurrent,
 			VersionStatus: versionStatus(h.IsCurrent),
 			Cite:          citeString(h.Citation, h.FrameworkCode, h.VersionLabel),
+			SourceURL:     sourceURLs[h.DocumentID],
 		}
 		out.Hits = append(out.Hits, c.projectHit(sh))
 	}
@@ -122,11 +115,20 @@ func (c *Core) Search(ctx context.Context, in SearchInput) (SearchOutput, error)
 			Message:      "no chunks matched the query",
 			BlocksAnswer: true,
 		})
-		// Distinguish "nothing matched" from "the filter itself is wrong":
-		// an unknown framework code or a version not in the corpus produces
-		// the same empty result, and the agent cannot tell without a gap.
-		out.Gaps = append(out.Gaps, c.filterGaps(ctx, in.Framework, in.VersionLabel)...)
 	}
+
+	// Distinguish "nothing matched" from "the filter itself is wrong": an
+	// unknown framework code or a version not in the corpus must always be
+	// named. With zero hits the gap blocks; with hits it is advisory — the
+	// retriever filtered in SQL, so hits mean the filter matched, but a
+	// future soft-filter fallback must not silently drop the diagnostic.
+	filterGaps := c.filterGaps(ctx, in.Framework, in.VersionLabel)
+	if len(out.Hits) > 0 {
+		for i := range filterGaps {
+			filterGaps[i].BlocksAnswer = false
+		}
+	}
+	out.Gaps = append(out.Gaps, filterGaps...)
 
 	// Carry through retriever gaps.
 	for _, g := range ev.Gaps {
@@ -138,6 +140,33 @@ func (c *Core) Search(ctx context.Context, in SearchInput) (SearchOutput, error)
 	}
 
 	return out, nil
+}
+
+// hitSourceURLs batch-resolves the official publisher page for each hit's
+// document, so every hit can carry a verifiable source link. Best-effort:
+// a nil corpus (tests, degraded mode) or a lookup failure yields no URLs,
+// never an error — the hits themselves are the evidence.
+func (c *Core) hitSourceURLs(ctx context.Context, hits []eval.Hit) map[int64]string {
+	if c.corpus == nil || len(hits) == 0 {
+		return nil
+	}
+	ids := make([]int64, 0, len(hits))
+	seen := make(map[int64]bool, len(hits))
+	for _, h := range hits {
+		if h.DocumentID != 0 && !seen[h.DocumentID] {
+			seen[h.DocumentID] = true
+			ids = append(ids, h.DocumentID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	urls, err := c.corpus.DocumentSourceURLs(ctx, ids)
+	if err != nil {
+		c.log.Warn("mcp: source url lookup failed", "err", err)
+		return nil
+	}
+	return urls
 }
 
 // filterGaps checks a search's framework/version filter against the corpus

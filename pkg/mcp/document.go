@@ -10,14 +10,15 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// DocumentInput is the document tool's argument schema.
+// DocumentInput is the document tool's argument schema. Citation carries no
+// omitempty: it is required at runtime, and the generated schema must say so.
 type DocumentInput struct {
-	Citation      string   `json:"citation,omitempty"`
-	FrameworkCode string   `json:"framework_code,omitempty"`
-	VersionLabel  string   `json:"version_label,omitempty"`
-	Include       []string `json:"include,omitempty"`
-	Limit         int      `json:"limit,omitempty"`
-	Offset        int      `json:"offset,omitempty"`
+	Citation      string   `json:"citation" jsonschema:"control citation to open (e.g. AC-2(3), A.5.1, CC6.1, 8.3.6, PR.AA-01); required"`
+	FrameworkCode string   `json:"framework_code,omitempty" jsonschema:"pin one framework code when the citation is ambiguous across frameworks (codes listed by corpus_status)"`
+	VersionLabel  string   `json:"version_label,omitempty" jsonschema:"pin one framework version (e.g. r5, 2022); omit for the current version"`
+	Include       []string `json:"include,omitempty" jsonschema:"response sections to return: chunks, mappings, lineage, children; omit for all four. include=[chunks] is the cheapest way to read one control's text"`
+	Limit         int      `json:"limit,omitempty" jsonschema:"max chunks per page (default 20, max 50)"`
+	Offset        int      `json:"offset,omitempty" jsonschema:"chunk pagination offset; use next_offset from the previous call"`
 }
 
 // DocumentOutput is the document tool's structured result.
@@ -67,6 +68,7 @@ type ControlDetail struct {
 	IsCurrent     bool   `json:"is_current"`
 	VersionStatus string `json:"version_status"`
 	ServeGate     string `json:"serve_gate"`
+	SourceURL     string `json:"source_url,omitempty"`
 }
 
 // ControlBrief is a summary for parent/child context.
@@ -124,6 +126,18 @@ var documentSections = map[string]bool{
 	"children": true,
 }
 
+// validateIncludes rejects unrecognized include names. Silently ignoring a
+// typo ("chunk" for "chunks") used to return a found-control with no sections
+// and no explanation — the worst kind of empty answer.
+func validateIncludes(include []string) error {
+	for _, name := range include {
+		if n := strings.ToLower(strings.TrimSpace(name)); !documentSections[n] {
+			return fmt.Errorf("unknown include section %q; valid: chunks, mappings, lineage, children", name)
+		}
+	}
+	return nil
+}
+
 func documentIncludes(include []string) map[string]bool {
 	if len(include) == 0 {
 		return map[string]bool{"chunks": true, "mappings": true, "lineage": true, "children": true}
@@ -146,6 +160,9 @@ func (c *Core) Document(ctx context.Context, in DocumentInput) (DocumentOutput, 
 	if citation == "" {
 		return DocumentOutput{}, fmt.Errorf("citation is required")
 	}
+	if err := validateIncludes(in.Include); err != nil {
+		return DocumentOutput{}, err
+	}
 	in.Citation = normalizeCitationInput(citation)
 	out, err := c.corpus.Document(ctx, in)
 	if err != nil {
@@ -165,10 +182,12 @@ func (dc *dbCorpus) Document(ctx context.Context, in DocumentInput) (DocumentOut
 	}
 	citation := strings.TrimSpace(in.Citation)
 
+	// Chunks stays nil unless the section was requested — with omitempty, a
+	// "chunks" key must mean "requested", never "initialized". A requested
+	// section with zero rows is reported via a no_chunks gap instead.
 	out := DocumentOutput{
 		Limit:  limit,
 		Offset: offset,
-		Chunks: []DocumentChunk{},
 	}
 
 	// Look up the control by citation_norm, with optional framework/version filter.
@@ -192,6 +211,17 @@ func (dc *dbCorpus) Document(ctx context.Context, in DocumentInput) (DocumentOut
 					Kind:         "version_not_found",
 					Message:      fmt.Sprintf("citation %q exists but not in version %q; found in: %s", citation, in.VersionLabel, strings.Join(vers, ", ")),
 					BlocksAnswer: true,
+				})
+			}
+		}
+		// Same courtesy for a framework pin: name the other frameworks whose
+		// current version carries the citation, so a wrong pin is diagnosable.
+		if in.FrameworkCode != "" {
+			if others, err := dc.citationFrameworks(ctx, citation, in.FrameworkCode); err == nil && len(others) > 0 {
+				out.Gaps = append(out.Gaps, SearchGap{
+					Kind:         "found_elsewhere",
+					Message:      fmt.Sprintf("citation %q is not in framework %q but exists in: %s", citation, in.FrameworkCode, strings.Join(others, ", ")),
+					BlocksAnswer: false,
 				})
 			}
 		}
@@ -271,6 +301,15 @@ func (dc *dbCorpus) Document(ctx context.Context, in DocumentInput) (DocumentOut
 			out.NextOffset = offset + limit
 		} else {
 			out.Chunks = chunks
+		}
+		// omitempty drops an empty chunks array, which would be
+		// indistinguishable from "not requested" — say it out loud instead.
+		if len(out.Chunks) == 0 {
+			msg := "control has no gold chunks"
+			if offset > 0 {
+				msg = fmt.Sprintf("offset %d is past the control's last chunk", offset)
+			}
+			out.Gaps = append(out.Gaps, SearchGap{Kind: "no_chunks", Message: msg, BlocksAnswer: false})
 		}
 	}
 
@@ -371,6 +410,37 @@ ORDER BY 1 LIMIT 10`, citation, zeroPadCitation(citation), chosenFramework)
 	return out, rows.Err()
 }
 
+// DocumentSourceURLs maps silver document IDs to the official publisher page
+// recorded in bronze provenance (empty entries are skipped).
+func (dc *dbCorpus) DocumentSourceURLs(ctx context.Context, ids []int64) (map[int64]string, error) {
+	if len(ids) == 0 {
+		return map[int64]string{}, nil
+	}
+	rows, err := dc.pool.Query(ctx, `
+SELECT d.id,
+       COALESCE((SELECT sf.source_url FROM bronze.source_file sf
+                 WHERE sf.sha256 = d.source_file_sha256 AND sf.source_url <> ''
+                 LIMIT 1), '')
+FROM silver.document d
+WHERE d.id = ANY($1)`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("query document source urls: %w", err)
+	}
+	defer rows.Close()
+	out := make(map[int64]string, len(ids))
+	for rows.Next() {
+		var id int64
+		var url string
+		if err := rows.Scan(&id, &url); err != nil {
+			return nil, err
+		}
+		if url != "" {
+			out[id] = url
+		}
+	}
+	return out, rows.Err()
+}
+
 // FrameworkVersions maps framework code → version labels present in silver.
 func (dc *dbCorpus) FrameworkVersions(ctx context.Context) (map[string][]string, error) {
 	rows, err := dc.pool.Query(ctx,
@@ -431,7 +501,10 @@ SELECT
     COALESCE(sc.title_original, ''),
     COALESCE(sc.body, ''),
     fv.is_current,
-    d.serve_gate
+    d.serve_gate,
+    COALESCE((SELECT sf.source_url FROM bronze.source_file sf
+              WHERE sf.sha256 = d.source_file_sha256 AND sf.source_url <> ''
+              LIMIT 1), '')
 FROM silver.control sc
 JOIN silver.document d ON d.id = sc.document_id
 JOIN config.framework_version fv
@@ -456,6 +529,7 @@ LIMIT 1`, strings.Join(conds, " AND "))
 		&ctrl.Body,
 		&ctrl.IsCurrent,
 		&ctrl.ServeGate,
+		&ctrl.SourceURL,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

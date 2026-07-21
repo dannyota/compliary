@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"danny.vn/compliary/pkg/eval"
@@ -44,6 +45,7 @@ func (f *fakeSearcher) SearchEvidence(ctx context.Context, query string, opts ev
 
 type fakeCorpus struct {
 	frameworkVersions map[string][]string
+	sourceURLs        map[int64]string
 	status            CorpusStatusOutput
 	gaps              QualityGapsOutput
 	doc               DocumentOutput
@@ -67,6 +69,16 @@ func (f *fakeCorpus) FrameworkVersions(_ context.Context) (map[string][]string, 
 		return map[string][]string{}, nil
 	}
 	return f.frameworkVersions, nil
+}
+
+func (f *fakeCorpus) DocumentSourceURLs(_ context.Context, ids []int64) (map[int64]string, error) {
+	out := map[int64]string{}
+	for _, id := range ids {
+		if u, ok := f.sourceURLs[id]; ok {
+			out[id] = u
+		}
+	}
+	return out, nil
 }
 
 // --- Tests ---
@@ -492,6 +504,68 @@ func TestDocumentIncludes(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestValidateIncludes(t *testing.T) {
+	if err := validateIncludes(nil); err != nil {
+		t.Errorf("nil include should validate, got %v", err)
+	}
+	if err := validateIncludes([]string{"chunks", "Mappings", " lineage "}); err != nil {
+		t.Errorf("known sections should validate, got %v", err)
+	}
+	err := validateIncludes([]string{"chunk"})
+	if err == nil {
+		t.Fatal("expected error for unknown include section")
+	}
+	if !strings.Contains(err.Error(), "chunks, mappings, lineage, children") {
+		t.Errorf("error should list valid sections, got %v", err)
+	}
+}
+
+func TestDocument_UnknownIncludeErrors(t *testing.T) {
+	// A typo ("chunk") must error loudly, never return a section-less document.
+	fc := &fakeCorpus{doc: DocumentOutput{Found: true}}
+	c := NewCore(nil, fc, nil)
+	_, err := c.Document(context.Background(), DocumentInput{Citation: "AC-2", Include: []string{"chunk"}})
+	if err == nil {
+		t.Fatal("expected error for unknown include section")
+	}
+}
+
+func TestSearch_AdvisoryFilterGapWithHits(t *testing.T) {
+	// With hits present, a bad filter still gaps — but as advisory, not blocking.
+	fs := &fakeSearcher{hits: []eval.Hit{{ChunkID: 1, Content: "text", Score: 0.07}}}
+	fc := &fakeCorpus{frameworkVersions: map[string][]string{"iso27001": {"2022"}}}
+	c := NewCore(fs, fc, nil)
+	out, err := c.Search(context.Background(), SearchInput{Query: "x", Framework: "iso9001"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found bool
+	for _, g := range out.Gaps {
+		if g.Kind == "unknown_framework" {
+			found = true
+			if g.BlocksAnswer {
+				t.Error("filter gap with hits present should be advisory, not blocking")
+			}
+		}
+	}
+	if !found {
+		t.Errorf("expected advisory unknown_framework gap, got %+v", out.Gaps)
+	}
+}
+
+func TestSearch_SourceURL(t *testing.T) {
+	fs := &fakeSearcher{hits: []eval.Hit{{ChunkID: 1, DocumentID: 7, Content: "text", Score: 0.07}}}
+	fc := &fakeCorpus{sourceURLs: map[int64]string{7: "https://example.gov/pub"}}
+	c := NewCore(fs, fc, nil)
+	out, err := c.Search(context.Background(), SearchInput{Query: "x"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Hits[0].SourceURL != "https://example.gov/pub" {
+		t.Errorf("expected source_url on hit, got %q", out.Hits[0].SourceURL)
 	}
 }
 

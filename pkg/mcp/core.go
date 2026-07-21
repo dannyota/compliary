@@ -40,6 +40,9 @@ type CorpusReader interface {
 	// corpus (silver documents). Used to turn "no results" into explicit
 	// unknown_framework / version_not_found gaps.
 	FrameworkVersions(ctx context.Context) (map[string][]string, error)
+	// DocumentSourceURLs maps silver document IDs to their official publisher
+	// page (bronze provenance), so hits and documents carry a verifiable link.
+	DocumentSourceURLs(ctx context.Context, ids []int64) (map[int64]string, error)
 }
 
 // Projection controls whether the response includes verbatim licensed text

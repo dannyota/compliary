@@ -8,8 +8,8 @@ import (
 
 // QualityGapsInput is the quality_gaps tool's argument schema.
 type QualityGapsInput struct {
-	Category string `json:"category,omitempty"`
-	Limit    int    `json:"limit,omitempty"`
+	Category string `json:"category,omitempty" jsonschema:"one gap category: unresolved_mappings, deferred_docs, manifest, body_quality, eval_floors; omit (or 'all') for every category"`
+	Limit    int    `json:"limit,omitempty" jsonschema:"max rows per category (default 20, max 100)"`
 }
 
 // QualityGapsOutput is the quality_gaps tool's structured result.
@@ -150,7 +150,8 @@ func gapCategories(category string) ([]string, error) {
 		gapCategoryEvalFloors:
 		return []string{category}, nil
 	default:
-		return nil, fmt.Errorf("unknown quality gap category %q", category)
+		return nil, fmt.Errorf("unknown quality gap category %q; valid: %s, %s, %s, %s, %s, or all",
+			category, gapCategoryUnresolved, gapCategoryDeferred, gapCategoryManifest, gapCategoryBodyQuality, gapCategoryEvalFloors)
 	}
 }
 

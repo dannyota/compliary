@@ -9,7 +9,7 @@ structured data, never prose.
 | Tool | Purpose | Input | Key output |
 |------|---------|-------|------------|
 | **guide** | Playbook: scope, citation forms, query tips, evidence contract | none | static structured payload |
-| **corpus_status** | Live per-framework/version counts | none | frameworks[], totals, notes |
+| **corpus_status** | Live per-framework/version counts | none | frameworks[] (incl. mapping_edges outbound + inbound_edges resolved-into), totals, notes |
 | **search** | Hybrid retrieval (dense + BM25, RRF-fused) | query, framework?, version_label?, include_withdrawn?, top_k?, mode? | hits[], gaps[], abstain |
 | **document** | Citation lookup: control + mappings + lineage + chunks | citation, framework_code?, version_label?, include? | control, amended_by, parent, children, mappings, inbound_mappings, version_lineage, chunks, gaps |
 | **quality_gaps** | Known corpus gaps and caveats | category?, limit? | unresolved_mappings, deferred_docs, manifest_gaps, body_quality_caveats, eval_floors |
@@ -145,6 +145,21 @@ embedder) never abstain on the floor — there is no cosine to compare.
   the cosine bands overlap — 8 of 10 OOS golden cases still return hits without abstaining.
 - **Abstain response:** `abstain: true` + `gaps[].kind = "low_confidence"` or `"no_evidence"`.
   Hits are still returned; the agent sees the gap notice and decides how to proceed.
+
+### Response vocabulary (consumer contract)
+
+- **Gap kinds:** `no_evidence`, `low_confidence`, `unknown_framework`, `version_not_found`,
+  `ambiguous_citation`, `found_elsewhere` (citation absent from the pinned framework but present
+  in the listed ones), `no_chunks` (chunks requested but none exist at this offset). Filter gaps
+  (`unknown_framework`/`version_not_found`) fire even when hits are returned — advisory
+  (`blocks_answer: false`) with hits, blocking without.
+- **Hit shape:** citation, content, RRF score, version badge, ready-to-paste cite, and
+  `source_url` (official publisher page from bronze provenance — also on `document`'s control).
+  Retrieval internals (chunk/document IDs, per-arm scores/ranks) are not exposed.
+- **Input validation:** `document.citation` is required (schema + runtime); an unrecognized
+  `include` section name is a hard error naming the valid set (`chunks`, `mappings`, `lineage`,
+  `children`) — never a silently empty response. `quality_gaps.category` errors list the valid
+  categories.
 - **Operator-tunable** via the config.setting seed row; re-calibrate with
   `cmd/eval -abstain-floor <f>` when the corpus grows.
 

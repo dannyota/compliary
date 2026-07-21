@@ -8,7 +8,6 @@ import (
 func TestProjectHitFull(t *testing.T) {
 	c := NewCore(nil, nil, nil) // full projection by default
 	h := SearchHit{
-		ChunkID:       1,
 		FrameworkCode: "nist80053",
 		Citation:      "AC-2 Account Management",
 		CitationNorm:  "AC-2",
@@ -29,7 +28,6 @@ func TestProjectHitFull(t *testing.T) {
 func TestProjectHitReduced(t *testing.T) {
 	c := NewCore(nil, nil, nil, WithProjection(ProjectionReduced))
 	h := SearchHit{
-		ChunkID:       1,
 		FrameworkCode: "nist80053",
 		Citation:      "AC-2 Account Management",
 		CitationNorm:  "AC-2",
@@ -166,7 +164,6 @@ func TestProjectHitReduced_TitleOriginalAbsent(t *testing.T) {
 	// to leak. If someone adds it, this test should be updated to verify
 	// stripping.
 	h := SearchHit{
-		ChunkID:       1,
 		Citation:      "AC-2",
 		Content:       "body text",
 		ContextPrefix: "prefix",
