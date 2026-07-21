@@ -264,9 +264,30 @@ func runMapEdges(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) erro
 		return fmt.Errorf("mapedges: cis mappings: %w", err)
 	}
 
+	// --- Enhanced resolution passes ---
+
+	// 1. Annex-A prefix normalization: bare "5.26" → corpus "A.5.26" for
+	//    iso27001 targets, guarded against management clause mis-resolution.
+	annexResolved, err := normalize.ResolveAnnexPrefix(ctx, pool, log)
+	if err != nil {
+		return fmt.Errorf("mapedges: annex-prefix resolve: %w", err)
+	}
+
+	// 2. Cross-version supersession: emit version_relation rows, then
+	//    resolve edges citing a superseded version against the successor.
+	if err := normalize.EmitVersionSupersessions(ctx, pool, log); err != nil {
+		return fmt.Errorf("mapedges: version supersessions: %w", err)
+	}
+	supersessionResolved, err := normalize.ResolveViaSupersession(ctx, pool, log)
+	if err != nil {
+		return fmt.Errorf("mapedges: supersession resolve: %w", err)
+	}
+
 	log.Info("mapedges complete",
 		"emitted", sum.Emitted+olirSum.Emitted+cisSum.Emitted,
 		"resolved", sum.Resolved+olirSum.Resolved+cisSum.Resolved,
+		"annex_prefix_resolved", annexResolved,
+		"supersession_resolved", supersessionResolved,
 	)
 	return nil
 }

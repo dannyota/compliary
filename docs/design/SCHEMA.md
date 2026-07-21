@@ -91,6 +91,27 @@ categories/subcategories inside the 2.0 workbook, marked `[Withdrawn: Incorporat
 they live in the **2.0 document** — never a fabricated v1.1 document we don't have. Status
 `withdrawn`, `incorporated-into`/`moved-to` edges to 2.0 targets.
 
+**Mapping resolution** (`to_control_id` fill) runs in three passes during the mapedges stage:
+
+1. **Standard resolve:** exact `citation_norm` match against the target framework's version
+   (version-pinned edges match that version's document; version-unspecified edges match the current
+   version via `config.framework_version.is_current`).
+2. **Annex-A prefix normalization (iso27001 only):** edges citing bare Annex numbers (`5.26`) are
+   resolved against corpus controls with the `A.` prefix (`A.5.26`), but **only when** the bare
+   form does not already match a management clause (`kind='clause'`). ISO 27001:2022 has management
+   clauses 4-10 (bare numbers) and Annex A controls A.5-A.8; publisher workbooks (OLIR, CIS
+   mappings) cite Annex controls without the `A.` prefix. The guard prevents mis-resolving a
+   management clause to an Annex control. Provenance appends `annex-prefix: resolved X as A.X`.
+3. **Cross-version supersession:** edges citing a version that has an explicit
+   `silver.version_relation(supersedes)` row connecting it to an ingested successor resolve against
+   the successor's controls. Single-hop only (v8 -> v8.1, v4.0 -> v4.1). The edge **keeps its
+   original `to_version_label`** (fidelity to source); provenance appends
+   `version-supersession: cited <old> resolved in successor <new>`. Current relations:
+   CIS Controls v8.1 supersedes v8, CSA CCM v4.1 supersedes v4.0.
+
+Genuinely-missing targets (e.g. nistcsf 1.1, CCM IVS-* removed in v4.1, ISO citation typos like
+`6.11`/`6.13`) stay unresolved — never forced.
+
 Key differences from banhmi's silver: no gazette/alias/text-authority machinery (single
 authoritative file per document, no reconcile); validity collapses into `version_relation` +
 `framework_version.is_current` (frameworks don't get partially repealed — a version is current or
@@ -106,7 +127,7 @@ superseded; amendments are `amends` edges with their own document).
 points of focus and practices are `control` rows (citable, mappable), but whether they chunk
 individually or fold into their parent criterion/objective's chunk is decided when that parser
 lands, with retrieval eval evidence — not fixed here.
-| `chunk_embedding` | Dense vectors | Qwen3-Embedding 1024-d · one row per `(chunk_id, model)` · HNSW cosine |
+| `chunk_embedding` | Dense vectors | Qwen3-Embedding 1024-d · one row per `(chunk_id, model)` · exact cosine scan (no HNSW; re-evaluate at 10k+ chunks) |
 
 Serve-time rule: unauthenticated callers get citations, **paraphrased titles**, scores, and mapping
 edges for everything; chunk `content`, `body`, `title_original`, and `context_prefix` for
