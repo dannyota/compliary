@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -1187,4 +1188,50 @@ func authorizeAndGetCodeForClient(t *testing.T, ts *httptest.Server, clientID, c
 		t.Fatal("no code in redirect")
 	}
 	return code
+}
+
+// TestRotateRefreshConcurrentReplay hammers one refresh token with concurrent
+// rotations: at most one may win, and after any replay detection the family
+// must be fully dead — the atomic consume+mint leaves no window where a
+// replayed token mints a pair that survives revocation.
+func TestRotateRefreshConcurrentReplay(t *testing.T) {
+	st := newStore()
+	_, rt1, _ := st.createTokenPair("c1", "mcp:read", "")
+
+	const n = 16
+	type result struct {
+		at, rt string
+		ok     bool
+	}
+	results := make(chan result, n)
+	var wg sync.WaitGroup
+	for range n {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, at, rt, _, ok := st.rotateRefresh(rt1, "c1")
+			results <- result{at, rt, ok}
+		}()
+	}
+	wg.Wait()
+	close(results)
+
+	var wins []result
+	for r := range results {
+		if r.ok {
+			wins = append(wins, r)
+		}
+	}
+	if len(wins) > 1 {
+		t.Fatalf("expected at most one successful rotation, got %d", len(wins))
+	}
+	// n-1 replays ran, so the family must be revoked: any minted pair is dead.
+	for _, w := range wins {
+		if _, ok := st.lookupToken(w.at); ok {
+			t.Error("access token minted by the winning rotation must be revoked after replay detection")
+		}
+		if _, _, _, _, ok := st.rotateRefresh(w.rt, "c1"); ok {
+			t.Error("refresh token minted by the winning rotation must be revoked after replay detection")
+		}
+	}
 }

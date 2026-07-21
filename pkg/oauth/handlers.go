@@ -398,19 +398,15 @@ func (s *Server) handleRefreshGrant(w http.ResponseWriter, r *http.Request) {
 
 	refreshToken := r.PostFormValue("refresh_token")
 
-	re, ok := s.store.consumeRefresh(refreshToken)
+	// Atomic consume + mint: the family inherits across rotations, replay of
+	// any ancestor revokes the whole family, and no lock gap exists for a
+	// replay to race a legitimate rotation.
+	scope, at, rt, expiresIn, ok := s.store.rotateRefresh(refreshToken, c.ID)
 	if !ok {
 		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "invalid or expired refresh token")
 		return
 	}
-	if re.ClientID != c.ID {
-		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "refresh token was not issued to this client")
-		return
-	}
-
-	// Inherit the token family — replay of any ancestor triggers family-wide revocation.
-	at, rt, expiresIn := s.store.createTokenPair(c.ID, re.Scope, re.FamilyID)
-	writeTokenResponse(w, at, rt, expiresIn, re.Scope)
+	writeTokenResponse(w, at, rt, expiresIn, scope)
 }
 
 // verifyPKCE verifies a PKCE S256 code challenge.

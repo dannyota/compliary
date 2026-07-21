@@ -267,29 +267,56 @@ func (s *store) lookupToken(accessToken string) (*tokenEntry, bool) {
 	return te, true
 }
 
-// consumeRefresh consumes a refresh token for rotation. If the token was
-// already consumed (replay), it revokes the entire token family (all access
-// and refresh tokens sharing the same family ID) per OAuth 2.1 §6.1.
-// Returns (nil, false) on replay or expiry; the caller should return invalid_grant.
-func (s *store) consumeRefresh(refreshToken string) (*refreshEntry, bool) {
+// rotateRefresh atomically consumes a refresh token and mints its successor
+// pair inside one critical section. Consume and create must not be separate
+// lock acquisitions: a replayed token racing a legitimate rotation could
+// otherwise revoke the family between the two steps and still let the replay
+// mint a live pair afterwards. If the token was already consumed (replay),
+// the whole family is revoked per OAuth 2.1 §6.1 and ok is false. The client
+// check happens before consumption so a wrong client cannot burn the token.
+func (s *store) rotateRefresh(refreshToken, clientID string) (scope, accessToken, newRefresh string, expiresIn int, ok bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	re, ok := s.refresh[refreshToken]
-	if !ok {
-		// Check if this is a replayed (already-consumed) token.
+	re, found := s.refresh[refreshToken]
+	if !found {
+		// Replayed (already-consumed) token → kill the family.
 		if familyID, consumed := s.consumed[refreshToken]; consumed {
 			s.revokeFamilyLocked(familyID)
 		}
-		return nil, false
+		return "", "", "", 0, false
+	}
+	if re.ClientID != clientID {
+		return "", "", "", 0, false
 	}
 	delete(s.refresh, refreshToken)
 	if time.Now().After(re.ExpiresAt) {
-		return nil, false
+		return "", "", "", 0, false
 	}
 	// Record the consumed token so replays trigger family revocation.
 	s.consumed[refreshToken] = re.FamilyID
-	return re, true
+
+	at := randomHex(32)
+	rt := randomHex(32)
+	now := time.Now()
+	s.tokens[at] = &tokenEntry{
+		Token:     at,
+		ClientID:  clientID,
+		Scope:     re.Scope,
+		ExpiresAt: now.Add(accessTokenTTL),
+		FamilyID:  re.FamilyID,
+	}
+	s.refresh[rt] = &refreshEntry{
+		Token:     rt,
+		ClientID:  clientID,
+		Scope:     re.Scope,
+		ExpiresAt: now.Add(refreshTokenTTL),
+		FamilyID:  re.FamilyID,
+	}
+	if c := s.clients[clientID]; c != nil {
+		c.LastActivity = now
+	}
+	return re.Scope, at, rt, int(accessTokenTTL.Seconds()), true
 }
 
 // revokeFamilyLocked revokes all access tokens, refresh tokens, and consumed-
