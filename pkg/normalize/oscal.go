@@ -139,101 +139,77 @@ func BuildOSCALTree(raw json.RawMessage, frameworkCode, versionLabel string) (*T
 			addControlParams(c, paramIdx)
 		}
 
-		// Controls.
+		// Controls (recursive — handles arbitrary nesting depth).
 		for _, c := range g.Controls {
-			controlIdx := len(result.Controls)
-			label := controlLabel(c)
-			status := controlStatus(c)
-			body := buildBody(c, paramIdx)
-
-			result.Controls = append(result.Controls, ControlRow{
-				Citation:      label,
-				CitationNorm:  strings.ToUpper(strings.ReplaceAll(label, " ", "")),
-				Kind:          "control",
-				Status:        status,
-				Title:         c.Title,
-				TitleOriginal: strPtr(c.Title),
-				Body:          body,
-				ParentIdx:     familyIdx,
-				Ordinal:       ordinal,
-			})
-			ordinal++
-
-			// Withdrawn links.
-			if status == "withdrawn" {
-				for _, link := range c.Links {
-					if link.Rel == "incorporated-into" || link.Rel == "moved-to" {
-						targetNorm := resolveHref(link.Href, idToLabel)
-						if targetNorm == "" {
-							result.UnresolvedLinks = append(result.UnresolvedLinks, UnresolvedLink{
-								Citation: label,
-								Href:     link.Href,
-							})
-							continue
-						}
-						result.Mappings = append(result.Mappings, MappingEdge{
-							FromIdx:          controlIdx,
-							ToFrameworkCode:  frameworkCode,
-							ToVersionLabel:   strPtr(versionLabel),
-							ToCitationNorm:   targetNorm,
-							MappingSource:    "publisher-catalog",
-							Relationship:     link.Rel,
-							ProvenanceDetail: link.Href,
-						})
-					}
-				}
-			}
-
-			// Enhancements (nested controls).
-			for _, enh := range c.Controls {
-				addControlParams(enh, paramIdx)
-				enhIdx := len(result.Controls)
-				enhLabel := controlLabel(enh)
-				enhStatus := controlStatus(enh)
-				enhBody := buildBody(enh, paramIdx)
-
-				result.Controls = append(result.Controls, ControlRow{
-					Citation:      enhLabel,
-					CitationNorm:  strings.ToUpper(strings.ReplaceAll(enhLabel, " ", "")),
-					Kind:          "enhancement",
-					Status:        enhStatus,
-					Title:         enh.Title,
-					TitleOriginal: strPtr(enh.Title),
-					Body:          enhBody,
-					ParentIdx:     controlIdx,
-					Ordinal:       ordinal,
-				})
-				ordinal++
-
-				// Withdrawn links on enhancements.
-				if enhStatus == "withdrawn" {
-					for _, link := range enh.Links {
-						if link.Rel == "incorporated-into" || link.Rel == "moved-to" {
-							targetNorm := resolveHref(link.Href, idToLabel)
-							if targetNorm == "" {
-								result.UnresolvedLinks = append(result.UnresolvedLinks, UnresolvedLink{
-									Citation: enhLabel,
-									Href:     link.Href,
-								})
-								continue
-							}
-							result.Mappings = append(result.Mappings, MappingEdge{
-								FromIdx:          enhIdx,
-								ToFrameworkCode:  frameworkCode,
-								ToVersionLabel:   strPtr(versionLabel),
-								ToCitationNorm:   targetNorm,
-								MappingSource:    "publisher-catalog",
-								Relationship:     link.Rel,
-								ProvenanceDetail: link.Href,
-							})
-						}
-					}
-				}
-			}
+			walkOSCALControls(c, familyIdx, "control", result, paramIdx, idToLabel, frameworkCode, versionLabel, &ordinal)
 		}
 	}
 
 	return result, nil
+}
+
+// walkOSCALControls recursively appends a control and all its nested
+// sub-controls to the result. Top-level controls are kind "control";
+// any deeper nesting uses kind "enhancement". This replaces the prior
+// 2-level loop so arbitrarily deep OSCAL nesting is captured.
+func walkOSCALControls(
+	c oscalControl,
+	parentIdx int,
+	kind string,
+	result *TreeResult,
+	paramIdx map[string]oscalParam,
+	idToLabel map[string]string,
+	frameworkCode, versionLabel string,
+	ordinal *int32,
+) {
+	thisIdx := len(result.Controls)
+	label := controlLabel(c)
+	status := controlStatus(c)
+	body := buildBody(c, paramIdx)
+
+	result.Controls = append(result.Controls, ControlRow{
+		Citation:      label,
+		CitationNorm:  strings.ToUpper(strings.ReplaceAll(label, " ", "")),
+		Kind:          kind,
+		Status:        status,
+		Title:         c.Title,
+		TitleOriginal: strPtr(c.Title),
+		Body:          body,
+		ParentIdx:     parentIdx,
+		Ordinal:       *ordinal,
+	})
+	*ordinal++
+
+	// Withdrawn links.
+	if status == "withdrawn" {
+		for _, link := range c.Links {
+			if link.Rel == "incorporated-into" || link.Rel == "moved-to" {
+				targetNorm := resolveHref(link.Href, idToLabel)
+				if targetNorm == "" {
+					result.UnresolvedLinks = append(result.UnresolvedLinks, UnresolvedLink{
+						Citation: label,
+						Href:     link.Href,
+					})
+					continue
+				}
+				result.Mappings = append(result.Mappings, MappingEdge{
+					FromIdx:          thisIdx,
+					ToFrameworkCode:  frameworkCode,
+					ToVersionLabel:   strPtr(versionLabel),
+					ToCitationNorm:   targetNorm,
+					MappingSource:    "publisher-catalog",
+					Relationship:     link.Rel,
+					ProvenanceDetail: link.Href,
+				})
+			}
+		}
+	}
+
+	// Recurse into nested controls (enhancements at any depth).
+	for _, sub := range c.Controls {
+		addControlParams(sub, paramIdx)
+		walkOSCALControls(sub, thisIdx, "enhancement", result, paramIdx, idToLabel, frameworkCode, versionLabel, ordinal)
+	}
 }
 
 // --- OSCAL data types ---

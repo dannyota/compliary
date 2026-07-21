@@ -235,6 +235,114 @@ func TestBuildOSCALTree_Synthetic(t *testing.T) {
 	}
 }
 
+// syntheticOSCAL3Level is a minimal OSCAL catalog with 3-level nesting:
+// group → control → enhancement → sub-enhancement. This verifies that
+// the recursive walk captures depth beyond the original 2-level loop.
+const syntheticOSCAL3Level = `{
+  "catalog": {
+    "uuid": "test-3level",
+    "metadata": {"title": "3-Level Test", "version": "1.0.0", "oscal-version": "1.2.2"},
+    "groups": [
+      {
+        "id": "tl",
+        "title": "Three Level Family",
+        "props": [{"name": "label", "value": "TL"}],
+        "controls": [
+          {
+            "id": "tl-1",
+            "title": "Top Control",
+            "props": [{"name": "label", "value": "TL-01"}],
+            "parts": [{"id": "tl-1_stmt", "name": "statement", "prose": "Top statement."}],
+            "controls": [
+              {
+                "id": "tl-1.1",
+                "title": "Enhancement One",
+                "props": [{"name": "label", "value": "TL-01(01)"}],
+                "parts": [{"id": "tl-1.1_stmt", "name": "statement", "prose": "Enhancement statement."}],
+                "controls": [
+                  {
+                    "id": "tl-1.1.1",
+                    "title": "Sub-Enhancement Alpha",
+                    "props": [{"name": "label", "value": "TL-01(01)(01)"}],
+                    "parts": [{"id": "tl-1.1.1_stmt", "name": "statement", "prose": "Sub-enhancement statement."}]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}`
+
+func TestBuildOSCALTree_3Level(t *testing.T) {
+	tree, err := BuildOSCALTree(json.RawMessage(syntheticOSCAL3Level), "testfw", "v1")
+	if err != nil {
+		t.Fatalf("BuildOSCALTree: %v", err)
+	}
+
+	// Expected: 1 family + 1 control + 1 enhancement + 1 sub-enhancement = 4.
+	if len(tree.Controls) != 4 {
+		t.Fatalf("controls=%d, want 4", len(tree.Controls))
+	}
+
+	// Family.
+	fam := tree.Controls[0]
+	if fam.Kind != "family" || fam.Citation != "TL" {
+		t.Errorf("family: kind=%s citation=%s", fam.Kind, fam.Citation)
+	}
+
+	// Control.
+	ctrl := tree.Controls[1]
+	if ctrl.Kind != "control" || ctrl.Citation != "TL-01" {
+		t.Errorf("control: kind=%s citation=%s", ctrl.Kind, ctrl.Citation)
+	}
+	if ctrl.ParentIdx != 0 {
+		t.Errorf("control parentIdx=%d, want 0 (family)", ctrl.ParentIdx)
+	}
+
+	// Enhancement.
+	enh := tree.Controls[2]
+	if enh.Kind != "enhancement" || enh.Citation != "TL-01(01)" {
+		t.Errorf("enhancement: kind=%s citation=%s", enh.Kind, enh.Citation)
+	}
+	if enh.ParentIdx != 1 {
+		t.Errorf("enhancement parentIdx=%d, want 1 (control)", enh.ParentIdx)
+	}
+
+	// Sub-enhancement (3rd level — previously silently dropped).
+	subEnh := tree.Controls[3]
+	if subEnh.Kind != "enhancement" {
+		t.Errorf("sub-enhancement kind=%s, want enhancement", subEnh.Kind)
+	}
+	if subEnh.Citation != "TL-01(01)(01)" {
+		t.Errorf("sub-enhancement citation=%s, want TL-01(01)(01)", subEnh.Citation)
+	}
+	if subEnh.ParentIdx != 2 {
+		t.Errorf("sub-enhancement parentIdx=%d, want 2 (enhancement)", subEnh.ParentIdx)
+	}
+	if subEnh.Body == nil || !strings.Contains(*subEnh.Body, "Sub-enhancement statement.") {
+		t.Errorf("sub-enhancement body missing or wrong: %v", subEnh.Body)
+	}
+
+	// citation_norm uniqueness.
+	norms := map[string]bool{}
+	for _, c := range tree.Controls {
+		if norms[c.CitationNorm] {
+			t.Errorf("duplicate citation_norm: %s", c.CitationNorm)
+		}
+		norms[c.CitationNorm] = true
+	}
+
+	// Ordinal monotonicity.
+	for i := 1; i < len(tree.Controls); i++ {
+		if tree.Controls[i].Ordinal <= tree.Controls[i-1].Ordinal {
+			t.Errorf("ordinal not monotonic at %d", i)
+		}
+	}
+}
+
 func TestBuildOSCALTree_Golden(t *testing.T) {
 	const catalogPath = "../../data/nist/nist-sp-800-53r5-oscal-catalog.json"
 	raw, err := os.ReadFile(catalogPath)

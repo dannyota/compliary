@@ -2,6 +2,7 @@ package normalize
 
 import (
 	"encoding/json"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -370,6 +371,56 @@ func TestBuildPCITree_MidLineCollision(t *testing.T) {
 			t.Errorf("duplicate citation_norm: %s", c.CitationNorm)
 		}
 		norms[c.CitationNorm] = true
+	}
+}
+
+// TestBuildPCITree_BodyPurity asserts that no parsed PCI body contains
+// stop-line markers — "Defined Approach Testing Procedures" or a line
+// ending in standalone "Guidance". This converts the manual 2026-07-20
+// audit (documented in docs/design/SCHEMA.md) into an automated invariant.
+// Gated on data/ presence, same as the golden test.
+func TestBuildPCITree_BodyPurity(t *testing.T) {
+	const pdfPath = "../../data/pcissc/pci-dss-v4.0.1.pdf"
+	raw, err := extract.CapturePDFFile(pdfPath)
+	if err != nil {
+		t.Skipf("data file absent (expected for non-maintainer): %v", err)
+	}
+
+	tree, err := BuildPCITree(json.RawMessage(raw), "pcidss", "v4.0.1")
+	if err != nil {
+		t.Fatalf("BuildPCITree: %v", err)
+	}
+
+	// rePurityGuidance matches a line ending in standalone "Guidance"
+	// (the column header that signals non-requirement content).
+	rePurityGuidance := regexp.MustCompile(`(?:^|\s)Guidance\s*$`)
+
+	var violations []string
+	for _, c := range tree.Controls {
+		if c.Body == nil {
+			continue
+		}
+		body := *c.Body
+		if strings.Contains(body, "Defined Approach Testing Procedures") {
+			violations = append(violations, c.Citation+": contains 'Defined Approach Testing Procedures'")
+		}
+		for _, line := range strings.Split(body, "\n") {
+			if rePurityGuidance.MatchString(line) {
+				violations = append(violations, c.Citation+": line matches standalone 'Guidance' header")
+				break
+			}
+		}
+	}
+	if len(violations) > 0 {
+		t.Errorf("%d bodies contain stop-line markers (expected 0):", len(violations))
+		// Show at most 10 for readability.
+		for i, v := range violations {
+			if i >= 10 {
+				t.Errorf("  ... and %d more", len(violations)-10)
+				break
+			}
+			t.Errorf("  %s", v)
+		}
 	}
 }
 

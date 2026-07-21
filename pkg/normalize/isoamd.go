@@ -101,7 +101,7 @@ func parseISOAmendmentInstructions(pages []isoPage) []isoAmdInstruction {
 					break
 				}
 				// Stop at page footer artifacts (page number / copyright).
-				if regexp.MustCompile(`^\d+$`).MatchString(txt) || strings.Contains(txt, "All rights reserved") {
+				if reISOBarePageNum.MatchString(txt) || strings.Contains(txt, "All rights reserved") {
 					continue
 				}
 				parts = append(parts, txt)

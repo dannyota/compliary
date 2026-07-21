@@ -693,6 +693,21 @@ func (n *Normalizer) writeTree(
 		return fmt.Errorf("delete controls: %w", err)
 	}
 
+	// Pre-insert duplicate-citation check: a duplicate CitationNorm within
+	// one document would violate the silver.control unique constraint and
+	// surface only as a cryptic Postgres error. Catch it early with a
+	// descriptive message.
+	{
+		seen := make(map[string]int, len(tree.Controls))
+		for i, cr := range tree.Controls {
+			if prev, dup := seen[cr.CitationNorm]; dup {
+				return fmt.Errorf("duplicate citation_norm %q in document %s (indices %d and %d)",
+					cr.CitationNorm, docKey, prev, i)
+			}
+			seen[cr.CitationNorm] = i
+		}
+	}
+
 	// Insert all controls; track the index-to-DB-ID mapping for parent linking.
 	dbIDs := make([]int64, len(tree.Controls))
 	for i, cr := range tree.Controls {

@@ -181,8 +181,11 @@ func BuildCCMTree(raw json.RawMessage, frameworkCode, versionLabel string) (*Tre
 			}
 
 			// Body: specification text + applicability lines.
-			body := buildCCMBody(colD, cols)
-			cr.Body = &body
+			// Only set when non-empty — nil means "no body", matching
+			// every other parser's convention.
+			if body := buildCCMBody(colD, cols); body != "" {
+				cr.Body = &body
+			}
 
 			result.Controls = append(result.Controls, cr)
 			ordinal++

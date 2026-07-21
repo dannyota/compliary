@@ -591,6 +591,53 @@ func TestWriteTree_CuratedTitleLookup(t *testing.T) {
 	}
 }
 
+// TestWriteTree_DuplicateCitationNorm verifies that writeTree returns a
+// descriptive error when two controls share the same CitationNorm within
+// one TreeResult, rather than surfacing later as a cryptic DB constraint
+// violation.
+func TestWriteTree_DuplicateCitationNorm(t *testing.T) {
+	silverQ := newFakeSilverQuerier()
+	ingestQ := newFakeIngestQuerier()
+
+	tree := &TreeResult{
+		Title: "Dup Test",
+		Controls: []ControlRow{
+			{Citation: "X-1", CitationNorm: "X-1", Kind: "control", Status: "active", ParentIdx: -1, Ordinal: 0},
+			{Citation: "X-1", CitationNorm: "X-1", Kind: "control", Status: "active", ParentIdx: -1, Ordinal: 1},
+		},
+	}
+
+	doc := DocIdentity{
+		ManifestID:    99,
+		RelPath:       "dup/test.json",
+		Sha256:        "abc",
+		FrameworkCode: "testfw",
+		VersionLabel:  "v1",
+		DocRole:       "main",
+		ServeGate:     "public",
+	}
+
+	norm := &Normalizer{Log: testLogger()}
+	err := norm.writeTree(context.Background(), doc, tree, ingestQ, silverQ)
+	if err == nil {
+		t.Fatal("writeTree should fail on duplicate citation_norm")
+	}
+	if !strings.Contains(err.Error(), "duplicate citation_norm") {
+		t.Errorf("error=%v, want mention of duplicate citation_norm", err)
+	}
+	if !strings.Contains(err.Error(), "X-1") {
+		t.Errorf("error=%v, want mention of the duplicated citation", err)
+	}
+	if !strings.Contains(err.Error(), "testfw|v1|main") {
+		t.Errorf("error=%v, want mention of the document key", err)
+	}
+
+	// No controls should have been inserted.
+	if len(silverQ.controls) != 0 {
+		t.Errorf("controls=%d, want 0 (should fail before insert)", len(silverQ.controls))
+	}
+}
+
 func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 }
