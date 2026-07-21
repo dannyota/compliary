@@ -610,3 +610,72 @@ func TestBuildPCITree_Golden(t *testing.T) {
 		t.Errorf("9.5.1.2.1 parentIdx=%d, want %d (9.5.1.2)", tree.Controls[_95121Idx].ParentIdx, _9512Idx)
 	}
 }
+
+// TestBuildPCITree_GuidanceInBody verifies that body text containing the word
+// "Guidance" mid-sentence (e.g. "Consult related Guidance") does NOT trigger
+// the stop-line — only a standalone "Guidance" column-header line does.
+func TestBuildPCITree_GuidanceInBody(t *testing.T) {
+	fixture := `{
+  "pages": [
+    {
+      "n": 1,
+      "text": "Requirement 1: Invented Safeguards\n1.1 Invented group.\n1.1.1 Invented leaf requirement for fictional safeguards.\nConsult related Guidance documents for fictional supplemental details.\nAdditional invented requirement text here.\nGuidance\nThis is guidance column text that should be excluded.\n"
+    }
+  ]
+}`
+	tree, err := BuildPCITree(json.RawMessage(fixture), "pcidss", "v4.0.1")
+	if err != nil {
+		t.Fatalf("BuildPCITree: %v", err)
+	}
+
+	c111 := findByCitation(tree.Controls, "1.1.1")
+	if c111 == nil {
+		t.Fatal("1.1.1 not found")
+	}
+	if c111.Body == nil {
+		t.Fatal("1.1.1 body is nil")
+	}
+	body := *c111.Body
+
+	// Body MUST contain the mid-sentence "Guidance" line (not truncated).
+	if !strings.Contains(body, "Consult related Guidance") {
+		t.Error("body truncated at mid-sentence 'Guidance' — stop-line too broad")
+	}
+
+	// Body must NOT contain the standalone "Guidance" column header or
+	// the guidance-column text after it.
+	for _, line := range strings.Split(body, "\n") {
+		if strings.TrimSpace(line) == "Guidance" {
+			t.Error("standalone 'Guidance' column header leaked into body")
+		}
+	}
+	if strings.Contains(body, "guidance column text") {
+		t.Error("guidance column content leaked into body")
+	}
+}
+
+// TestBuildPCITree_ReqTestProcGuidanceHeader verifies the concatenated column
+// header "Requirements and Testing Procedures Guidance" — the dominant stop-
+// line variant in the real document — still triggers body truncation.
+func TestBuildPCITree_ReqTestProcGuidanceHeader(t *testing.T) {
+	fixture := `{
+  "pages": [
+    {
+      "n": 1,
+      "text": "Requirement 1: Invented Safeguards\n1.1 Invented group.\n1.1.1 Invented leaf for fictional safeguards.\nRequirements and Testing Procedures Guidance\nThis is non-requirement content.\n"
+    }
+  ]
+}`
+	tree, err := BuildPCITree(json.RawMessage(fixture), "pcidss", "v4.0.1")
+	if err != nil {
+		t.Fatalf("BuildPCITree: %v", err)
+	}
+
+	c111 := findByCitation(tree.Controls, "1.1.1")
+	if c111 == nil {
+		t.Fatal("1.1.1 not found")
+	}
+	if c111.Body != nil && strings.Contains(*c111.Body, "non-requirement") {
+		t.Error("concatenated column header did not stop body collection")
+	}
+}

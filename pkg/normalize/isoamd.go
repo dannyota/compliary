@@ -63,8 +63,12 @@ type isoAmdInstruction struct {
 var reISOAmdCitation = regexp.MustCompile(`^(A\.)?\d+(\.\d+)*$`)
 
 // reISOAmdInstruction matches the editing-instruction line that follows a
-// citation and yields the action verb.
-var reISOAmdInstruction = regexp.MustCompile(`(?i)^(Add|Replace|Delete)\b`)
+// citation and yields the action verb. ISO amendment instructions follow a
+// specific grammar: "Add the following...", "Add a new...", "Replace ...
+// with:", "Delete the ...", "Delete this ...". Requiring "the" / "a" / "this"
+// after the verb prevents false positives from body text that merely begins
+// with an instruction verb (e.g. "Add more detail to ...").
+var reISOAmdInstruction = regexp.MustCompile(`(?i)^(Add|Replace|Delete)\s+(the|a|this)\b`)
 
 // parseISOAmendmentInstructions scans page texts for citation → instruction →
 // text runs. Front matter (title page, copyright, foreword) never contains a

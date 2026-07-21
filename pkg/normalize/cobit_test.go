@@ -256,6 +256,56 @@ func TestBuildCOBITTree_PageBoundary(t *testing.T) {
 	}
 }
 
+// TestBuildCOBITTree_PageBoundaryBodyContinuation verifies that a practice
+// description spanning a PDF page boundary collects its continuation text
+// from the next page. Before the fix, body collection stopped at the page's
+// lines and the continuation was lost.
+func TestBuildCOBITTree_PageBoundaryBodyContinuation(t *testing.T) {
+	fixture := `{
+  "pages": [
+    {
+      "n": 35,
+      "text": "Evaluate, Direct and Monitor\nDomain:  Evaluate, Direct and Monitor Governance Objective:  EDM02 — Invented Benefits Focus Area:  Invented Core Model\nDescription\nInvented description.\nPurpose\nInvented purpose.\nA. Component: Process\nGovernance Practice Example Metrics\nEDM02.01 Invented practice beginning. The description starts here and continues\na. Invented metric alpha\n"
+    },
+    {
+      "n": 36,
+      "text": "on the next page with additional invented detail about the practice.\nActivities Capability Level\n1. Invented activity one.\n2\n"
+    }
+  ]
+}`
+	tree, err := BuildCOBITTree(json.RawMessage(fixture), "cobit", "2019")
+	if err != nil {
+		t.Fatalf("BuildCOBITTree: %v", err)
+	}
+
+	// Find EDM02.01.
+	var edm0201 *ControlRow
+	for i := range tree.Controls {
+		if tree.Controls[i].Citation == "EDM02.01" {
+			edm0201 = &tree.Controls[i]
+			break
+		}
+	}
+	if edm0201 == nil {
+		t.Fatal("EDM02.01 not found")
+	}
+	if edm0201.Body == nil {
+		t.Fatal("EDM02.01 body is nil")
+	}
+
+	body := *edm0201.Body
+
+	// Body must contain the continuation text from page 36.
+	if !strings.Contains(body, "additional invented detail") {
+		t.Error("practice body lost page-boundary continuation text")
+	}
+
+	// Body must NOT contain Activities or activity lines (boundary markers).
+	if strings.Contains(body, "Invented activity") {
+		t.Error("Activities section leaked into body")
+	}
+}
+
 func TestBuildCOBITTree_EmptyCapture(t *testing.T) {
 	empty := `{"pages":[]}`
 	_, err := BuildCOBITTree(json.RawMessage(empty), "cobit", "2019")

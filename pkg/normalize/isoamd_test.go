@@ -70,3 +70,59 @@ func TestBuildISOAmendmentTree_NoInstructions(t *testing.T) {
 		t.Fatal("expected error for capture without instructions")
 	}
 }
+
+// TestBuildISOAmendmentTree_BareNumberVerbFalsePositive verifies that body
+// text containing a bare number line followed by "Add ..." (without "the",
+// "a", or "this" after the verb) does NOT trigger a false instruction match.
+func TestBuildISOAmendmentTree_BareNumberVerbFalsePositive(t *testing.T) {
+	// Page 3: real instruction (4.1 + "Add the following...").
+	// Page 4: body text with bare "3" line followed by "Add more detail..."
+	// — this must NOT be parsed as an amendment instruction.
+	fixture := `{
+  "pages": [
+    {"n": 3, "text": "4.1\nAdd the following sentence at the end:\nThe organization shall verify the example requirement.\n3\nAdd more detail to the requirement where applicable.\n"}
+  ]
+}`
+	tree, err := BuildISOAmendmentTree(json.RawMessage(fixture), "iso27001", "2022")
+	if err != nil {
+		t.Fatalf("BuildISOAmendmentTree: %v", err)
+	}
+
+	// Only one instruction (4.1 "add"), not two.
+	if len(tree.Controls) != 1 {
+		t.Fatalf("controls=%d, want 1; got %v", len(tree.Controls), controlIDs(tree.Controls))
+	}
+	if tree.Controls[0].Citation != "4.1" {
+		t.Errorf("citation=%s, want 4.1", tree.Controls[0].Citation)
+	}
+}
+
+// TestBuildISOAmendmentTree_RealInstructionGrammar verifies that real
+// instruction patterns ("Add the ...", "Replace the ...", "Delete this ...")
+// are still matched after tightening the gate.
+func TestBuildISOAmendmentTree_RealInstructionGrammar(t *testing.T) {
+	fixture := `{
+  "pages": [
+    {"n": 3, "text": "4.1\nAdd the following sentence at the end:\nInvented added text.\n4.2\nReplace the first paragraph with:\nInvented replacement text.\nA.5.7\nDelete the note.\n"}
+  ]
+}`
+	tree, err := BuildISOAmendmentTree(json.RawMessage(fixture), "iso27001", "2022")
+	if err != nil {
+		t.Fatalf("BuildISOAmendmentTree: %v", err)
+	}
+
+	if len(tree.Controls) != 3 {
+		t.Fatalf("controls=%d, want 3; got %v", len(tree.Controls), controlIDs(tree.Controls))
+	}
+
+	wantCites := []string{"4.1", "4.2", "A.5.7"}
+	wantActions := []string{"add", "replace", "delete"}
+	for i, c := range tree.Controls {
+		if c.Citation != wantCites[i] {
+			t.Errorf("control[%d] citation=%s, want %s", i, c.Citation, wantCites[i])
+		}
+		if c.AmendAction == nil || *c.AmendAction != wantActions[i] {
+			t.Errorf("control[%d] action=%v, want %s", i, c.AmendAction, wantActions[i])
+		}
+	}
+}

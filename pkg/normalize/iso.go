@@ -1006,15 +1006,28 @@ func parseISO27018Sections(pages []isoPage) (sections []isoControlItem, annexIte
 func stripISO27002AttributeTable(body string) string {
 	lines := strings.Split(body, "\n")
 
-	// Find the first line that is exactly "Control" (trimmed). This is the
-	// label line preceding the actual control statement in the attribute table.
-	// We expect it within the first ~15 lines.
+	// Find the "Control" boundary line within the first ~20 lines.
+	// The attribute table always contains "#tag" lines (attribute hashtags)
+	// before the "Control" label. Require at least one preceding line
+	// starting with "#" to distinguish the real boundary from a body line
+	// that happens to be exactly "Control".
 	boundary := -1
 	for i, line := range lines {
 		if i > 20 {
 			break // safety: if not found in the first 20 lines, bail
 		}
-		if strings.TrimSpace(line) == "Control" {
+		if strings.TrimSpace(line) != "Control" {
+			continue
+		}
+		// Require at least one preceding "#tag" line (attribute hashtag).
+		hasTagLine := false
+		for k := 0; k < i; k++ {
+			if strings.HasPrefix(strings.TrimSpace(lines[k]), "#") {
+				hasTagLine = true
+				break
+			}
+		}
+		if hasTagLine {
 			boundary = i
 			break
 		}

@@ -175,21 +175,29 @@ func parseTSCPages(pages []tscPage) ([]tscParsedCriterion, error) {
 		current = nil
 	}
 
-	// Lines we skip in the criteria-detection phase.
+	// isPreambleLine filters structural table-layout artifacts (section
+	// category headers, page refs, column headings) that appear between
+	// criteria. Fixed category names use exact whole-line match to avoid
+	// swallowing body text that happens to start with the same words.
+	// Inherently variable patterns ("ADDITIONAL CRITERIA FOR <X>",
+	// "THE FOLLOWING POINTS OF FOCUS...") keep prefix matching because
+	// the trailing text varies per instance.
 	isPreambleLine := func(text string) bool {
-		// Filter out structural artifacts from the table layout.
 		upper := strings.ToUpper(strings.TrimSpace(text))
-		return upper == "TSP REF. #" ||
-			upper == "TRUST SERVICES CRITERIA AND POINTS OF FOCUS" ||
-			strings.HasPrefix(upper, "CONTROL ENVIRONMENT") ||
-			strings.HasPrefix(upper, "RISK ASSESSMENT") ||
-			strings.HasPrefix(upper, "MONITORING ACTIVITIES") ||
-			strings.HasPrefix(upper, "LOGICAL AND PHYSICAL ACCESS CONTROLS") ||
-			strings.HasPrefix(upper, "SYSTEM OPERATIONS") ||
-			strings.HasPrefix(upper, "CHANGE MANAGEMENT") ||
-			strings.HasPrefix(upper, "RISK MITIGATION") ||
-			strings.HasPrefix(upper, "ADDITIONAL CRITERIA FOR") ||
-			strings.HasPrefix(upper, "COMMON CRITERIA") ||
+		switch upper {
+		case "TSP REF. #",
+			"TRUST SERVICES CRITERIA AND POINTS OF FOCUS",
+			"CONTROL ENVIRONMENT",
+			"RISK ASSESSMENT",
+			"MONITORING ACTIVITIES",
+			"LOGICAL AND PHYSICAL ACCESS CONTROLS",
+			"SYSTEM OPERATIONS",
+			"CHANGE MANAGEMENT",
+			"RISK MITIGATION",
+			"COMMON CRITERIA":
+			return true
+		}
+		return strings.HasPrefix(upper, "ADDITIONAL CRITERIA FOR") ||
 			strings.HasPrefix(upper, "THE FOLLOWING POINTS OF FOCUS") ||
 			strings.HasPrefix(upper, "THE FOLLOWING POINT OF FOCUS") ||
 			strings.HasPrefix(upper, "POINTS OF FOCUS SPECIFIED") ||

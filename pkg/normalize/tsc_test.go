@@ -449,6 +449,69 @@ func TestBuildTSCTree_Golden(t *testing.T) {
 	}
 }
 
+// TestBuildTSCTree_PreamblePrefixInBody verifies that a PoF continuation line
+// starting with a category-name word (e.g. "Risk Assessment procedures...") is
+// NOT dropped by the preamble filter. Only exact standalone section headers
+// like "RISK ASSESSMENT" (the entire line) are filtered.
+func TestBuildTSCTree_PreamblePrefixInBody(t *testing.T) {
+	fixture := `{
+  "pages": [
+    {
+      "n": 14,
+      "text": "CC1.1 Invented principle about integrity.\n\n• Invented Lead-In Alpha — Risk Assessment procedures should be reviewed\nperiodically to ensure fictional completeness.\n"
+    }
+  ]
+}`
+	tree, err := BuildTSCTree(json.RawMessage(fixture), "soc2tsc", "2017")
+	if err != nil {
+		t.Fatalf("BuildTSCTree: %v", err)
+	}
+
+	// Should have CC1.1 criterion + 1 PoF = 2 rows.
+	if len(tree.Controls) != 2 {
+		t.Fatalf("controls=%d, want 2; got: %v", len(tree.Controls), controlIDs(tree.Controls))
+	}
+
+	pof := tree.Controls[1]
+	if pof.Kind != "point-of-focus" {
+		t.Fatalf("control[1] kind=%s, want point-of-focus", pof.Kind)
+	}
+	if pof.Body == nil {
+		t.Fatal("PoF body is nil")
+	}
+
+	// The continuation line starting with "Risk Assessment" must be preserved.
+	if !strings.Contains(*pof.Body, "Risk Assessment procedures") {
+		t.Error("PoF body lost continuation line starting with 'Risk Assessment' — preamble filter too broad")
+	}
+}
+
+// TestBuildTSCTree_PreambleExactMatch verifies that exact standalone section
+// headers (e.g. "RISK ASSESSMENT" as the entire line) are still filtered.
+func TestBuildTSCTree_PreambleExactMatch(t *testing.T) {
+	fixture := `{
+  "pages": [
+    {
+      "n": 14,
+      "text": "CC1.1 Invented principle about integrity.\nRISK ASSESSMENT\n\n• Invented Lead-In Alpha — Invented description.\n"
+    }
+  ]
+}`
+	tree, err := BuildTSCTree(json.RawMessage(fixture), "soc2tsc", "2017")
+	if err != nil {
+		t.Fatalf("BuildTSCTree: %v", err)
+	}
+
+	// CC1.1 body should not contain the standalone header.
+	cc11 := findByCitation(tree.Controls, "CC1.1")
+	if cc11 == nil {
+		t.Fatal("CC1.1 not found")
+	}
+	if cc11.Body != nil && strings.Contains(*cc11.Body, "RISK ASSESSMENT") {
+		t.Error("standalone 'RISK ASSESSMENT' header leaked into criterion body")
+	}
+}
+
 // --- test helpers ---
 
 func findByCitation(controls []ControlRow, citation string) *ControlRow {

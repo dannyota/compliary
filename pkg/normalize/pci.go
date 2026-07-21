@@ -74,10 +74,13 @@ var rePCISkipLine = regexp.MustCompile(`^(Defined Approach Requirements|Requirem
 
 // rePCIStopLine matches lines containing headers that begin the Testing
 // Procedures or Guidance columns. go-fitz often concatenates multiple column
-// headers onto a single line (e.g. "Defined Approach Testing Procedures
-// Purpose"), so the match is a substring check rather than a full-line anchor.
+// headers onto a single line (e.g. "Requirements and Testing Procedures
+// Guidance"), so the match uses substring checks for known column-header
+// combos. The "Guidance" branch is anchored to the full line (^Guidance$)
+// to avoid truncating body text that merely mentions the word.
 // Everything from the first stop-line onward is non-requirement content.
-var rePCIStopLine = regexp.MustCompile(`Defined Approach Testing Procedures|(?:^|\s)Guidance\s*$`)
+var rePCIStopLine = regexp.MustCompile(
+	`Defined Approach Testing Procedures|Requirements and Testing Procedures|^Guidance\s*$`)
 
 // BuildPCITree parses a pdf-pages-json capture for PCI DSS and returns the
 // normalized control tree. This is a pure function with no side effects.

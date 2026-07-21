@@ -136,6 +136,10 @@ func findCOBITObjectives(pages []cobitPage) ([]cobitObjective, error) {
 // Only the first occurrence of each practice ID within its parent
 // objective's section is kept (duplicates in RACI tables, info-flow
 // tables, and overview sections are skipped).
+//
+// All pages within an objective's range are flattened into one line slice
+// so that extractPracticeBody can continue collecting body text across PDF
+// page boundaries.
 func findCOBITPractices(pages []cobitPage, objectives []cobitObjective) []cobitPractice {
 	// Build page-range lookup: for each objective, its section runs from
 	// its start page to the next objective's start page (exclusive).
@@ -153,28 +157,22 @@ func findCOBITPractices(pages []cobitPage, objectives []cobitObjective) []cobitP
 		ranges = append(ranges, pageRange{obj: obj, start: obj.Page, end: end})
 	}
 
-	// Scan pages, collecting practice bodies.
-	// A practice's body = text from the practice ID line through to the
-	// next practice ID, "Activities" line, "Related Guidance" line,
-	// section break, or page end — whichever comes first.
+	// For each objective range, flatten all relevant pages into one line
+	// slice, then scan for practice IDs. This lets extractPracticeBody
+	// continue collecting body text past a page boundary.
 	seen := make(map[string]bool)
 	var practices []cobitPractice
 
-	for _, pg := range pages {
-		// Determine which objective section this page belongs to.
-		var currentObj *cobitObjective
-		for ri := range ranges {
-			if pg.N >= ranges[ri].start && pg.N < ranges[ri].end {
-				currentObj = &ranges[ri].obj
-				break
+	for _, pr := range ranges {
+		// Collect all lines from pages within this objective's range.
+		var allLines []string
+		for _, pg := range pages {
+			if pg.N >= pr.start && pg.N < pr.end {
+				allLines = append(allLines, strings.Split(pg.Text, "\n")...)
 			}
 		}
-		if currentObj == nil {
-			continue // Page before first objective section (intro/overview)
-		}
 
-		lines := strings.Split(pg.Text, "\n")
-		for i, line := range lines {
+		for i, line := range allLines {
 			trimmed := strings.TrimSpace(line)
 			if trimmed == "" {
 				continue
@@ -189,7 +187,7 @@ func findCOBITPractices(pages []cobitPage, objectives []cobitObjective) []cobitP
 			objCode := id[:5]
 
 			// Only accept practices belonging to the current objective.
-			if objCode != currentObj.Code {
+			if objCode != pr.obj.Code {
 				continue
 			}
 
@@ -200,8 +198,9 @@ func findCOBITPractices(pages []cobitPage, objectives []cobitObjective) []cobitP
 			seen[id] = true
 
 			// Extract body: text after the practice ID on this line,
-			// plus continuation lines until a boundary.
-			body := extractPracticeBody(trimmed, id, lines, i)
+			// plus continuation lines until a boundary (crosses page
+			// boundaries since allLines spans the full objective range).
+			body := extractPracticeBody(trimmed, id, allLines, i)
 
 			practices = append(practices, cobitPractice{
 				Citation:      id,

@@ -932,6 +932,21 @@ func TestStripISO27002AttributeTable(t *testing.T) {
 			body:     "",
 			wantBody: "",
 		},
+		{
+			name:     "body line 'Control' without attribute tags (no mis-strip)",
+			body:     "Control\nThe organization should implement access control.",
+			wantBody: "Control\nThe organization should implement access control.",
+		},
+		{
+			name:     "attribute table with early body 'Control' before tags",
+			body:     "Control\nControl type Information security properties\n#Preventive #Confidentiality\nControl\nPolicies should be defined.",
+			wantBody: "Policies should be defined.",
+		},
+		{
+			name:     "typical attribute table (real shape still works)",
+			body:     "Control type Information security properties\nCybersecurity\nconcepts\nOperational\ncapabilities\nSecurity domains\n#Preventive #Confidentiality #Integrity #Availability\n#Identify #Governance #Governance_and_Eco-system #Resilience\nControl\nPolicies should be defined and published.\nPurpose\nTo ensure continuing suitability.",
+			wantBody: "Policies should be defined and published.\nPurpose\nTo ensure continuing suitability.",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
