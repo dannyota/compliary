@@ -14,10 +14,21 @@
 # resolved at runtime and never committed.
 set -euo pipefail
 
-VERSION="${1:?usage: release.sh <x.y.z>}"
+VERSION="${1:-}"
+if [ -z "$VERSION" ]; then
+  LATEST="$(git describe --tags --abbrev=0 2>/dev/null || echo none)"
+  echo "usage: release.sh <x.y.z>   (latest tag: ${LATEST})" >&2
+  exit 1
+fi
 case "$VERSION" in
   *[!0-9.]*) echo "version must be bare semver (got: $VERSION)" >&2; exit 1 ;;
 esac
+
+# Refuse to ship uncommitted code — the image must be reproducible from git.
+if [ -n "$(git status --porcelain -- ':!data' 2>/dev/null)" ]; then
+  echo "working tree has uncommitted changes (outside data/) — commit first" >&2
+  exit 1
+fi
 
 REGION="${COMPLIARY_AWS_REGION:-ap-southeast-1}"
 CLUSTER="${COMPLIARY_ECS_CLUSTER:-banhmi}"
@@ -55,6 +66,18 @@ podman push "${IMAGE}:latest"
 DIGEST="$(aws ecr describe-images --repository-name "$ECR_REPO" --region "$REGION" \
   --image-ids "imageTag=${STAMP}" --query 'imageDetails[0].imageDigest' --output text)"
 say "pushed digest ${DIGEST}"
+
+# Surface scan-on-push findings (best-effort: the scan may still be running,
+# and the deploy credential may lack ecr:DescribeImageScanFindings).
+SCAN="$(aws ecr describe-image-scan-findings --repository-name "$ECR_REPO" --region "$REGION" \
+  --image-ids "imageTag=${STAMP}" \
+  --query 'imageScanFindings.findingSeverityCounts' --output json 2>/dev/null || true)"
+if [ -n "$SCAN" ] && [ "$SCAN" != "null" ]; then
+  say "image scan findings: ${SCAN}"
+  case "$SCAN" in *CRITICAL*) echo "CRITICAL vulnerabilities found — investigate before relying on this image" >&2 ;; esac
+else
+  say "image scan findings not available yet (check the ECR console)"
+fi
 
 say "register task-definition revision pinned to the digest"
 TD_FILE="$(mktemp)"

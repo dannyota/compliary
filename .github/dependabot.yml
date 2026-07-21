@@ -1,0 +1,17 @@
+# Weekly dependency PRs; CI gates them (fmt/build/vet/test + govulncheck).
+# cooldown: wait 7 days after a version is published before proposing it —
+# newly published packages can be malicious or unstable.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
