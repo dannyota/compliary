@@ -177,6 +177,8 @@ func serve(ctx context.Context, addr string, srv *mcp.Server, core *mcp.Core, oa
 	// Public landing page at exactly "/" ({$} prevents it becoming a catch-all):
 	// project info + live corpus counts + version, no auth, metadata only.
 	mux.HandleFunc("GET /{$}", landingHandler(version, core.CorpusStatus, log))
+	mux.HandleFunc("GET /robots.txt", robotsHandler)
+	mux.HandleFunc("GET /sitemap.xml", sitemapHandler)
 
 	// Mount MCP endpoint with cross-origin protection.
 	mcpHandler := crossOriginProtected(srv.HTTPHandler(), log)
@@ -344,6 +346,27 @@ func mcpOnly(bearerMW func(http.Handler) http.Handler, fallback http.Handler) ht
 
 // mcpReject returns 401 on /mcp when no auth is configured and
 // COMPLIARY_MCP_PUBLIC is false. All other paths pass through.
+// robotsHandler serves a permissive robots.txt: the landing page is the public
+// face (crawlers welcome); /mcp is authenticated anyway, but Disallow keeps
+// well-behaved crawlers from burning 401s on it.
+func robotsHandler(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	fmt.Fprint(w, "User-agent: *\nDisallow: /mcp\nDisallow: /oauth/\nSitemap: https://compliary.danny.vn/sitemap.xml\n")
+}
+
+// sitemapHandler serves the one-page sitemap — the landing page is the only
+// crawlable document.
+func sitemapHandler(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	fmt.Fprint(w, `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://compliary.danny.vn/</loc><changefreq>weekly</changefreq></url>
+</urlset>
+`)
+}
+
 // writeDeadline sets a per-request write deadline on every route except /mcp
 // (whose streams stay open indefinitely by design). ResponseController reaches
 // the underlying connection even through middleware wrappers.

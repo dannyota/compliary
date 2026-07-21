@@ -3,12 +3,44 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>compliary — control-framework evidence over MCP</title>
-<meta name="description" content="Evidence-only corpus and MCP server for InfoSec control frameworks — ISO 27001, SOC 2, PCI DSS, NIST CSF, 800-53, CIS Controls and more. Exact citations, version lineage, cross-framework mappings.">
-<meta property="og:title" content="compliary — control-framework evidence over MCP">
-<meta property="og:description" content="Exact control citations, version lineage, cross-framework mappings, provenance, and explicit gaps — served to your agent over MCP.">
+<title>compliary — ISO 27001, SOC 2, PCI DSS, NIST &amp; CIS control evidence over MCP</title>
+<meta name="description" content="Open-source MCP server giving AI agents exact control citations from ISO 27001, SOC 2, PCI DSS, NIST CSF, SP 800-53, and CIS Controls — version lineage, cross-framework mappings, provenance, and honest gaps. Evidence only; your agent decides.">
+<link rel="canonical" href="https://compliary.danny.vn/">
+<meta property="og:title" content="compliary — ISO 27001, SOC 2, PCI DSS, NIST &amp; CIS control evidence over MCP">
+<meta property="og:description" content="Exact control citations, version lineage, cross-framework mappings, provenance, and explicit gaps — served to your AI agent over the Model Context Protocol.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://compliary.danny.vn/">
+<meta property="og:site_name" content="compliary">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="compliary — control-framework evidence over MCP">
+<meta name="twitter:description" content="Exact control citations from ISO 27001, SOC 2, PCI DSS, NIST, and CIS Controls for AI agents — open-source, evidence-only, self-deployed.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "compliary",
+      "url": "https://compliary.danny.vn/",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Cross-platform (Go, PostgreSQL)",
+      "description": "Evidence-only corpus and Model Context Protocol (MCP) server for information-security control frameworks. AI agents retrieve exact control citations (A.5.1, AC-2(3), CC6.1, Req 8.3.6, PR.AA-01), version lineage, cross-framework mappings, provenance, and explicit gaps; compliary never synthesizes answers.",
+      "keywords": "MCP server, Model Context Protocol, compliance evidence, ISO 27001, ISO 27002, SOC 2, Trust Services Criteria, PCI DSS, NIST CSF, NIST SP 800-53, CIS Controls, CSA CCM, COBIT, control mappings, GRC, AI agent",
+      "sameAs": "https://github.com/dannyota/compliary",
+      "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD",
+                 "description": "Open source; each operator self-deploys and builds their own corpus under licenses they accepted."}
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      "name": "compliary",
+      "codeRepository": "https://github.com/dannyota/compliary",
+      "programmingLanguage": "Go",
+      "runtimePlatform": "PostgreSQL + pgvector",
+      "description": "Pipeline and MCP server source: ingest official publisher documents, normalize to a citable knowledge base, serve evidence over MCP."
+    }
+  ]
+}
+</script>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📚</text></svg>'>
 <script>
 (function(){var t=localStorage.getItem('compliary-theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t)}})();
