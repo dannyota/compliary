@@ -315,3 +315,16 @@ lives in [`PLAN.md`](../PLAN.md); this file only grows.
   90.6%/79.0%/100%/94.9% — all floors pass with wide margins. README updated (badges, stats,
   eval numbers); og:image (branded SVG) served at /og.svg with og + twitter meta tags.
   RDS backup verified: 7-day retention, deletion protection on.
+
+- **2026-07-21** — **Abstention analysis: hit-dispersion (HHI) investigated, not viable.**
+  Hypothesis: OOS queries scatter hits across more frameworks than in-scope queries (Herfindahl
+  index on top-8 framework codes). Custom tool ran all 175 golden cases through the real
+  retriever. Result: distributions overlap completely (in-scope HHI median 0.284, OOS median
+  0.259; in-scope min 0.136, OOS min 0.160). Zero-FP threshold search found no HHI+cosine
+  combination that catches any OOS case without also hitting in-scope. Root cause: compliance-
+  adjacent OOS queries ("maritime cybersecurity", "telecom network security") genuinely share
+  framework vocabulary with InfoSec, so they disperse identically. The current cosine-only
+  floor (0.5) correctly abstains 8/15 OOS cases; the 7 misses are in the 0.50-0.60 cosine band
+  that overlaps with the bottom quartile of in-scope. Next candidate: a query-scope binary
+  classifier (linguistic signal, not retrieval-result signal) — deferred as diminishing returns
+  at 95.4% accuracy.
