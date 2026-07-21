@@ -10,8 +10,10 @@
 //	pipeline -stage lexindex              # run lexindex stage only (BM25 sparse vectors)
 //	pipeline -config config/config.yaml   # custom config path
 //
-// Each stage iterates eligible rows, records per-row errors, continues on
-// error, and exits non-zero with an N-succeeded/M-failed/K-skipped summary.
+// Each stage iterates eligible rows, records per-row errors, and exits
+// non-zero with an N-succeeded/M-failed/K-skipped summary. When running
+// multiple stages in sequence, a stage failure stops the pipeline
+// immediately — later stages are not attempted.
 //
 // Index stage environment variables:
 //
@@ -85,44 +87,26 @@ func run(cfgPath, stage string, log *slog.Logger) error {
 		}
 	}
 
-	var hasError bool
 	for _, s := range stages {
+		var err error
 		switch s {
 		case "manifest":
-			if err := runManifest(ctx, cfg, pool, log); err != nil {
-				log.Error("manifest stage failed", "err", err)
-				hasError = true
-			}
+			err = runManifest(ctx, cfg, pool, log)
 		case "extract":
-			if err := runExtract(ctx, cfg, pool, log); err != nil {
-				log.Error("extract stage failed", "err", err)
-				hasError = true
-			}
+			err = runExtract(ctx, cfg, pool, log)
 		case "normalize":
-			if err := runNormalize(ctx, pool, log); err != nil {
-				log.Error("normalize stage failed", "err", err)
-				hasError = true
-			}
+			err = runNormalize(ctx, pool, log)
 		case "mapedges":
-			if err := runMapEdges(ctx, pool, log); err != nil {
-				log.Error("mapedges stage failed", "err", err)
-				hasError = true
-			}
+			err = runMapEdges(ctx, pool, log)
 		case "index":
-			if err := runIndex(ctx, cfg, pool, log); err != nil {
-				log.Error("index stage failed", "err", err)
-				hasError = true
-			}
+			err = runIndex(ctx, cfg, pool, log)
 		case "lexindex":
-			if err := runLexIndex(ctx, pool, log); err != nil {
-				log.Error("lexindex stage failed", "err", err)
-				hasError = true
-			}
+			err = runLexIndex(ctx, pool, log)
 		}
-	}
-
-	if hasError {
-		return fmt.Errorf("pipeline completed with errors")
+		if err != nil {
+			log.Error("stage failed", "stage", s, "err", err)
+			return fmt.Errorf("pipeline stopped: %s stage failed: %w", s, err)
+		}
 	}
 	return nil
 }
