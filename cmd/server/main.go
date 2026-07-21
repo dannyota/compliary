@@ -194,6 +194,12 @@ func serve(ctx context.Context, addr string, srv *mcp.Server, core *mcp.Core, oa
 	handler, stop := secure(mux, oauthSrv, token, publicURL, mcpPublic, log)
 	defer stop()
 
+	// Per-route write deadlines instead of a server-wide WriteTimeout, which
+	// would kill long-lived MCP streams: every non-/mcp response must finish
+	// writing within the bound, so a slow-reading client cannot hold a
+	// goroutine on the landing, OAuth, or health routes.
+	handler = writeDeadline(handler, 30*time.Second)
+
 	httpSrv := &http.Server{
 		Addr:              addr,
 		Handler:           handler,
@@ -338,6 +344,19 @@ func mcpOnly(bearerMW func(http.Handler) http.Handler, fallback http.Handler) ht
 
 // mcpReject returns 401 on /mcp when no auth is configured and
 // COMPLIARY_MCP_PUBLIC is false. All other paths pass through.
+// writeDeadline sets a per-request write deadline on every route except /mcp
+// (whose streams stay open indefinitely by design). ResponseController reaches
+// the underlying connection even through middleware wrappers.
+func writeDeadline(next http.Handler, d time.Duration) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/mcp" {
+			rc := http.NewResponseController(w)
+			_ = rc.SetWriteDeadline(time.Now().Add(d))
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func mcpReject(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/mcp" {

@@ -273,22 +273,24 @@
     </div>
   </section>
 
+  {{else}}
+  <div class="card"><p>The corpus backend is not reachable right now. The server is up (this page rendered), but live counts are unavailable — retry shortly.</p></div>
+  {{end}}
+
   <section>
     <h2>Retrieval quality</h2>
     <div class="scroll">
       <table class="eval">
-        <thead><tr><th>Lane (golden set v3, 125 cases)</th><th class="num">Recall@8</th><th class="num">MRR@8</th><th class="num">Current-ver</th><th class="num">Abstention</th></tr></thead>
+        <thead><tr><th>Metric (open-corpus lane)</th><th class="num">Accepted floor</th><th class="num">Last measured</th></tr></thead>
         <tbody>
-          <tr><td>Open-corpus</td><td class="num">72.2%</td><td class="num">49.5%</td><td class="num">100%</td><td class="num">93.6%</td></tr>
-          <tr><td>Framework-filtered</td><td class="num">81.7%</td><td class="num">67.9%</td><td class="num">94.3%</td><td class="num">93.6%</td></tr>
+        {{range .EvalFloors}}
+          <tr><td>{{.Metric}}</td><td class="num">{{pct .Floor}}</td><td class="num">{{pct .Last}}</td></tr>
+        {{end}}
         </tbody>
       </table>
     </div>
-    <p class="eval-caption">Adversarially-verified eval with accepted floors (recall &ge;66%, MRR &ge;44%, current &ge;98%, abstain &ge;90%); measured 2026-07-21. The <code>quality_gaps</code> tool serves the floors live.</p>
+    <p class="eval-caption">Adversarially-verified eval on the 125-case golden set; the same numbers the <code>quality_gaps</code> tool serves. The framework-filtered lane measures higher — the <code>guide</code> tool explains when to filter.</p>
   </section>
-  {{else}}
-  <div class="card"><p>The corpus backend is not reachable right now. The server is up (this page rendered), but live counts are unavailable — retry shortly.</p></div>
-  {{end}}
 
   <section>
     <h2>Main features</h2>

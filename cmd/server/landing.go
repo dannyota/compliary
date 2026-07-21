@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"danny.vn/compliary/pkg/mcp"
@@ -14,7 +15,12 @@ import (
 //go:embed landing.html
 var landingHTML string
 
-var landingTmpl = template.Must(template.New("landing").Parse(landingHTML))
+var landingTmpl = template.Must(template.New("landing").Funcs(template.FuncMap{
+	// pct renders a 0..1 ratio as a percentage ("0.722" → "72.2%").
+	"pct": func(v float64) string {
+		return strconv.FormatFloat(v*100, 'f', -1, 64) + "%"
+	},
+}).Parse(landingHTML))
 
 // landingData is the view model for landing.html.
 type landingData struct {
@@ -22,6 +28,7 @@ type landingData struct {
 	StatusOK   bool
 	Totals     mcp.CorpusTotals
 	Frameworks []mcp.FrameworkVersionStatus
+	EvalFloors []mcp.EvalFloor
 }
 
 // landingHandler serves the public landing page at GET / — project info, live
@@ -32,7 +39,7 @@ type landingData struct {
 // non-/healthz path; a direct-to-origin request is refused by origin-verify.
 func landingHandler(version string, status func(context.Context) (mcp.CorpusStatusOutput, error), log *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		d := landingData{Version: version}
+		d := landingData{Version: version, EvalFloors: mcp.EvalFloors()}
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()
 		if out, err := status(ctx); err != nil {

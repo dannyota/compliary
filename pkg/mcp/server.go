@@ -11,6 +11,8 @@ import (
 	"log/slog"
 	"net/http"
 	"reflect"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -190,11 +192,30 @@ func buildInstructions(core *Core) string {
 			base += fmt.Sprintf(" Corpus: %d frameworks, %d controls, %d chunks, %d mapping edges (%d resolved, %d unresolved).",
 				status.Totals.Frameworks, status.Totals.Controls, status.Totals.Chunks,
 				status.Totals.MappingEdges, status.Totals.Resolved, status.Totals.Unresolved)
+			// Stamp the real framework codes so the agent's system prompt
+			// carries the filter vocabulary without a corpus_status round trip.
+			if codes := frameworkCodes(status.Frameworks); len(codes) > 0 {
+				base += " Framework codes: " + strings.Join(codes, ", ") + "."
+			}
 		} else {
 			base += " (Corpus stats unavailable at startup — call corpus_status for live counts.)"
 		}
 	}
 	return base
+}
+
+// frameworkCodes returns the distinct framework codes in stable order.
+func frameworkCodes(frameworks []FrameworkVersionStatus) []string {
+	seen := make(map[string]bool, len(frameworks))
+	var codes []string
+	for _, f := range frameworks {
+		if !seen[f.FrameworkCode] {
+			seen[f.FrameworkCode] = true
+			codes = append(codes, f.FrameworkCode)
+		}
+	}
+	sort.Strings(codes)
+	return codes
 }
 
 // --- schema helpers ----------------------------------------------------------

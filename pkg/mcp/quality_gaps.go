@@ -312,6 +312,11 @@ func staticBodyQualityCaveats() []BodyQualityCaveat {
 	}
 }
 
+// EvalFloors exposes the accepted eval floors and last-measured values — the
+// same payload quality_gaps serves — so other surfaces (the landing page)
+// render these numbers from one source instead of hardcoding copies.
+func EvalFloors() []EvalFloor { return staticEvalFloors() }
+
 func staticEvalFloors() []EvalFloor {
 	// Open-corpus lane on the 125-case golden set (v3, 2026-07-20).
 	// Abstention uses the raw-cosine floor (search_abstain_floor = 0.5,
