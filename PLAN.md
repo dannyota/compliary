@@ -387,3 +387,21 @@ patch — new documents always cut v0.2.0+.
   bounds it), honest fetch User-Agent (may break publisher WAFs — needs a live fetch round),
   HNSW index drop, BM25-only version-lineage pass, `FormatQuery` spacing (would shift the eval
   baseline).
+
+- **2026-07-21** — **Quality round 6: latent-risk hardening + single-source landing numbers.**
+  Parser guards made structural (all golden outputs byte-identical): PCI stop-line anchored to
+  full-line headers (body text ending in "Guidance" no longer truncates), TSC preamble filter
+  exact-match scoped, COBIT practice bodies collected per-objective across page boundaries,
+  ISO 27002 attribute-table strip requires the hashtag context, ISO amendment instruction
+  grammar tightened (verb + determiner) — each with misparse-regression + real-shape tests.
+  Landing page now renders retrieval quality from `mcp.EvalFloors()` (the quality_gaps payload)
+  outside the DB guard — the hardcoded copy is gone. MCP server instructions stamp the live
+  framework codes at startup. Non-/mcp routes get 30s per-request write deadlines via
+  ResponseController (slow-read exposure closed; MCP streams untouched — supersedes the
+  WriteTimeout deferral). OAuth refresh-token family revocation + PKCE verifier bounds landed
+  (0.1.12); DCR cap/eviction status corrected in MCP.md. Fetch validation upgraded: live CIS
+  run through the new single-request path — all 6 publisher files byte-identical to the corpus
+  copies (retry branch still unit-test-only). New: `deploy/aws/release.sh` (one-command build →
+  ECR → digest-pinned taskdef → roll → verify; first real run shipped 0.1.12) and zero-secret
+  CI gates on GitHub Actions. Still deferred: honest fetch User-Agent (publisher-WAF risk),
+  HNSW drop, BM25-only lineage, `FormatQuery` spacing.
