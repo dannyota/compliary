@@ -407,14 +407,15 @@ func bodyLimit(next http.Handler) http.Handler {
 
 // bearerAuth enforces COMPLIARY_MCP_TOKEN via Authorization: Bearer <token>.
 // Empty token → no auth enforcement (reduced-projection mode already set).
-// /healthz always bypasses auth.
+// Only /mcp requires the token; / and /healthz stay public (consistent with
+// OAuth mode where mcpOnly gates on /mcp).
 func bearerAuth(next http.Handler, token string, log *slog.Logger) http.Handler {
 	if token == "" {
 		return next // no auth in reduced-projection mode
 	}
 	log.Info("MCP bearer auth enabled")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/healthz" {
+		if r.URL.Path != "/mcp" {
 			next.ServeHTTP(w, r)
 			return
 		}

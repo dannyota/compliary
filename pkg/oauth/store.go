@@ -6,6 +6,7 @@ package oauth
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"sync"
 	"time"
 
@@ -16,6 +17,15 @@ const (
 	accessTokenTTL  = 1 * time.Hour
 	refreshTokenTTL = 7 * 24 * time.Hour
 	authCodeTTL     = 10 * time.Minute
+
+	// maxClients caps the number of registered clients (DCR + CIMD combined).
+	// Prevents memory exhaustion from unauthenticated POST /oauth/register.
+	maxClients = 50
+
+	// clientIdleTTL is how long a client can sit without any token/code
+	// activity before eviction. Statically configured clients (authorized)
+	// are never evicted.
+	clientIdleTTL = 24 * time.Hour
 )
 
 type store struct {
@@ -33,6 +43,8 @@ type client struct {
 	Name         string
 	Public       bool // true for CIMD clients (no secret)
 	CreatedAt    time.Time
+	LastActivity time.Time // updated on code/token creation; zero = never used
+	Authorized   bool      // statically configured — exempt from eviction
 }
 
 type authCode struct {
@@ -76,9 +88,16 @@ func randomHex(n int) string {
 	return hex.EncodeToString(b)
 }
 
-func (s *store) registerClient(meta oauthex.ClientRegistrationMetadata) *oauthex.ClientRegistrationResponse {
+// errClientCapReached is returned when the client registration cap is hit.
+var errClientCapReached = fmt.Errorf("client registration cap reached")
+
+func (s *store) registerClient(meta oauthex.ClientRegistrationMetadata) (*oauthex.ClientRegistrationResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if len(s.clients) >= maxClients {
+		return nil, errClientCapReached
+	}
 
 	id := randomHex(16)
 	secret := randomHex(32)
@@ -98,7 +117,7 @@ func (s *store) registerClient(meta oauthex.ClientRegistrationMetadata) *oauthex
 		ClientID:                   id,
 		ClientSecret:               secret,
 		ClientIDIssuedAt:           now,
-	}
+	}, nil
 }
 
 func (s *store) lookupClient(clientID string) *client {
@@ -109,9 +128,14 @@ func (s *store) lookupClient(clientID string) *client {
 
 // registerCIMDClient registers a public client from a Client ID Metadata Document.
 // The clientID is the HTTPS URL of the metadata document itself.
-func (s *store) registerCIMDClient(clientID string, meta *oauthex.ClientRegistrationMetadata) {
+func (s *store) registerCIMDClient(clientID string, meta *oauthex.ClientRegistrationMetadata) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// Allow re-registration of an existing client (metadata refresh).
+	if _, exists := s.clients[clientID]; !exists && len(s.clients) >= maxClients {
+		return errClientCapReached
+	}
 
 	s.clients[clientID] = &client{
 		ID:           clientID,
@@ -120,6 +144,7 @@ func (s *store) registerCIMDClient(clientID string, meta *oauthex.ClientRegistra
 		Public:       true,
 		CreatedAt:    time.Now(),
 	}
+	return nil
 }
 
 func (s *store) createCode(clientID, redirectURI, codeChallenge, challengeMethod, scope string) string {
@@ -127,6 +152,7 @@ func (s *store) createCode(clientID, redirectURI, codeChallenge, challengeMethod
 	defer s.mu.Unlock()
 
 	code := randomHex(32)
+	now := time.Now()
 	s.codes[code] = &authCode{
 		Code:            code,
 		ClientID:        clientID,
@@ -134,7 +160,11 @@ func (s *store) createCode(clientID, redirectURI, codeChallenge, challengeMethod
 		CodeChallenge:   codeChallenge,
 		ChallengeMethod: challengeMethod,
 		Scope:           scope,
-		ExpiresAt:       time.Now().Add(authCodeTTL),
+		ExpiresAt:       now.Add(authCodeTTL),
+	}
+	// Track activity for idle-client eviction.
+	if c := s.clients[clientID]; c != nil {
+		c.LastActivity = now
 	}
 	return code
 }
@@ -174,6 +204,10 @@ func (s *store) createTokenPair(clientID, scope string) (accessToken, refreshTok
 		Scope:     scope,
 		ExpiresAt: now.Add(refreshTokenTTL),
 	}
+	// Track activity for idle-client eviction.
+	if c := s.clients[clientID]; c != nil {
+		c.LastActivity = now
+	}
 	return at, rt, int(accessTokenTTL.Seconds())
 }
 
@@ -198,6 +232,9 @@ func (s *store) createTokenPairWithTTL(clientID, scope string, atTTL time.Durati
 		ClientID:  clientID,
 		Scope:     scope,
 		ExpiresAt: now.Add(refreshTokenTTL),
+	}
+	if c := s.clients[clientID]; c != nil {
+		c.LastActivity = now
 	}
 	return at, rt, int(atTTL.Seconds())
 }
@@ -270,6 +307,21 @@ func (s *store) evict() {
 	for k, v := range s.refresh {
 		if now.After(v.ExpiresAt) {
 			delete(s.refresh, k)
+		}
+	}
+	// Evict idle clients — clients with no token/code activity for clientIdleTTL.
+	// Authorized (statically configured) clients are never evicted.
+	cutoff := now.Add(-clientIdleTTL)
+	for k, c := range s.clients {
+		if c.Authorized {
+			continue
+		}
+		activity := c.LastActivity
+		if activity.IsZero() {
+			activity = c.CreatedAt
+		}
+		if activity.Before(cutoff) {
+			delete(s.clients, k)
 		}
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"log/slog"
@@ -70,7 +71,15 @@ func (s *Server) registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := s.store.registerClient(meta)
+	resp, err := s.store.registerClient(meta)
+	if err != nil {
+		if errors.Is(err, errClientCapReached) {
+			writeOAuthError(w, http.StatusServiceUnavailable, "temporarily_unavailable", "too many registered clients")
+			return
+		}
+		writeOAuthError(w, http.StatusInternalServerError, "server_error", "registration failed")
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -105,6 +114,12 @@ func (s *Server) resolveClient(clientID string) *client {
 		return nil
 	}
 
+	// Rate-limit outbound CIMD fetches to prevent request amplification.
+	if !s.cimdLimiter.Allow() {
+		s.log.Warn("CIMD fetch rate-limited", slog.String("client_id", clientID))
+		return nil
+	}
+
 	meta, err := fetchClientMetadata(clientID)
 	if err != nil {
 		s.log.Warn("CIMD fetch failed", slog.String("client_id", clientID), slog.String("error", err.Error()))
@@ -112,7 +127,10 @@ func (s *Server) resolveClient(clientID string) *client {
 	}
 
 	// Register as a public client (no secret).
-	s.store.registerCIMDClient(clientID, meta)
+	if err := s.store.registerCIMDClient(clientID, meta); err != nil {
+		s.log.Warn("CIMD client registration failed", slog.String("client_id", clientID), slog.String("error", err.Error()))
+		return nil
+	}
 	return s.store.lookupClient(clientID)
 }
 
@@ -158,6 +176,10 @@ func (s *Server) authorizeGet(w http.ResponseWriter, r *http.Request) {
 
 	if scope == "" {
 		scope = "mcp:read"
+	}
+	if !validScope(scope) {
+		http.Error(w, "invalid_scope: unsupported scope requested", http.StatusBadRequest)
+		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -215,6 +237,14 @@ func (s *Server) authorizePost(w http.ResponseWriter, r *http.Request) {
 	}
 	if !matchRedirectURI(c.RedirectURIs, redirectURI) {
 		http.Error(w, "invalid_request: redirect_uri not registered", http.StatusBadRequest)
+		return
+	}
+
+	if scope == "" {
+		scope = "mcp:read"
+	}
+	if !validScope(scope) {
+		http.Error(w, "invalid_scope: unsupported scope requested", http.StatusBadRequest)
 		return
 	}
 
@@ -394,6 +424,21 @@ func writeTokenResponse(w http.ResponseWriter, accessToken, refreshToken string,
 		"refresh_token": refreshToken,
 		"scope":         scope,
 	})
+}
+
+// supportedScopes is the set of scopes this server accepts.
+var supportedScopes = map[string]bool{
+	"mcp:read": true,
+}
+
+// validScope returns true if every space-delimited scope token is supported.
+func validScope(scope string) bool {
+	for _, s := range strings.Fields(scope) {
+		if !supportedScopes[s] {
+			return false
+		}
+	}
+	return true
 }
 
 func writeOAuthError(w http.ResponseWriter, status int, errCode, description string) {

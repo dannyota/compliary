@@ -244,6 +244,58 @@ func TestOAuthEndpointLimit_SeparateBucketsPerIP(t *testing.T) {
 	}
 }
 
+func TestBearerAuth_LandingPagePublic(t *testing.T) {
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	token := "secret-token-123"
+
+	var reached bool
+	h := bearerAuth(okHandler(&reached), token, log)
+
+	t.Run("landing_page_no_auth", func(t *testing.T) {
+		reached = false
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest("GET", "/", nil)
+		h.ServeHTTP(w, r)
+		if w.Code != http.StatusOK || !reached {
+			t.Errorf("/ should be public: code=%d reached=%v", w.Code, reached)
+		}
+	})
+
+	t.Run("healthz_no_auth", func(t *testing.T) {
+		reached = false
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest("GET", "/healthz", nil)
+		h.ServeHTTP(w, r)
+		if w.Code != http.StatusOK || !reached {
+			t.Errorf("/healthz should be public: code=%d reached=%v", w.Code, reached)
+		}
+	})
+
+	t.Run("mcp_requires_token", func(t *testing.T) {
+		reached = false
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest("POST", "/mcp", nil)
+		h.ServeHTTP(w, r)
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("/mcp without token: code=%d, want 401", w.Code)
+		}
+		if reached {
+			t.Error("handler must not be reached without token")
+		}
+	})
+
+	t.Run("mcp_with_valid_token", func(t *testing.T) {
+		reached = false
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest("POST", "/mcp", nil)
+		r.Header.Set("Authorization", "Bearer "+token)
+		h.ServeHTTP(w, r)
+		if w.Code != http.StatusOK || !reached {
+			t.Errorf("/mcp with valid token: code=%d reached=%v", w.Code, reached)
+		}
+	})
+}
+
 func TestOAuthEndpointLimit_OnlyAuthEndpoints(t *testing.T) {
 	// A tiny limiter that would block after 1 request — but non-OAuth-POST
 	// paths and GET requests must pass through untouched.

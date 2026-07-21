@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -47,6 +48,15 @@ func newTestServer(t *testing.T, issuer string) *Server {
 		issuer = "http://localhost"
 	}
 	return New(issuer, testHash(t), nil)
+}
+
+func newTestServerWithLog(t *testing.T, issuer string) *Server {
+	t.Helper()
+	if issuer == "" {
+		issuer = "http://localhost"
+	}
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	return New(issuer, testHash(t), log)
 }
 
 func registerTestClient(t *testing.T, ts *httptest.Server) (clientID, clientSecret string) {
@@ -796,6 +806,156 @@ func TestRequireBearerTokenIntegration(t *testing.T) {
 			t.Errorf("expected 401, got %d", w.Code)
 		}
 	})
+}
+
+func TestClientCapRejection(t *testing.T) {
+	_, ts := testServer(t)
+
+	// Register clients up to the cap.
+	for i := 0; i < maxClients; i++ {
+		body := fmt.Sprintf(`{"redirect_uris":["http://localhost/cb"],"client_name":"client-%d"}`, i)
+		resp, err := ts.Client().Post(ts.URL+"/oauth/register", "application/json", strings.NewReader(body))
+		if err != nil {
+			t.Fatalf("register %d: %v", i, err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusCreated {
+			t.Fatalf("register %d: status %d, want 201", i, resp.StatusCode)
+		}
+	}
+
+	// One more should fail.
+	body := `{"redirect_uris":["http://localhost/cb"],"client_name":"overflow"}`
+	resp, err := ts.Client().Post(ts.URL+"/oauth/register", "application/json", strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("register overflow: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusServiceUnavailable {
+		t.Errorf("overflow: status %d, want 503", resp.StatusCode)
+	}
+	var errResp map[string]string
+	json.NewDecoder(resp.Body).Decode(&errResp)
+	if errResp["error"] != "temporarily_unavailable" {
+		t.Errorf("error code: %q, want temporarily_unavailable", errResp["error"])
+	}
+}
+
+func TestIdleClientEviction(t *testing.T) {
+	srv := newTestServer(t, "http://localhost")
+
+	// Manually register two clients: one active, one idle.
+	srv.store.mu.Lock()
+	stale := time.Now().Add(-25 * time.Hour)
+	srv.store.clients["idle"] = &client{
+		ID:           "idle",
+		RedirectURIs: []string{"http://localhost/cb"},
+		CreatedAt:    stale,
+		LastActivity: stale,
+	}
+	srv.store.clients["active"] = &client{
+		ID:           "active",
+		RedirectURIs: []string{"http://localhost/cb"},
+		CreatedAt:    stale,
+		LastActivity: time.Now(),
+	}
+	srv.store.clients["authorized"] = &client{
+		ID:           "authorized",
+		RedirectURIs: []string{"http://localhost/cb"},
+		CreatedAt:    stale,
+		LastActivity: stale,
+		Authorized:   true,
+	}
+	srv.store.mu.Unlock()
+
+	srv.store.evict()
+
+	if srv.store.lookupClient("idle") != nil {
+		t.Error("idle client should have been evicted")
+	}
+	if srv.store.lookupClient("active") == nil {
+		t.Error("active client should survive eviction")
+	}
+	if srv.store.lookupClient("authorized") == nil {
+		t.Error("authorized client must never be evicted")
+	}
+}
+
+func TestInvalidScopeRejection(t *testing.T) {
+	_, ts := testServer(t)
+	clientID, _ := registerTestClient(t, ts)
+	_, challenge := pkce()
+
+	t.Run("authorize_get_rejects_bad_scope", func(t *testing.T) {
+		authURL := fmt.Sprintf("%s/oauth/authorize?response_type=code&client_id=%s&redirect_uri=%s&code_challenge=%s&code_challenge_method=S256&scope=admin:write",
+			ts.URL, url.QueryEscape(clientID), url.QueryEscape("http://localhost/callback"), url.QueryEscape(challenge))
+		resp, err := ts.Client().Get(authURL)
+		if err != nil {
+			t.Fatalf("GET: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("bad scope GET: status %d, want 400", resp.StatusCode)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		if !strings.Contains(string(body), "invalid_scope") {
+			t.Errorf("response should mention invalid_scope, got: %s", body)
+		}
+	})
+
+	t.Run("authorize_post_rejects_bad_scope", func(t *testing.T) {
+		form := url.Values{
+			"password":              {testPassword},
+			"response_type":         {"code"},
+			"client_id":             {clientID},
+			"redirect_uri":          {"http://localhost/callback"},
+			"code_challenge":        {challenge},
+			"code_challenge_method": {"S256"},
+			"scope":                 {"openid profile"},
+		}
+		noRedirect := &http.Client{
+			CheckRedirect: func(*http.Request, []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
+		resp, err := noRedirect.PostForm(ts.URL+"/oauth/authorize", form)
+		if err != nil {
+			t.Fatalf("POST: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("bad scope POST: status %d, want 400", resp.StatusCode)
+		}
+	})
+
+	t.Run("valid_scope_accepted", func(t *testing.T) {
+		authURL := fmt.Sprintf("%s/oauth/authorize?response_type=code&client_id=%s&redirect_uri=%s&code_challenge=%s&code_challenge_method=S256&scope=mcp:read",
+			ts.URL, url.QueryEscape(clientID), url.QueryEscape("http://localhost/callback"), url.QueryEscape(challenge))
+		resp, err := ts.Client().Get(authURL)
+		if err != nil {
+			t.Fatalf("GET: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("valid scope: status %d, want 200", resp.StatusCode)
+		}
+	})
+}
+
+func TestCIMDFetchRateLimit(t *testing.T) {
+	srv := newTestServerWithLog(t, "http://localhost")
+
+	// Drain the CIMD limiter's burst capacity (5 tokens).
+	for i := 0; i < 5; i++ {
+		srv.cimdLimiter.Allow()
+	}
+
+	// Next resolveClient for an HTTPS client_id should be rate-limited and
+	// return nil without making a fetch.
+	c := srv.resolveClient("https://attacker.example.com/meta")
+	if c != nil {
+		t.Error("expected nil from rate-limited CIMD resolve")
+	}
 }
 
 // --- helpers -----------------------------------------------------------------

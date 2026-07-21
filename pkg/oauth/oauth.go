@@ -11,6 +11,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/oauthex"
+	"golang.org/x/time/rate"
 )
 
 // Server is an OAuth 2.0 authorization server for compliary's single-user
@@ -22,6 +23,7 @@ type Server struct {
 	store        *store
 	log          *slog.Logger
 	stopEvictor  func()
+	cimdLimiter  *rate.Limiter // rate-limits outbound CIMD metadata fetches
 }
 
 // New creates a Server. issuer is the public URL of the compliary instance
@@ -33,6 +35,7 @@ func New(issuer string, operatorHash []byte, log *slog.Logger) *Server {
 		operatorHash: operatorHash,
 		store:        newStore(),
 		log:          log,
+		cimdLimiter:  rate.NewLimiter(1, 5), // 1/s sustained, burst 5
 	}
 	s.stopEvictor = s.store.startEvictor(5 * time.Minute)
 	return s
