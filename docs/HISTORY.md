@@ -272,3 +272,21 @@ lives in [`PLAN.md`](../PLAN.md); this file only grows.
   (ECR scan-on-push, SNS, Route53 healthz alarm) documented as one-time admin steps — the
   deploy credential is deliberately too narrow. PLAN.md restructured: history moved here.
   **Prod follow-ups:** RDS needs the mapedges re-run + HNSW migration via the operator channel.
+
+- **2026-07-21** — **Landing GEO/SEO (0.1.15) + diff-review round (0.1.16).** Landing page:
+  framework-name title, search-intent description, canonical/og/twitter meta, schema.org
+  SoftwareApplication + SoftwareSourceCode JSON-LD, robots.txt (crawlers off /mcp + /oauth)
+  and sitemap.xml; verified /healthz is NOT cached by CloudFront (Route53 check reaches the
+  origin). Adversarial review of the day's ~20-commit diff (3 agents: data-accuracy with live
+  SQL, security/infra, retrieval/MCP): one confirmed finding — a TOCTOU race in refresh-token
+  rotation (replay could out-race a legitimate rotation and mint a live pair post-revocation) —
+  fixed with atomic consume+mint in one critical section, proven under -race with a 16-goroutine
+  replay test. Everything else survived scrutiny: Annex-collision guard blocks all 14 real
+  clause/Annex pairs, zero citation-title drift across CIS v8→v8.1 and CCM v4.0→v4.1, sparse-arm
+  SQL params correct, no compact/projection leak, release.sh injection-safe, CI fork-safe.
+  Also: release.sh dirty-tree guard (caught stray build binaries on its first run) + latest-tag
+  hint + ECR scan surfacing; Dependabot (gomod + actions, 7-day supply-chain cooldown);
+  monitoring live (scan-on-push, healthz check + alarm state OK, compliary-alerts topic —
+  operator note: SNS email subscriptions can be killed by mail-scanner clicks on the
+  unauthenticated unsubscribe link; resubscribe, and confirm with AuthenticateOnUnsubscribe if
+  it recurs).

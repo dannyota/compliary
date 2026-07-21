@@ -113,7 +113,9 @@ Shipped: **0.1.11** (review round: MCP consumer contract, OAuth hardening, fetch
 fixes), **0.1.12** (OAuth token families + PKCE bounds; `release.sh`; CI), **0.1.13** (parser
 guard hardening; landing single-source; write deadlines), **0.1.14** (quality round 7: mapping
 resolution 1,198→233 unresolved; search `detail` levels; eval re-baseline ~83%/~67%; BM25-only
-lineage; HNSW drop; honest User-Agent — see [`docs/HISTORY.md`](docs/HISTORY.md)).
+lineage; HNSW drop; honest User-Agent), **0.1.15** (landing GEO/SEO: JSON-LD, robots,
+sitemap), **0.1.16** (diff review: atomic refresh rotation; release guards; Dependabot) — see
+[`docs/HISTORY.md`](docs/HISTORY.md).
 
 Open operator to-dos (admin credentials required — commands in
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md)): ECR scan-on-push, SNS alert topic + healthz alarm.
