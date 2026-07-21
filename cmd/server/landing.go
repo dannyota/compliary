@@ -12,6 +12,15 @@ import (
 	"danny.vn/compliary/pkg/mcp"
 )
 
+//go:embed og.svg
+var ogSVG []byte
+
+func ogImageHandler(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.Write(ogSVG)
+}
+
 //go:embed landing.html
 var landingHTML string
 

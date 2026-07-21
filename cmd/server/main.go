@@ -179,6 +179,7 @@ func serve(ctx context.Context, addr string, srv *mcp.Server, core *mcp.Core, oa
 	mux.HandleFunc("GET /{$}", landingHandler(version, core.CorpusStatus, log))
 	mux.HandleFunc("GET /robots.txt", robotsHandler)
 	mux.HandleFunc("GET /sitemap.xml", sitemapHandler)
+	mux.HandleFunc("GET /og.svg", ogImageHandler)
 
 	// Mount MCP endpoint with cross-origin protection.
 	mcpHandler := crossOriginProtected(srv.HTTPHandler(), log)

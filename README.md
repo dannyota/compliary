@@ -9,7 +9,8 @@ gaps -- served to your agent over MCP. compliance + library.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-Streamable_HTTP-6E40C9)](https://modelcontextprotocol.io)
-[![Status](https://img.shields.io/badge/status-v0.1.0-green.svg)](PLAN.md)
+[![Status](https://img.shields.io/badge/status-v0.1.17-green.svg)](PLAN.md)
+[![CI](https://github.com/dannyota/compliary/actions/workflows/ci.yml/badge.svg)](https://github.com/dannyota/compliary/actions/workflows/ci.yml)
 
 </div>
 
@@ -61,7 +62,7 @@ learn what the corpus cannot answer. Full contract: [docs/design/MCP.md](docs/de
 
 ## Frameworks
 
-12 documents / 3404 controls / 4462 mapping edges (93.4% resolved) / 1718 curated titles.
+11 frameworks / 3,402 controls / 4,462 mapping edges (94.8% resolved) / 1,718 curated titles.
 
 | Source access | Ingestion | Frameworks |
 |---|---|---|
@@ -125,9 +126,9 @@ Most framework documents are copyrighted; compliary never redistributes them.
   Every document carries license provenance (source URL, license kind, retrieval date).
 - **Version lineage** -- supersession relations (`27001:2013 -> :2022`, `CSF 1.1 -> 2.0`) are
   first-class. Superseded text is never presented as current.
-- **Adversarially-verified retrieval eval** -- 125 golden cases, two eval lanes, with accepted
-  floors (`cmd/eval -min-*` gates) that a corpus change must clear before it ships. Current
-  numbers live in [docs/design/MCP.md](docs/design/MCP.md).
+- **Adversarially-verified retrieval eval** -- 175 golden cases, two eval lanes (open-corpus
+  84% recall, framework-filtered 91%), with accepted floors that a corpus change must clear
+  before it ships. Current numbers live in [docs/design/MCP.md](docs/design/MCP.md).
 - **quality_gaps tool** -- the corpus reports what it cannot answer: unresolved mapping edges,
   deferred documents, body-quality caveats, and eval-floor status. Honest gaps, not hidden ones.
 
