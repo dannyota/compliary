@@ -133,3 +133,5 @@ CREATE TABLE silver.control_topic (
         REFERENCES silver.control (id) ON DELETE CASCADE,
     CONSTRAINT uq_silver_control_topic UNIQUE (control_id, topic)
 );
+
+CREATE INDEX idx_silver_mapping_to_control ON silver.control_mapping (to_control_id) WHERE to_control_id IS NOT NULL;

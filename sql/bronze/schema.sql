@@ -52,3 +52,5 @@ CREATE TABLE bronze.raw_extract (
     CONSTRAINT uq_bronze_raw_extract UNIQUE (source_file_id, kind),
     CONSTRAINT chk_bronze_raw_extract_kind CHECK (kind IN ('text-markdown', 'oscal-catalog-json', 'workbook-rows-json', 'pdf-pages-json'))
 );
+
+CREATE INDEX idx_bronze_source_file_sha256 ON bronze.source_file (sha256);
