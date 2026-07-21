@@ -32,28 +32,25 @@ Design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Roadmap: [PLAN.md](PLAN.md
 ## How it works
 
 ```mermaid
-graph LR
+graph TD
     subgraph sources ["Official publisher sources"]
-        S1["ISO standards<br/>PCI DSS<br/>SOC 2 / AICPA"]
-        S2["NIST publications<br/>CIS Controls<br/>CSA CCM / COBIT"]
+        S1["ISO · PCI DSS · SOC 2"] ~~~ S2["NIST · CIS · CCM · COBIT"]
     end
 
-    subgraph pipeline ["Build pipeline (operator runs locally)"]
-        direction LR
-        P1["Download /<br/>drop-in"] --> P2["Parse<br/>PDF · XLSX · JSON"]
-        P2 --> P3["Normalize<br/>citations · versions<br/>mappings"]
-        P3 --> P4["Embed + Index<br/>dense vectors<br/>+ BM25"]
+    subgraph write ["Write path — operator builds the corpus locally"]
+        W1["Download / drop-in"] --> W2["Parse<br/>PDF · XLSX · JSON"]
+        W2 --> W3["Normalize<br/>citations · versions · mappings"]
+        W3 --> W4["Embed + Index<br/>dense vectors + BM25"]
     end
 
-    subgraph serve ["MCP server"]
-        M["search · document<br/>corpus_status<br/>quality_gaps · guide"]
+    subgraph read ["Read path — MCP server answers your agent"]
+        R1["search · document · corpus_status<br/>quality_gaps · guide"]
     end
 
-    S1 --> P1
-    S2 --> P1
-    P4 --> DB[("PostgreSQL<br/>+ pgvector")]
-    DB --> M
-    M -- "evidence<br/>(citations, mappings,<br/>gaps)" --> Agent["Your AI agent<br/>Claude · ChatGPT<br/>custom"]
+    sources --> W1
+    W4 -- write --> DB[("PostgreSQL + pgvector")]
+    DB -- read --> R1
+    R1 -- "evidence: citations,<br/>mappings, gaps" --> Agent["Your AI agent<br/>Claude · ChatGPT · custom"]
 ```
 
 ## MCP tools
