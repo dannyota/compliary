@@ -1,5 +1,7 @@
 /bin/
 /server
+/eval
+/pipeline
 /vendor/
 *.test
 *.out
