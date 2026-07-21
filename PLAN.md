@@ -352,3 +352,16 @@ patch — new documents always cut v0.2.0+.
   under mapping_source `nist-olir`, pinned to 27001:2022. Result: 3,897 total edges, 92.5%
   resolved (nist-olir 643/643); the corpus's two largest frameworks are now directly linked
   (e.g. AC-01 → 12 resolved ISO 27001 targets, verified via the live document tool).
+- **2026-07-21** — **CIS v8.1 mapping workbooks ingested: +564 typed publisher edges, all
+  resolved.** Three CIS-published workbooks (same CC BY-NC-ND terms as the Controls; direct
+  learn.cisecurity.org downloads wired into `cmd/fetch` as `CISMappings`): ISO/IEC 27001:2022
+  (199 edges), NIST CSF 2.0 (60 — the workbook genuinely maps only 60 safeguard rows; the rest
+  are tracked in CIS's own "Unmapped" sheets), NIST SP 800-53 r5 (305; 1 unparseable row
+  skipped). Unlike OLIR these carry real relationship types — 457 subset-of, 72 superset-of,
+  35 equivalent under mapping_source `cis-v8.1-mappings`. Parser quirk defeated: the workbooks
+  store safeguard numbers as floats, merging N.1/N.10 (4.1 ≡ 4.10 numerically), so safeguards
+  resolve by title match against the ciscontrols corpus — unmatched rows are counted, never
+  guessed. Targets normalized per framework (A5.9→A.5.9; CM-8(1)→CM-08(01)). Emitted counts
+  validated against raw workbook row counts (200/60/309 → dedupe+skip accounted). Corpus:
+  4,461 edges, 93.4% resolved. Live-verified: `document 1.1 ciscontrols` returns 7 typed
+  resolved edges across all three targets.
