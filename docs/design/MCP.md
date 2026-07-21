@@ -117,18 +117,19 @@ append rather than replace, so the leftmost is client-controllable and an attack
 spoofed value to get a fresh rate-limit bucket per request and bypass the brute-force gate. Set
 `COMPLIARY_TRUSTED_PROXY_HOPS=2` for a CloudFront→ALB chain.
 
-### Security hardening backlog
+### Security hardening status
 
-Known follow-ups, not yet implemented (severity in parens):
+Follow-ups from the security review, all implemented:
 
-- **DCR registration cap (MEDIUM):** `/oauth/register` is unauthenticated and unbounded -- an
-  attacker can register unlimited clients, growing the in-memory store. Add a per-IP registration
-  cap + total-client ceiling with eviction.
-- **Refresh-reuse family revocation (MEDIUM):** refresh tokens rotate on use and the old token is
-  consumed, but a replayed (already-consumed) refresh token does not revoke the whole token family.
-  OAuth 2.1 recommends revoking the entire family on detected reuse.
-- **PKCE verifier length check (LOW):** the token endpoint verifies the S256 hash but does not
-  enforce RFC 7636's 43-128 char `code_verifier` length bound.
+- **DCR registration cap (done):** registered clients are capped (50) with 24h idle eviction
+  (last token/code activity; statically-authorized clients exempt); registration past the cap
+  returns 503. CIMD metadata fetches are additionally rate-limited (1/s, burst 5).
+- **Refresh-reuse family revocation (done):** each token pair belongs to a family (created on
+  authorization code exchange, inherited on refresh rotation). Replaying an already-consumed
+  refresh token revokes every live access and refresh token in that family and returns
+  `invalid_grant`.
+- **PKCE verifier length check (done):** the token endpoint rejects `code_verifier` values
+  outside RFC 7636's 43-128 character bound with `invalid_grant` before hashing.
 
 ## Search: score-floor abstention
 

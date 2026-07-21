@@ -757,7 +757,7 @@ func TestLocalhostPortAgnosticRedirect(t *testing.T) {
 func TestRequireBearerTokenIntegration(t *testing.T) {
 	// Verify the TokenVerifier works with the SDK's RequireBearerToken middleware.
 	srv := newTestServer(t, "http://localhost")
-	at, _, _ := srv.store.createTokenPair("test-client", "mcp:read")
+	at, _, _ := srv.store.createTokenPair("test-client", "mcp:read", "")
 
 	verifier := srv.TokenVerifier()
 	mw := auth.RequireBearerToken(verifier, &auth.RequireBearerTokenOptions{
@@ -955,6 +955,191 @@ func TestCIMDFetchRateLimit(t *testing.T) {
 	c := srv.resolveClient("https://attacker.example.com/meta")
 	if c != nil {
 		t.Error("expected nil from rate-limited CIMD resolve")
+	}
+}
+
+func TestRefreshTokenFamilyRevocation(t *testing.T) {
+	srv, ts := testServer(t)
+	clientID, clientSecret := registerTestClient(t, ts)
+	verifier, challenge := pkce()
+
+	code := authorizeAndGetCode(t, ts, clientID, challenge)
+
+	// Exchange code for initial token pair.
+	form := url.Values{
+		"grant_type":    {"authorization_code"},
+		"code":          {code},
+		"client_id":     {clientID},
+		"client_secret": {clientSecret},
+		"redirect_uri":  {"http://localhost/callback"},
+		"code_verifier": {verifier},
+	}
+	resp, err := ts.Client().PostForm(ts.URL+"/oauth/token", form)
+	if err != nil {
+		t.Fatalf("POST token: %v", err)
+	}
+	var tokenResp map[string]any
+	json.NewDecoder(resp.Body).Decode(&tokenResp)
+	resp.Body.Close()
+	firstRT := tokenResp["refresh_token"].(string)
+	firstAT := tokenResp["access_token"].(string)
+
+	// Normal rotation: use the first refresh token.
+	refreshForm := url.Values{
+		"grant_type":    {"refresh_token"},
+		"refresh_token": {firstRT},
+		"client_id":     {clientID},
+		"client_secret": {clientSecret},
+	}
+	resp2, err := ts.Client().PostForm(ts.URL+"/oauth/token", refreshForm)
+	if err != nil {
+		t.Fatalf("POST refresh: %v", err)
+	}
+	var refreshResp map[string]any
+	json.NewDecoder(resp2.Body).Decode(&refreshResp)
+	resp2.Body.Close()
+	if resp2.StatusCode != http.StatusOK {
+		t.Fatalf("first refresh: status %d, want 200", resp2.StatusCode)
+	}
+	secondAT := refreshResp["access_token"].(string)
+	secondRT := refreshResp["refresh_token"].(string)
+	if secondRT == firstRT {
+		t.Error("refresh token not rotated")
+	}
+
+	// Verify the new access token works.
+	verifyFn := srv.TokenVerifier()
+	if _, err := verifyFn(context.Background(), secondAT, nil); err != nil {
+		t.Fatalf("second AT should be valid: %v", err)
+	}
+
+	// Replay the first (already-consumed) refresh token.
+	resp3, err := ts.Client().PostForm(ts.URL+"/oauth/token", refreshForm)
+	if err != nil {
+		t.Fatalf("POST replay: %v", err)
+	}
+	var replayResp map[string]string
+	json.NewDecoder(resp3.Body).Decode(&replayResp)
+	resp3.Body.Close()
+	if resp3.StatusCode != http.StatusBadRequest {
+		t.Fatalf("replay: status %d, want 400", resp3.StatusCode)
+	}
+	if replayResp["error"] != "invalid_grant" {
+		t.Errorf("replay error: %q, want invalid_grant", replayResp["error"])
+	}
+
+	// The first access token (from initial exchange) should be revoked.
+	if _, err := verifyFn(context.Background(), firstAT, nil); err == nil {
+		t.Error("first AT should be revoked after family revocation")
+	}
+
+	// The second access token (from legitimate refresh) should also be revoked.
+	if _, err := verifyFn(context.Background(), secondAT, nil); err == nil {
+		t.Error("second AT should be revoked after family revocation")
+	}
+
+	// The second refresh token should also be dead.
+	resp4, err := ts.Client().PostForm(ts.URL+"/oauth/token", url.Values{
+		"grant_type":    {"refresh_token"},
+		"refresh_token": {secondRT},
+		"client_id":     {clientID},
+		"client_secret": {clientSecret},
+	})
+	if err != nil {
+		t.Fatalf("POST second RT after revocation: %v", err)
+	}
+	resp4.Body.Close()
+	if resp4.StatusCode != http.StatusBadRequest {
+		t.Errorf("second RT after revocation: status %d, want 400", resp4.StatusCode)
+	}
+}
+
+func TestPKCEVerifierLengthBounds(t *testing.T) {
+	_, ts := testServer(t)
+	clientID, clientSecret := registerTestClient(t, ts)
+
+	tests := []struct {
+		name       string
+		verifierFn func() (string, string) // returns (verifier, challenge)
+		wantOK     bool
+	}{
+		{
+			name: "42_chars_rejected",
+			verifierFn: func() (string, string) {
+				v := strings.Repeat("A", 42)
+				h := sha256.Sum256([]byte(v))
+				c := base64.RawURLEncoding.EncodeToString(h[:])
+				return v, c
+			},
+			wantOK: false,
+		},
+		{
+			name: "43_chars_accepted",
+			verifierFn: func() (string, string) {
+				v := strings.Repeat("B", 43)
+				h := sha256.Sum256([]byte(v))
+				c := base64.RawURLEncoding.EncodeToString(h[:])
+				return v, c
+			},
+			wantOK: true,
+		},
+		{
+			name: "128_chars_accepted",
+			verifierFn: func() (string, string) {
+				v := strings.Repeat("C", 128)
+				h := sha256.Sum256([]byte(v))
+				c := base64.RawURLEncoding.EncodeToString(h[:])
+				return v, c
+			},
+			wantOK: true,
+		},
+		{
+			name: "129_chars_rejected",
+			verifierFn: func() (string, string) {
+				v := strings.Repeat("D", 129)
+				h := sha256.Sum256([]byte(v))
+				c := base64.RawURLEncoding.EncodeToString(h[:])
+				return v, c
+			},
+			wantOK: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			verifier, challenge := tt.verifierFn()
+			code := authorizeAndGetCode(t, ts, clientID, challenge)
+
+			form := url.Values{
+				"grant_type":    {"authorization_code"},
+				"code":          {code},
+				"client_id":     {clientID},
+				"client_secret": {clientSecret},
+				"redirect_uri":  {"http://localhost/callback"},
+				"code_verifier": {verifier},
+			}
+			resp, err := ts.Client().PostForm(ts.URL+"/oauth/token", form)
+			if err != nil {
+				t.Fatalf("POST token: %v", err)
+			}
+			defer resp.Body.Close()
+
+			if tt.wantOK {
+				if resp.StatusCode != http.StatusOK {
+					b, _ := io.ReadAll(resp.Body)
+					t.Errorf("status %d, want 200: %s", resp.StatusCode, b)
+				}
+			} else {
+				if resp.StatusCode != http.StatusBadRequest {
+					t.Errorf("status %d, want 400", resp.StatusCode)
+				}
+				var errResp map[string]string
+				json.NewDecoder(resp.Body).Decode(&errResp)
+				if errResp["error"] != "invalid_grant" {
+					t.Errorf("error: %q, want invalid_grant", errResp["error"])
+				}
+			}
+		})
 	}
 }
 

@@ -370,9 +370,13 @@ func (s *Server) handleAuthCodeGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// PKCE verification.
+	// PKCE verification: RFC 7636 requires code_verifier to be 43-128 characters.
 	if codeVerifier == "" {
 		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "code_verifier is required")
+		return
+	}
+	if len(codeVerifier) < 43 || len(codeVerifier) > 128 {
+		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "code_verifier must be 43-128 characters")
 		return
 	}
 	if !verifyPKCE(codeVerifier, ac.CodeChallenge) {
@@ -380,7 +384,8 @@ func (s *Server) handleAuthCodeGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	at, rt, expiresIn := s.store.createTokenPair(c.ID, ac.Scope)
+	// New token family — first pair from an authorization code.
+	at, rt, expiresIn := s.store.createTokenPair(c.ID, ac.Scope, "")
 	writeTokenResponse(w, at, rt, expiresIn, ac.Scope)
 }
 
@@ -403,7 +408,8 @@ func (s *Server) handleRefreshGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	at, rt, expiresIn := s.store.createTokenPair(c.ID, re.Scope)
+	// Inherit the token family — replay of any ancestor triggers family-wide revocation.
+	at, rt, expiresIn := s.store.createTokenPair(c.ID, re.Scope, re.FamilyID)
 	writeTokenResponse(w, at, rt, expiresIn, re.Scope)
 }
 

@@ -29,11 +29,12 @@ const (
 )
 
 type store struct {
-	mu      sync.Mutex
-	clients map[string]*client       // client_id -> client
-	codes   map[string]*authCode     // code -> authCode
-	tokens  map[string]*tokenEntry   // access_token -> tokenEntry
-	refresh map[string]*refreshEntry // refresh_token -> refreshEntry
+	mu       sync.Mutex
+	clients  map[string]*client       // client_id -> client
+	codes    map[string]*authCode     // code -> authCode
+	tokens   map[string]*tokenEntry   // access_token -> tokenEntry
+	refresh  map[string]*refreshEntry // refresh_token -> refreshEntry
+	consumed map[string]string        // consumed refresh_token -> familyID (for replay detection)
 }
 
 type client struct {
@@ -62,6 +63,7 @@ type tokenEntry struct {
 	ClientID  string
 	Scope     string
 	ExpiresAt time.Time
+	FamilyID  string // token family for refresh-reuse revocation
 }
 
 type refreshEntry struct {
@@ -69,14 +71,16 @@ type refreshEntry struct {
 	ClientID  string
 	Scope     string
 	ExpiresAt time.Time
+	FamilyID  string // inherited from the originating auth code exchange
 }
 
 func newStore() *store {
 	return &store{
-		clients: make(map[string]*client),
-		codes:   make(map[string]*authCode),
-		tokens:  make(map[string]*tokenEntry),
-		refresh: make(map[string]*refreshEntry),
+		clients:  make(map[string]*client),
+		codes:    make(map[string]*authCode),
+		tokens:   make(map[string]*tokenEntry),
+		refresh:  make(map[string]*refreshEntry),
+		consumed: make(map[string]string),
 	}
 }
 
@@ -184,9 +188,13 @@ func (s *store) consumeCode(code string) (*authCode, bool) {
 	return ac, true
 }
 
-func (s *store) createTokenPair(clientID, scope string) (accessToken, refreshToken string, expiresIn int) {
+func (s *store) createTokenPair(clientID, scope, familyID string) (accessToken, refreshToken string, expiresIn int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if familyID == "" {
+		familyID = randomHex(16)
+	}
 
 	at := randomHex(32)
 	rt := randomHex(32)
@@ -197,12 +205,14 @@ func (s *store) createTokenPair(clientID, scope string) (accessToken, refreshTok
 		ClientID:  clientID,
 		Scope:     scope,
 		ExpiresAt: now.Add(accessTokenTTL),
+		FamilyID:  familyID,
 	}
 	s.refresh[rt] = &refreshEntry{
 		Token:     rt,
 		ClientID:  clientID,
 		Scope:     scope,
 		ExpiresAt: now.Add(refreshTokenTTL),
+		FamilyID:  familyID,
 	}
 	// Track activity for idle-client eviction.
 	if c := s.clients[clientID]; c != nil {
@@ -217,6 +227,7 @@ func (s *store) createTokenPairWithTTL(clientID, scope string, atTTL time.Durati
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	familyID := randomHex(16)
 	at := randomHex(32)
 	rt := randomHex(32)
 	now := time.Now()
@@ -226,12 +237,14 @@ func (s *store) createTokenPairWithTTL(clientID, scope string, atTTL time.Durati
 		ClientID:  clientID,
 		Scope:     scope,
 		ExpiresAt: now.Add(atTTL),
+		FamilyID:  familyID,
 	}
 	s.refresh[rt] = &refreshEntry{
 		Token:     rt,
 		ClientID:  clientID,
 		Scope:     scope,
 		ExpiresAt: now.Add(refreshTokenTTL),
+		FamilyID:  familyID,
 	}
 	if c := s.clients[clientID]; c != nil {
 		c.LastActivity = now
@@ -254,19 +267,49 @@ func (s *store) lookupToken(accessToken string) (*tokenEntry, bool) {
 	return te, true
 }
 
+// consumeRefresh consumes a refresh token for rotation. If the token was
+// already consumed (replay), it revokes the entire token family (all access
+// and refresh tokens sharing the same family ID) per OAuth 2.1 §6.1.
+// Returns (nil, false) on replay or expiry; the caller should return invalid_grant.
 func (s *store) consumeRefresh(refreshToken string) (*refreshEntry, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	re, ok := s.refresh[refreshToken]
 	if !ok {
+		// Check if this is a replayed (already-consumed) token.
+		if familyID, consumed := s.consumed[refreshToken]; consumed {
+			s.revokeFamilyLocked(familyID)
+		}
 		return nil, false
 	}
 	delete(s.refresh, refreshToken)
 	if time.Now().After(re.ExpiresAt) {
 		return nil, false
 	}
+	// Record the consumed token so replays trigger family revocation.
+	s.consumed[refreshToken] = re.FamilyID
 	return re, true
+}
+
+// revokeFamilyLocked revokes all access tokens, refresh tokens, and consumed-
+// token records belonging to the given family. Caller must hold s.mu.
+func (s *store) revokeFamilyLocked(familyID string) {
+	for k, v := range s.tokens {
+		if v.FamilyID == familyID {
+			delete(s.tokens, k)
+		}
+	}
+	for k, v := range s.refresh {
+		if v.FamilyID == familyID {
+			delete(s.refresh, k)
+		}
+	}
+	for k, fid := range s.consumed {
+		if fid == familyID {
+			delete(s.consumed, k)
+		}
+	}
 }
 
 // startEvictor runs a periodic cleanup of expired entries. Returns a stop function.
@@ -307,6 +350,17 @@ func (s *store) evict() {
 	for k, v := range s.refresh {
 		if now.After(v.ExpiresAt) {
 			delete(s.refresh, k)
+		}
+	}
+	// Consumed-token replay records: evict entries whose family has no live
+	// refresh tokens left (the family is fully expired or revoked).
+	liveFamily := make(map[string]bool, len(s.refresh))
+	for _, v := range s.refresh {
+		liveFamily[v.FamilyID] = true
+	}
+	for k, fid := range s.consumed {
+		if !liveFamily[fid] {
+			delete(s.consumed, k)
 		}
 	}
 	// Evict idle clients — clients with no token/code activity for clientIdleTTL.
