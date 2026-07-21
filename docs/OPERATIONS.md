@@ -68,6 +68,32 @@ live version chip, `/healthz`, and the 401 on unauthenticated `/mcp`.
 | `COMPLIARY_MCP_RATE_BURST` | no | Global per-IP burst capacity (default 100). |
 | `PORT` | no | Listen port (default 8088). |
 
+## Monitoring (one-time, requires admin credentials)
+
+The deploy CLI credential is deliberately deploy-scoped and cannot manage monitoring. Run these
+once from an admin profile (`--profile admin` or the console):
+
+```bash
+# 1. Vulnerability scan on every image push:
+aws ecr put-image-scanning-configuration --repository-name compliary-mcp \
+  --image-scanning-configuration scanOnPush=true --region ap-southeast-1
+
+# 2. Alert topic + email subscription (confirm the email AWS sends):
+aws sns create-topic --name compliary-alerts --region us-east-1
+aws sns subscribe --topic-arn arn:aws:sns:us-east-1:<ACCOUNT_ID>:compliary-alerts \
+  --protocol email --notification-endpoint <operator email> --region us-east-1
+
+# 3. External healthz check + alarm (Route53 health-check metrics live in us-east-1):
+aws route53 create-health-check --caller-reference compliary-healthz-1 \
+  --health-check-config Type=HTTPS,FullyQualifiedDomainName=compliary.danny.vn,ResourcePath=/healthz,RequestInterval=30,FailureThreshold=3
+aws cloudwatch put-metric-alarm --alarm-name compliary-healthz-down \
+  --namespace AWS/Route53 --metric-name HealthCheckStatus \
+  --dimensions Name=HealthCheckId,Value=<health check id> \
+  --statistic Minimum --period 60 --evaluation-periods 3 \
+  --threshold 1 --comparison-operator LessThanThreshold \
+  --alarm-actions arn:aws:sns:us-east-1:<ACCOUNT_ID>:compliary-alerts --region us-east-1
+```
+
 ## Generating the operator password hash
 
 ```bash

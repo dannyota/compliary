@@ -10,5 +10,6 @@
   abstain-floor truth, Haiku validation summary.
 - [`OPERATIONS.md`](OPERATIONS.md) — deployment: env vars, TLS, connector setup (claude.ai +
   chatgpt.com), operator password hash.
+- [`HISTORY.md`](HISTORY.md) — dated milestone + quality-round record (moved out of PLAN.md).
 
 Roadmap and framework scope: [`PLAN.md`](../PLAN.md). Conventions: [`CLAUDE.md`](../CLAUDE.md).
