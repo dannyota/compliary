@@ -1,6 +1,58 @@
 package normalize
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
+
+// tcvnCapture mirrors the extract-stage page capture shape shared by
+// pdf-pages-json and txt-pages-json.
+type tcvnCapture struct {
+	Pages []tcvnPage `json:"pages"`
+}
+
+type tcvnPage struct {
+	N    int    `json:"n"`
+	Text string `json:"text"`
+}
+
+// tcvnHeading is an intermediate parse result: a numbered heading line and the
+// verbatim body text that follows it (up to the next heading).
+type tcvnHeading struct {
+	Citation string // e.g. "5.1.1.2" or "A.2.10"
+	Title    string // verbatim Vietnamese heading text after the number
+	Body     string // verbatim Vietnamese body text following the heading
+}
+
+// tcvnCanonicalNumber reports whether every numeric segment of a dotted
+// citation is a canonical integer (no leading zero). "A.2.10" and "5.1.1.2" are
+// canonical; "06" and "5.01" are not.
+func tcvnCanonicalNumber(citation string) bool {
+	for _, seg := range strings.Split(citation, ".") {
+		if seg == "A" {
+			continue
+		}
+		n, err := strconv.Atoi(seg)
+		if err != nil {
+			return false
+		}
+		if strconv.Itoa(n) != seg {
+			return false
+		}
+	}
+	return true
+}
+
+// tcvnParentCitation returns the parent citation by dropping the last dotted
+// segment. "5.1.1.2" -> "5.1.1"; "A.2.10" -> "A.2"; "5" -> ""; "A.1" -> "A".
+// Callers treat a parent that is not itself a heading as a root.
+func tcvnParentCitation(citation string) string {
+	lastDot := strings.LastIndex(citation, ".")
+	if lastDot < 0 {
+		return ""
+	}
+	return citation[:lastDot]
+}
 
 // parseTCVNPages scans all pages in document order for numbered headings and
 // collects the verbatim body text that follows each. It is the shared engine

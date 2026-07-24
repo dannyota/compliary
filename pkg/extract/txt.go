@@ -44,7 +44,7 @@ func (e *Extractor) extractTXT(
 		return fmt.Errorf("read file: %w", err)
 	}
 
-	captureJSON, err := captureTXT(raw)
+	captureJSON, pageCount, err := captureTXT(raw)
 	if err != nil {
 		return fmt.Errorf("capture txt: %w", err)
 	}
@@ -105,26 +105,23 @@ func (e *Extractor) extractTXT(
 		return fmt.Errorf("mark extracted: %w", err)
 	}
 
-	var cap TxtCapture
-	_ = json.Unmarshal(captureJSON, &cap)
-
 	e.Log.Info("extracted txt",
 		"path", f.RelPath,
-		"pages", len(cap.Pages),
+		"pages", pageCount,
 		"json_bytes", len(captureJSON),
 	)
 	return nil
 }
 
 // captureTXT splits page-marked UTF-8 text into per-page captures and returns
-// the marshaled txt-pages-json capture.
-func captureTXT(raw []byte) ([]byte, error) {
+// the marshaled txt-pages-json capture with its page count.
+func captureTXT(raw []byte) ([]byte, int, error) {
 	capture := TxtCapture{Pages: splitTxtPages(string(raw))}
 	out, err := json.Marshal(capture)
 	if err != nil {
-		return nil, fmt.Errorf("marshal capture: %w", err)
+		return nil, 0, fmt.Errorf("marshal capture: %w", err)
 	}
-	return out, nil
+	return out, len(capture.Pages), nil
 }
 
 // splitTxtPages divides content on page-marker lines. Each marker's N becomes
