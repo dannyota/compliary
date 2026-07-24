@@ -1,7 +1,7 @@
 # compliary plan
 
 Living roadmap and progress tracker. Conventions and the canonical agent guide in
-[`CLAUDE.md`](CLAUDE.md). Last updated: 2026-07-21.
+[`CLAUDE.md`](CLAUDE.md). Last updated: 2026-07-24.
 
 ## Vision
 
@@ -27,8 +27,9 @@ gaps.
 ## Scope — frameworks
 
 The frameworks the Vietnamese market (banks, fintech, SaaS, BPO/ITO) is actually certified or
-assessed against. Unlike regulations, these are **few, stable documents** (~15 frameworks, ~25
-files). **v0.1.0 builds on the 12 frameworks acquired; the 5 phase-2 documents land in v0.2.0.**
+assessed against. Unlike regulations, these are **few, stable documents** (~17 frameworks, ~27
+files). **v0.1.0 built on the 12 frameworks acquired; v0.2.0 adds TCVN 11930:2017 + TCVN
+14423:2025; the 5 deferred phase-2 documents follow across 0.2.x.**
 
 | # | Framework | Current version | Publisher | Access / license | Ingestion | Citation unit |
 |---|-----------|-----------------|-----------|------------------|-------------|---------------|
@@ -47,12 +48,19 @@ files). **v0.1.0 builds on the 12 frameworks acquired; the 5 phase-2 documents l
 | 13 | SWIFT CSCF | v2026 | SWIFT | members only | BYO (member access) | Control (1.1–7.x) |
 | 14 | CSA CCM | v4.1 (2026-01) | CSA | free w/ registration | BYO (registration) | Control ID (AIS-01…) |
 | 15 | COBIT | 2019 | ISACA | paid | BYO (purchase) | Objective (EDM01–MEA04) |
+| 16 | TCVN 11930 | 2017 | Bộ KH&CN (Quyết định 2582/QĐ-BKHCN; biên soạn: Cục ATTT) | paid, copyrighted (VSQI) | BYO (purchase) | Clause requirement per security level 1–5 |
+| 17 | TCVN 14423 | 2025 | Bộ KH&CN (biên soạn: Cục An ninh mạng — A05, Bộ Công an) | paid, copyrighted (VSQI) | BYO (purchase) | Clause requirement |
 
 - **SOC 2 Type 1 vs Type 2** are *report types* (design vs operating effectiveness over a period),
   not separate criteria sets — one corpus entry over the TSC, report-type as metadata.
 - **ISO cloud companion 27017 lags the 2022 renumbering:** still keyed to 27002:2013 control
   numbering (27018:2025 realigned to 27002:2022) — version-lineage relations must model
   cross-edition references.
+- **TCVN standards are Vietnamese-language** (publication language) with first-class mapping-edge
+  candidates (both verified Active on VSQI 2026-07-24): **TCVN 11930:2017** is MOD-equivalent to
+  ISO/IEC 27001:2013 + NIST SP 800-53 r4; **TCVN 14423:2025** (Quyết định 1019/QĐ-BKHCN,
+  2025-05-29) is MOD-equivalent to CIS Controls v8 and normatively references TCVN 11930:2017 —
+  it complements, does not supersede.
 - **Parser build order:** see [`docs/design/SCHEMA.md`](docs/design/SCHEMA.md) (OSCAL → XLSX → PDF).
 
 **License gates (verified against live publisher sources 2026-07-19):**
@@ -64,10 +72,16 @@ files). **v0.1.0 builds on the 12 frameworks acquired; the 5 phase-2 documents l
 - **ISO** — all copying/distribution prohibited without written permission.
 - **AICPA TSC** — personal non-commercial use only; explicit objection to LLM/AI knowledge-base
   inclusion — most conservative source.
+- **TCVN (VSQI)** — verified 2026-07-24: publication copyright held by Viện Tiêu chuẩn Chất lượng
+  Việt Nam (tieuchuan.vsqi.gov.vn); paid purchase (price on contact / member packages), accounts
+  non-transferable. No public download — BYO purchase, `auth-text-only` serving; never ingest the
+  third-party re-hosts (thuvienphapluat, scribd, …).
 
-**Acquisition status (2026-07-19): 12 of 15 frameworks have documents in `data/`.**
-Remaining acquisitions are **phase 2 → v0.2.0** — v0.1.0 builds on what's in hand:
+**Acquisition status (2026-07-24): 12 of 16 frameworks have documents in `data/`.**
+Remaining acquisitions land across the 0.2.x line — TCVN 11930:2017 first (v0.2.0):
 
+- **TCVN 11930:2017** — in hand (`data/tcvn/tcvn-11930-2017.pdf`) — ready to ingest.
+- **TCVN 14423:2025** — in hand (`data/tcvn/tcvn-14423-2025.pdf`).
 - **ISO 22301:2019 base** — purchase (Amd 1:2024 already in `data/iso/`, ISO-produced, parseable).
 - **ISO/IEC 27018:2025** — purchase (interim :2019 in `data/iso/`, ingest flagged superseded).
 - **ISO/IEC 27701:2025** — purchase.
@@ -121,7 +135,25 @@ Open operator to-dos (admin credentials required — commands in
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md)): ECR scan-on-push, SNS alert topic + healthz alarm.
 Prod RDS still needs the round-7 corpus sync: `mapedges` re-run + the HNSW-drop migration.
 
-### v0.2.0 — phase-2 corpus completion
+### v0.2.0 — TCVN 11930:2017 + TCVN 14423:2025
+
+The first Vietnamese-language frameworks — decided 2026-07-24; the deferred phase-2 documents move
+to 0.2.x follow-ups.
+
+1. **Acquire:** both in hand (see acquisition status).
+2. **Registry:** frameworks `tcvn11930` + `tcvn14423` (BYO, licensed, auth-text-only) + version
+   rows `2017` (Quyết định 2582/QĐ-BKHCN, 2017-09-25) and `2025` (Quyết định 1019/QĐ-BKHCN,
+   2025-05-29); new citation scheme for clause requirements (11930: per security level 1–5).
+3. **Ingest:** PDF extract + parsers to silver (management + technical requirement clauses);
+   Vietnamese text embeds via the shared multilingual embedder (same one banhmi's VN corpus uses);
+   verify BM25 lexical handling of Vietnamese before shipping.
+4. **Mappings:** 11930 is MOD-built on ISO/IEC 27001:2013 + SP 800-53 r4; 14423 on CIS Controls
+   v8 and normatively references 11930 — capture their cross-reference tables as mapping edges
+   where present.
+5. **Eval:** extend the eval set with Vietnamese queries + TCVN citations; eval gate passes at
+   accepted floors before the corpus ships.
+
+### v0.2.x — phase-2 corpus completion (follow-ups)
 
 1. Acquire the 5 deferred documents (see acquisition status above): ISO 22301:2019 base,
    ISO/IEC 27018:2025, 27701:2025, 42001:2023 (purchases; identical-text national adoptions like
@@ -140,7 +172,7 @@ Prod RDS still needs the round-7 corpus sync: `mapedges` re-run + the HNSW-drop 
 | Ingestion | auto-fetch public-domain (NIST) only; license-gated sources are operator-BYO |
 | Private serving | licensed text only behind auth ("internal use"); maintainer `/mcp` authenticated. **M3 contract: authenticated + local-stdio callers get FULL VERBATIM text (body, title_original, chunk content); the paraphrased-only reduced surface applies solely to unauthenticated HTTP** |
 | One corpus, one DB | framework = registry dimension; maintainer instance at `compliary.danny.vn` |
-| Corpus language | English (publication language); VN focus selects frameworks, never translates |
+| Corpus language | publication language per framework — English for international frameworks, Vietnamese for TCVN (from v0.2.0); never translates. Search guidance: query in the framework's publication language |
 | Stack | Go + PostgreSQL/pgvector + sqlc + hybrid retrieval + MCP (banhmi-proven) |
 | Sources | official publisher sources only; license provenance per document |
 | Maintainer `/mcp` auth | **OAuth** (MCP auth spec: authorization-code + PKCE + dynamic client registration) so the instance connects as a **claude.ai and chatgpt.com custom connector**; **unauthenticated requests get 401 for everything** (no anonymous reduced surface on the maintainer instance — projection layer stays as defense-in-depth; self-deployers may opt into a public metadata surface) |
