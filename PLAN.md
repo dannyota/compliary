@@ -140,27 +140,27 @@ Prod RDS still needs the round-7 corpus sync: `mapedges` re-run + the HNSW-drop 
 The first Vietnamese-language frameworks — decided 2026-07-24; the deferred phase-2 documents move
 to 0.2.x follow-ups.
 
-**Done:** documents in `data/tcvn/`; registry seeded (`tcvn11930`, `tcvn14423`, citation scheme
-`tcvn-clause`, version rows with announcement decisions); `txt` manifest format
-(config/ingest/bronze migrations); manifest matches all three files (30 matched / 0 unrecognized).
+**Ingestion done (round closed 2026-07-24):**
 
-**Remaining (build order):**
+- **Extract + normalize:** `txt` extractor (bronze); `tcvn-clause` parsers with shared engine —
+  **11930:** 225 controls + 65 clauses (levels 5–9 + Annex A; structural leaf detection);
+  **14423:** 182 controls + 67 clauses (section 4 = **15** families, section 5 = 18 mirroring
+  CIS v8). Vietnamese verbatim throughout.
+- **Titles:** 407 Vietnamese paraphrased `control_title` rows (our own wording) on the reduced
+  surface; paraphrase-distance machine-checked.
+- **Index:** 539 TCVN chunks, dense + BM25 sparse; tokenizer verified Vietnamese-correct
+  (diacritics preserved, syllable split). Deferred tuning: Vietnamese stopwords, per-batch IDF.
+- **Eval:** 10 Vietnamese golden cases (DB-verified targets; indicative BM25 10/10 recall@8 —
+  not a baseline).
+- **Mappings:** neither document ships clause-level crosswalk tables — no mapping edges;
+  MOD lineage (11930 ← ISO 27001:2013 + 800-53 r4; 14423 ← CIS v8) stays registry metadata.
 
-1. **Extract:** `txt` passthrough extractor to bronze for the 14423 main document (page markers
-   `===== [trang N] =====` are page boundaries; strip from content, keep as page provenance).
-2. **Normalize — `tcvn-clause` parsers → silver** (Vietnamese verbatim; never translate):
-   - **11930:** requirements grouped per security level (cấp độ 1–5), each split into management
-     (quản lý) and technical (kỹ thuật) subtrees; leaf numbered requirement clauses are kind
-     `control`, intermediate headings `clause`.
-   - **14423:** section 4 (state-agency systems) and section 5 (national-security critical
-     systems), 18 requirement families each mirroring CIS v8; `N.M.1 Yêu cầu chung` +
-     `N.M.2.x Yêu cầu cụ thể` leaves are `control`, family headings `clause`.
-3. **Paraphrased titles:** Vietnamese `control_title.csv` rows (our own wording, publication
-   language) for the reduced surface.
-4. **Mappings:** capture cross-references the documents state (11930 → ISO/IEC 27001:2013 +
-   SP 800-53 r4; 14423 → CIS v8 + TCVN 11930) as mapping edges.
-5. **Retrieval + eval:** verify BM25 lexical handling of Vietnamese; extend the eval set with
-   Vietnamese queries + TCVN citations; eval gate at accepted floors before the corpus ships.
+**Remaining to cut v0.2.0:**
+
+1. **Re-record eval floors** over the 185-row golden set (accepted-baseline re-measure).
+2. **Index engine guard** — the index stage must not auto-select the Kaggle engine just because
+   a token is configured; explicit opt-in.
+3. **Release:** version bump to 0.2.0, deploy, prod corpus sync.
 
 ### v0.2.x — phase-2 corpus completion (follow-ups)
 
