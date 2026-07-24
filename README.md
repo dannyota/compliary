@@ -68,13 +68,13 @@ learn what the corpus cannot answer. Full contract: [docs/design/MCP.md](docs/de
 
 ## Frameworks
 
-11 frameworks / 3,402 controls / 4,462 mapping edges (94.8% resolved) / 1,718 curated titles.
+13 frameworks / 3,943 controls / 4,462 mapping edges (94.8% resolved) / 2,125 curated titles.
 
 | Source access | Ingestion | Frameworks |
 |---|---|---|
 | **Public / direct** | auto-fetch | NIST CSF 2.0, NIST SP 800-53 r5 (OSCAL), CIS Controls v8.1 |
 | **Free, form-gated** | `cmd/fetch` fills the click-through with the operator's identity | PCI DSS v4.0.1 |
-| **Sign-in / purchase** | manual drop-in into `data/` | SOC 2 (AICPA TSC), ISO/IEC 27001, 27002, 27017, 27018, 27701, ISO 22301, ISO/IEC 42001, SWIFT CSCF, COBIT 2019, CSA CCM v4.1 |
+| **Sign-in / purchase** | manual drop-in into `data/` | SOC 2 (AICPA TSC), ISO/IEC 27001, 27002, 27017, 27018, 27701, ISO 22301, ISO/IEC 42001, SWIFT CSCF, COBIT 2019, CSA CCM v4.1, TCVN 11930:2017, TCVN 14423:2025 |
 
 ## Retrieval quality
 
