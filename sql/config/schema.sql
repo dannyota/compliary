@@ -109,7 +109,7 @@ CREATE TABLE config.file_rule (
     CONSTRAINT uq_config_file_rule UNIQUE (pattern),
     CONSTRAINT chk_config_file_rule_origin CHECK (origin IN ('seed', 'user')),
     CONSTRAINT chk_config_file_rule_role CHECK (doc_role IN ('main', 'amendment', 'companion-workbook', 'changelog', 'guide')),
-    CONSTRAINT chk_config_file_rule_format CHECK (file_format IN ('oscal-json', 'xlsx', 'pdf')),
+    CONSTRAINT chk_config_file_rule_format CHECK (file_format IN ('oscal-json', 'xlsx', 'pdf', 'txt')),
     CONSTRAINT chk_config_file_rule_license CHECK (license_kind IN ('public-domain', 'cc-by-nc-nd', 'click-through', 'purchased', 'unverified')),
     CONSTRAINT chk_config_file_rule_ignore CHECK (
         (ignore = TRUE AND framework_code IS NULL AND version_label IS NULL AND doc_role IS NULL AND file_format IS NULL)

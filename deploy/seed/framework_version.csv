@@ -27,3 +27,5 @@ csaccm,v4.1,,true,Released 2026-01
 swiftcscf,v2026,,true,Annual release for the 2026 attestation cycle
 cobit,5,,false,Released 2012-04; superseded by COBIT 2019
 cobit,2019,,true,Released 2018-11
+tcvn11930,2017,2017-09-25,true,Announced by Quyết định 2582/QĐ-BKHCN; MOD adoption referencing ISO/IEC 27001:2013 and NIST SP 800-53 r4; Vietnamese-language
+tcvn14423,2025,2025-05-29,true,Announced by Quyết định 1019/QĐ-BKHCN; MOD adoption referencing CIS Controls v8; normatively references TCVN 11930:2017; Vietnamese-language

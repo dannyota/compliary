@@ -14,3 +14,5 @@ iso42001,ISO/IEC 42001 Artificial intelligence management systems,ISO/IEC JTC 1/
 swiftcscf,SWIFT Customer Security Controls Framework,SWIFT,byo,licensed,true,auth-text-only,cscf-control,
 csaccm,CSA Cloud Controls Matrix,Cloud Security Alliance,byo,open-restricted,true,auth-text-only,ccm-workbook,
 cobit,COBIT Governance and management objectives,ISACA,byo,licensed,true,auth-text-only,cobit-objective,
+tcvn11930,TCVN 11930 Basic requirements for securing information systems by security level,Bộ Khoa học và Công nghệ (Việt Nam),byo,licensed,true,auth-text-only,tcvn-clause,VSQI holds publication copyright; operator-acquired copy for internal use
+tcvn14423,TCVN 14423 Cyber security requirements for critical information systems,Bộ Khoa học và Công nghệ (Việt Nam),byo,licensed,true,auth-text-only,tcvn-clause,VSQI holds publication copyright; operator-acquired copy for internal use

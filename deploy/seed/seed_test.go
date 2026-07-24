@@ -31,8 +31,8 @@ func readCSV(t *testing.T, name string) [][]string {
 func TestFrameworkSeed(t *testing.T) {
 	recs := readCSV(t, "framework.csv")
 	rows := recs[1:]
-	if len(rows) != 15 {
-		t.Fatalf("framework.csv: want 15 frameworks, got %d", len(rows))
+	if len(rows) != 17 {
+		t.Fatalf("framework.csv: want 17 frameworks, got %d", len(rows))
 	}
 
 	access := map[string]bool{"auto-fetch": true, "form-gated": true, "byo": true}
@@ -281,15 +281,15 @@ func TestFileRuleSeed(t *testing.T) {
 		"main": true, "amendment": true, "companion-workbook": true,
 		"changelog": true, "guide": true,
 	}
-	formats := map[string]bool{"oscal-json": true, "xlsx": true, "pdf": true}
+	formats := map[string]bool{"oscal-json": true, "xlsx": true, "pdf": true, "txt": true}
 	licenseKinds := map[string]bool{
 		"public-domain": true, "cc-by-nc-nd": true, "click-through": true,
 		"purchased": true, "unverified": true,
 	}
 
 	rows := readCSV(t, "file_rule.csv")[1:]
-	if len(rows) != 30 {
-		t.Fatalf("file_rule.csv: want 30 rules, got %d", len(rows))
+	if len(rows) != 33 {
+		t.Fatalf("file_rule.csv: want 33 rules, got %d", len(rows))
 	}
 
 	seenPattern := map[string]bool{}

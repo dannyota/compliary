@@ -29,3 +29,6 @@ ordinal,pattern,framework_code,version_label,doc_role,qualifier,file_format,igno
 2400,iso/iso-iec-27017-2015.pdf,iso27017,2015,main,,pdf,false,,purchased,https://www.iso.org/standard/43757.html,
 2500,iso/iso-iec-27018-2019.pdf,iso27018,2019,main,,pdf,false,,purchased,https://www.iso.org/standard/27018,superseded edition intentional
 2600,README.md,,,,,,true,corpus readme not a framework document,,,
+2700,tcvn/tcvn-11930-2017.pdf,tcvn11930,2017,main,,pdf,false,,purchased,https://tieuchuan.vsqi.gov.vn/tieuchuan/view?sohieu=TCVN+11930%3A2017,
+2800,tcvn/tcvn-14423-2025.txt,tcvn14423,2025,main,,txt,false,,purchased,https://tieuchuan.vsqi.gov.vn/tieuchuan/view?sohieu=TCVN+14423%3A2025,
+2900,tcvn/tcvn-14423-2025.pdf,tcvn14423,2025,guide,pdf-rendering,pdf,false,,purchased,https://tieuchuan.vsqi.gov.vn/tieuchuan/view?sohieu=TCVN+14423%3A2025,

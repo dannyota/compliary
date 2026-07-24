@@ -28,7 +28,7 @@ CREATE TABLE bronze.source_file (
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_bronze_source_file UNIQUE (manifest_rel_path, sha256),
     CONSTRAINT chk_bronze_source_file_role CHECK (doc_role IN ('main', 'amendment', 'companion-workbook', 'changelog')),
-    CONSTRAINT chk_bronze_source_file_format CHECK (file_format IN ('oscal-json', 'xlsx', 'pdf')),
+    CONSTRAINT chk_bronze_source_file_format CHECK (file_format IN ('oscal-json', 'xlsx', 'pdf', 'txt')),
     CONSTRAINT chk_bronze_source_file_license CHECK (license_kind IN ('public-domain', 'cc-by-nc-nd', 'click-through', 'purchased', 'membership', 'unverified')),
     CONSTRAINT chk_bronze_source_file_gate CHECK (serve_gate IN ('public', 'auth-only'))
 );

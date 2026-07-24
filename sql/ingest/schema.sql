@@ -35,7 +35,7 @@ CREATE TABLE ingest.manifest_file (
     CONSTRAINT uq_ingest_manifest_file UNIQUE (rel_path),
     CONSTRAINT chk_ingest_manifest_file_status CHECK (status IN ('active', 'removed')),
     CONSTRAINT chk_ingest_manifest_file_role CHECK (doc_role IN ('main', 'amendment', 'companion-workbook', 'changelog', 'guide')),
-    CONSTRAINT chk_ingest_manifest_file_format CHECK (file_format IN ('oscal-json', 'xlsx', 'pdf'))
+    CONSTRAINT chk_ingest_manifest_file_format CHECK (file_format IN ('oscal-json', 'xlsx', 'pdf', 'txt'))
 );
 
 CREATE INDEX idx_ingest_manifest_file_fw ON ingest.manifest_file (framework_code, version_label);
