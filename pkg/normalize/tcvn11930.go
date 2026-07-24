@@ -39,6 +39,17 @@ var reTCVNAnnex = regexp.MustCompile(`^(A\.\d+(?:\.\d+)?)\s+(\S.*)$`)
 // reTCVNBarePageNum matches a bare page-number line.
 var reTCVNBarePageNum = regexp.MustCompile(`^\d+$`)
 
+// reTCVNPageHeader matches the running page-header line: the standard's
+// identifier alone on a line. Whole-line anchored so a self-reference to
+// "TCVN 11930" inside requirement text is not stripped from the body.
+var reTCVNPageHeader = regexp.MustCompile(`^TCVN 11930:\d{4}$`)
+
+// reTCVNTOCLine matches a table-of-contents entry: a dot-leader run followed by
+// a trailing page number. Anchored to the leader+number tail so an inline
+// ellipsis inside requirement text (e.g. "(mật khẩu, mã số truy cập...)") is
+// not stripped from the body.
+var reTCVNTOCLine = regexp.MustCompile(`\.{2,}\s*\d+\s*$`)
+
 // BuildTCVN11930Tree parses a pdf-pages-json capture for TCVN 11930:2017 and
 // returns the normalized control tree. Pure function, no side effects.
 //
@@ -59,16 +70,23 @@ var reTCVNBarePageNum = regexp.MustCompile(`^\d+$`)
 // heading and body carries the verbatim Vietnamese clause text — both gated by
 // the document's serve_gate. Front matter (foreword, scope, references, terms
 // 1–4) is not emitted, matching the ISO/PCI convention.
-func BuildTCVN11930Tree(raw json.RawMessage, _, versionLabel string) (*TreeResult, error) {
-	var cap tcvnCapture
-	if err := json.Unmarshal(raw, &cap); err != nil {
+func BuildTCVN11930Tree(raw json.RawMessage, frameworkCode, versionLabel string) (*TreeResult, error) {
+	// This parser is specific to TCVN 11930:2017's PDF layout. The tcvn-clause
+	// scheme is shared with tcvn14423 (a different capture), so guard here as
+	// the ISO control-catalog parser does for its scheme.
+	if frameworkCode != "tcvn11930" {
+		return nil, fmt.Errorf("unsupported framework for tcvn11930 parser: %s", frameworkCode)
+	}
+
+	var capture tcvnCapture
+	if err := json.Unmarshal(raw, &capture); err != nil {
 		return nil, fmt.Errorf("unmarshal pdf capture: %w", err)
 	}
-	if len(cap.Pages) == 0 {
+	if len(capture.Pages) == 0 {
 		return nil, fmt.Errorf("no pages in capture")
 	}
 
-	headings := parseTCVNHeadings(cap.Pages)
+	headings := parseTCVNHeadings(capture.Pages)
 	if len(headings) == 0 {
 		return nil, fmt.Errorf("no numbered requirement clauses found in capture")
 	}
@@ -176,17 +194,25 @@ func parseTCVNHeadings(pages []tcvnPage) []tcvnHeading {
 	}
 	var starts []start
 	seen := make(map[string]bool)
+	headingLine := make(map[string]string) // citation -> verbatim heading line text
 	for i, li := range lines {
 		if li.citation == "" || seen[li.citation] {
 			continue
 		}
 		seen[li.citation] = true
+		headingLine[li.citation] = li.text
 		starts = append(starts, start{lineIdx: i, citation: li.citation, title: li.title})
 	}
 
 	// Pass 2: collect the verbatim body for each heading (lines up to the next
-	// heading occurrence). Non-heading lines only — nested headings never leak
-	// into a parent's body.
+	// distinct heading occurrence). Nested headings never leak into a parent's
+	// body because a new citation ends the region. A DUPLICATE citation line
+	// (its citation was already seen as a heading) is dropped from the body ONLY
+	// when it exactly reproduces its own heading line — a repeated running
+	// header. A duplicate-citation line whose text differs is genuine verbatim
+	// body content (a wrapped line that opens with a number, or a source
+	// numbering collision such as the two "8.1.3.2"/"9.1.3.2" clauses) and must
+	// be preserved, or the verbatim-body invariant breaks.
 	headings := make([]tcvnHeading, 0, len(starts))
 	for k, st := range starts {
 		endIdx := len(lines)
@@ -195,7 +221,7 @@ func parseTCVNHeadings(pages []tcvnPage) []tcvnHeading {
 		}
 		var bodyParts []string
 		for j := st.lineIdx + 1; j < endIdx; j++ {
-			if lines[j].citation != "" {
+			if c := lines[j].citation; c != "" && headingLine[c] == lines[j].text {
 				continue
 			}
 			bodyParts = append(bodyParts, lines[j].text)
@@ -266,17 +292,21 @@ func tcvnParentCitation(citation string) string {
 // isTCVNSkipLine filters structural artifacts (running page header, bare page
 // numbers, table-of-contents dot-leader lines) from the line stream.
 func isTCVNSkipLine(line string) bool {
-	if strings.Contains(line, "TCVN 11930") {
+	// Running page header: the standard identifier alone on a line (whole-line
+	// match — a "TCVN 11930" self-reference inside requirement text survives).
+	if reTCVNPageHeader.MatchString(line) {
 		return true
 	}
+	// Spaced running-title banner on title / section-break pages.
 	if strings.Contains(line, "T I E U") || strings.Contains(line, "T I Ê U") {
 		return true
 	}
 	if strings.Contains(line, "All rights reserved") {
 		return true
 	}
-	// Table-of-contents lines carry dot leaders.
-	if strings.Contains(line, "...") {
+	// Table-of-contents entry: dot-leader run + trailing page number (anchored —
+	// an inline ellipsis inside requirement text survives).
+	if reTCVNTOCLine.MatchString(line) {
 		return true
 	}
 	if reTCVNBarePageNum.MatchString(line) {

@@ -9,9 +9,13 @@ import (
 // syntheticTCVN is a minimal pdf-pages-json fixture that mirrors the STRUCTURAL
 // shape of TCVN 11930:2017 without reproducing any licensed normative text.
 //
-// ALL VIETNAMESE WORDING IS INVENTED placeholder content. It must never be
-// copied from the real standard — a prior round failed review for real headings
-// in fixtures.
+// ALL topical Vietnamese wording is GENUINELY INVENTED placeholder content
+// (a fishery-warehouse theme that does not exist in the standard). It must
+// never be copied, folded, or suffixed from real TCVN clause titles — a prior
+// round failed review for reusing real headings in fixtures. Only generic
+// boilerplate section names ("Pham vi ap dung", "Thuat ngu va dinh nghia",
+// "Phu luc A (Quy dinh)") and the structural group labels ("Yeu cau quan ly" /
+// "Yeu cau ky thuat") are kept, because those carry no protected topical text.
 //
 // Structure exercised:
 //   - Front matter that MUST be excluded: sections 1 (scope) and 4 (intro),
@@ -33,27 +37,27 @@ const syntheticTCVN = `{
     },
     {
       "n": 3,
-      "text": "Muc luc\n5.1 Muc quan ly dat hang .......... 15\n5.1.1 Nhom dat hang .......... 15\n"
+      "text": "Muc luc\n5.1 Muc kho ca dat hang .......... 15\n5.1.1 Nhom kho ca dat hang .......... 15\n"
     },
     {
       "n": 9,
-      "text": "1 Pham vi ap dung dat hang\nNoi dung pham vi dat hang khong phai la dieu khoan.\n3 Thuat ngu va dinh nghia\n3.1\nThuat ngu dat hang (invented term)\nDinh nghia thuat ngu dat hang khong phai la yeu cau.\n4 Yeu cau co ban theo cap do dat hang\nDoan gioi thieu dat hang khong phai la mot yeu cau.\n"
+      "text": "1 Pham vi ap dung dat hang\nNoi dung pham vi dat hang khong phai la dieu khoan.\n3 Thuat ngu va dinh nghia\n3.1\nThuat ngu kho ca dat hang (invented term)\nDinh nghia thuat ngu dat hang khong phai la yeu cau.\n4 Yeu cau co ban theo cap do dat hang\nDoan gioi thieu dat hang khong phai la mot yeu cau.\n"
     },
     {
       "n": 15,
-      "text": "TCVN 11930:2017\n15\n5 Yeu cau co ban cho he thong cap do mot dat hang\n5.1 Yeu cau quan ly dat hang\n5.1.1 Thiet lap nhom chinh sach dat hang\n5.1.1.1 Chinh sach dat hang mot\nNoi dung yeu cau chinh sach dat hang so mot invented.\n5.1.1.2 Xay dung va cong bo dat hang\na) Muc dat hang thu nhat cua yeu cau nay;\nb) Muc dat hang thu hai luu tru toi thieu 06 thang dat hang.\n5.1.2 Thiet lap nhom to chuc dat hang\n5.1.2.1 Don vi chuyen trach dat hang\nNoi dung yeu cau don vi chuyen trach dat hang invented.\n"
+      "text": "TCVN 11930:2017\n15\n5 Muc tieu kho ca cap do mot dat hang\n5.1 Yeu cau quan ly dat hang\n5.1.1 Quan ly kho dat hang\n5.1.1.1 So tay giao hang buoi sang\nNoi dung so tay giao hang buoi sang dat hang invented.\n5.1.1.2 Lich phoi ca ngoai troi\na) Muc phoi ca thu nhat cua yeu cau nay;\nb) Muc phoi ca thu hai luu tru toi thieu 06 thang dat hang.\n5.1.2 Sap xep ben do ca dat hang\n5.1.2.1 To bao ve may pha ca\nNoi dung to bao ve may pha ca dat hang invented.\n"
     },
     {
       "n": 17,
-      "text": "TCVN 11930:2017\n17\n5.2 Yeu cau ky thuat dat hang\n5.2.1 Bao dam an toan mang dat hang\n5.2.1.1 Thiet ke he thong dat hang\nNoi dung thiet ke he thong dat hang invented.\n"
+      "text": "TCVN 11930:2017\n17\n5.2 Yeu cau ky thuat dat hang\n5.2.1 Quan ly ben do ca dat hang\n5.2.1.1 Ke hoach son cua kho\nNoi dung ke hoach son cua kho dat hang invented.\n"
     },
     {
       "n": 19,
-      "text": "6 Yeu cau co ban cho he thong cap do hai dat hang\n6.1 Yeu cau quan ly dat hang hai\n6.1.1 Thiet lap nhom chinh sach dat hang hai\n6.1.1.1 Chinh sach dat hang hai mot\nNoi dung chinh sach dat hang hai mot invented.\n6.1.1.2 Xay dung va cong bo dat hang hai\nNoi dung xay dung va cong bo dat hang hai invented.\n"
+      "text": "6 Muc tieu kho ca cap do hai dat hang\n6.1 Yeu cau quan ly dat hang hai\n6.1.1 Quan ly kho dat hang hai\n6.1.1.1 So tay giao hang buoi chieu\nNoi dung so tay giao hang buoi chieu dat hang invented.\n6.1.1.2 Lich phoi ca buoi chieu\nNoi dung lich phoi ca buoi chieu dat hang invented.\n"
     },
     {
       "n": 67,
-      "text": "Phu luc A\n(Quy dinh)\nYeu cau co ban ve an toan vat ly dat hang\nA.1 Yeu cau vat ly cho he thong cap do mot dat hang\nA.1.1 Kiem soat truy cap vat ly dat hang\nNoi dung kiem soat truy cap vat ly dat hang invented.\nA.1.2 Chong trom chong pha hoai dat hang\nNoi dung chong trom dat hang invented.\nA.2 Yeu cau vat ly cho he thong cap do hai dat hang\nA.2.1 Kiem soat truy cap vat ly dat hang hai\nNoi dung kiem soat truy cap dat hang hai invented.\nA.2.10 Bao ve dien tu dat hang\nNoi dung bao ve dien tu dat hang invented.\n"
+      "text": "Phu luc A\n(Quy dinh)\nMuc tieu bao quan kho ca ngoai troi dat hang\nA.1 Muc tieu vat ly cho kho ca cap do mot dat hang\nA.1.1 Bao ve may pha ca dat hang\nNoi dung bao ve may pha ca dat hang invented.\nA.1.2 Ve sinh be chua nuoc dat hang\nNoi dung ve sinh be chua nuoc dat hang invented.\nA.2 Muc tieu vat ly cho kho ca cap do hai dat hang\nA.2.1 Sap xep gian phoi ca dat hang\nNoi dung sap xep gian phoi ca dat hang invented.\nA.2.10 Kiem tra luoi danh ca dat hang\nNoi dung kiem tra luoi danh ca dat hang invented.\n"
     }
   ]
 }`
@@ -162,10 +166,10 @@ func TestBuildTCVN11930Tree_Synthetic(t *testing.T) {
 	if leaf.ParentIdx != idxByCite["5.1.1"] {
 		t.Errorf("5.1.1.1 parentIdx=%d, want idx of 5.1.1", leaf.ParentIdx)
 	}
-	if leaf.TitleOriginal == nil || !strings.Contains(*leaf.TitleOriginal, "Chinh sach dat hang mot") {
+	if leaf.TitleOriginal == nil || !strings.Contains(*leaf.TitleOriginal, "So tay giao hang buoi sang") {
 		t.Errorf("5.1.1.1 title_original=%v, want verbatim heading", leaf.TitleOriginal)
 	}
-	if leaf.Body == nil || !strings.Contains(*leaf.Body, "chinh sach dat hang so mot") {
+	if leaf.Body == nil || !strings.Contains(*leaf.Body, "so tay giao hang buoi sang") {
 		t.Errorf("5.1.1.1 body missing verbatim body text: %v", leaf.Body)
 	}
 
@@ -175,7 +179,7 @@ func TestBuildTCVN11930Tree_Synthetic(t *testing.T) {
 	if leaf2.Body == nil {
 		t.Fatal("5.1.1.2 body is nil")
 	}
-	if !strings.Contains(*leaf2.Body, "a) Muc dat hang thu nhat") {
+	if !strings.Contains(*leaf2.Body, "a) Muc phoi ca thu nhat") {
 		t.Errorf("5.1.1.2 body missing a) bullet: %q", *leaf2.Body)
 	}
 	if !strings.Contains(*leaf2.Body, "06 thang dat hang") {
@@ -215,6 +219,118 @@ func TestBuildTCVN11930Tree_Synthetic(t *testing.T) {
 		if c.ParentIdx >= i {
 			t.Errorf("%s parentIdx=%d not < own index %d", c.Citation, c.ParentIdx, i)
 		}
+	}
+}
+
+// TestBuildTCVN11930Tree_CitationLikeBodyLines guards against the silent
+// verbatim-body loss reviewed in IMPORTANT 1: a body line that classifies as a
+// citation must be dropped ONLY when it exactly reproduces its own heading line
+// (a repeated running header). Two distinct cases must survive into the body:
+//   - a wrapped line that opens with a bare number ("5 nam ..."), and
+//   - a duplicate-citation line whose text differs from the heading (mirroring
+//     the real "8.1.3.2"/"9.1.3.2" source numbering collision).
+//
+// An exact reproduction of an earlier heading line must still be dropped.
+func TestBuildTCVN11930Tree_CitationLikeBodyLines(t *testing.T) {
+	const fixture = `{
+  "pages": [
+    {
+      "n": 15,
+      "text": "5 Muc tieu kho ca cap do mot dat hang\n5.1 Yeu cau quan ly dat hang\n5.1.1 Quan ly kho dat hang\n5.1.1.1 So tay giao hang\na) Thoi gian luu tru toi thieu la\n5 nam theo yeu cau nay dat hang.\n5.1.1.2 Phieu kiem tra kho\na) Muc dau tien cua phieu;\n5.1.1.2 Bien ban thu hai khac tieu de\nb) Muc thu hai cua bien ban.\n5.1.1.1 So tay giao hang\nc) Dong duplicate heading phia tren phai bi loai bo.\n"
+    }
+  ]
+}`
+
+	tree, err := BuildTCVN11930Tree(json.RawMessage(fixture), "tcvn11930", "2017")
+	if err != nil {
+		t.Fatalf("BuildTCVN11930Tree: %v", err)
+	}
+
+	byCite := make(map[string]ControlRow, len(tree.Controls))
+	var controls int
+	for _, c := range tree.Controls {
+		byCite[c.Citation] = c
+		if c.Kind == "control" {
+			controls++
+		}
+	}
+
+	// The colliding "5.1.1.2" must be a single control, not two.
+	if controls != 2 {
+		t.Errorf("controls=%d, want 2 (5.1.1.1 + one 5.1.1.2)", controls)
+	}
+
+	// Bare-number wrapped line survives in 5.1.1.1's body.
+	c1 := byCite["5.1.1.1"]
+	if c1.Body == nil || !strings.Contains(*c1.Body, "5 nam theo yeu cau nay dat hang.") {
+		t.Errorf("5.1.1.1 body dropped the bare-number wrapped line: %v", c1.Body)
+	}
+
+	// Duplicate-citation line whose text differs is verbatim body content.
+	c2 := byCite["5.1.1.2"]
+	if c2.Body == nil {
+		t.Fatal("5.1.1.2 body is nil")
+	}
+	if !strings.Contains(*c2.Body, "5.1.1.2 Bien ban thu hai khac tieu de") {
+		t.Errorf("5.1.1.2 body dropped the differing duplicate-citation line: %q", *c2.Body)
+	}
+	if !strings.Contains(*c2.Body, "b) Muc thu hai cua bien ban.") {
+		t.Errorf("5.1.1.2 body missing the second bullet: %q", *c2.Body)
+	}
+	// An EXACT reproduction of an earlier heading line ("5.1.1.1 So tay giao
+	// hang") is a running-header repeat and must be dropped.
+	if strings.Contains(*c2.Body, "So tay giao hang") {
+		t.Errorf("5.1.1.2 body leaked an exact heading-line repeat: %q", *c2.Body)
+	}
+}
+
+// TestBuildTCVN11930Tree_AnchoredSkipFilters guards IMPORTANT 2: the skip
+// filters must be anchored so legitimate body lines survive. An inline ellipsis
+// inside requirement text and a "TCVN 11930" self-reference must remain in the
+// body, while a genuine dot-leader ToC line and a whole-line page header are
+// still stripped.
+func TestBuildTCVN11930Tree_AnchoredSkipFilters(t *testing.T) {
+	const fixture = `{
+  "pages": [
+    {
+      "n": 15,
+      "text": "TCVN 11930:2017\n15\n5 Muc tieu kho ca cap do mot dat hang\n5.1 Yeu cau ky thuat dat hang\n5.1.1 Quan ly ben do ca dat hang\n5.1.1.1 Danh sach thiet bi kho\na) Thong tin nguoi dung biet (mat khau, ma truy cap...);\nMuc luc phu .......... 42\nTCVN 11930:2017\nb) Tuan thu TCVN 11930:2017 muc nay khi ap dung dat hang.\n"
+    }
+  ]
+}`
+
+	tree, err := BuildTCVN11930Tree(json.RawMessage(fixture), "tcvn11930", "2017")
+	if err != nil {
+		t.Fatalf("BuildTCVN11930Tree: %v", err)
+	}
+
+	var leaf *ControlRow
+	for i := range tree.Controls {
+		if tree.Controls[i].Citation == "5.1.1.1" {
+			leaf = &tree.Controls[i]
+		}
+	}
+	if leaf == nil || leaf.Body == nil {
+		t.Fatalf("5.1.1.1 control/body missing: %+v", leaf)
+	}
+	body := *leaf.Body
+
+	// Inline ellipsis inside requirement text survives (not a ToC leader).
+	if !strings.Contains(body, "(mat khau, ma truy cap...)") {
+		t.Errorf("body dropped the inline-ellipsis line: %q", body)
+	}
+	// "TCVN 11930" self-reference inside a requirement survives.
+	if !strings.Contains(body, "b) Tuan thu TCVN 11930:2017 muc nay") {
+		t.Errorf("body dropped the TCVN 11930 self-reference line: %q", body)
+	}
+	// The whole-line running page header is still stripped: only the mid-line
+	// self-reference occurrence remains.
+	if n := strings.Count(body, "TCVN 11930:2017"); n != 1 {
+		t.Errorf("TCVN 11930:2017 occurrences in body=%d, want 1 (header stripped, self-ref kept): %q", n, body)
+	}
+	// A genuine dot-leader ToC line is still stripped.
+	if strings.Contains(body, "Muc luc phu") {
+		t.Errorf("body leaked a dot-leader ToC line: %q", body)
 	}
 }
 
