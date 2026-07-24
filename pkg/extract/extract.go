@@ -49,7 +49,7 @@ type Extractor struct {
 }
 
 // Run processes the given manifest files (already filtered to extract-eligible,
-// extracted_at IS NULL). It dispatches by file_format: oscal-json, xlsx, pdf.
+// extracted_at IS NULL). It dispatches by file_format: oscal-json, xlsx, pdf, txt.
 func (e *Extractor) Run(
 	ctx context.Context,
 	files []dbingest.IngestManifestFile,
@@ -86,6 +86,17 @@ func (e *Extractor) Run(
 			}
 		case "pdf":
 			if err := e.extractPDF(ctx, f, ingQ, bronzeQ, cfgQ); err != nil {
+				e.Log.Error("extract failed", "path", f.RelPath, "err", err)
+				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{
+					ID:         f.ID,
+					StageError: fmt.Sprintf("extract: %s: %s", f.RelPath, err.Error()),
+				})
+				sum.Failed++
+			} else {
+				sum.Succeeded++
+			}
+		case "txt":
+			if err := e.extractTXT(ctx, f, ingQ, bronzeQ, cfgQ); err != nil {
 				e.Log.Error("extract failed", "path", f.RelPath, "err", err)
 				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{
 					ID:         f.ID,

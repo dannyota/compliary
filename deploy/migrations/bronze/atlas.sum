@@ -1,4 +1,5 @@
-h1:j0YvVNow3T0Map93HUxOmmYnxXaR5tgwSAFwq/DiU5Q=
+h1:VOxz2KWJD91VTB8R8U9YZ+BjSl6KgJ9VcOW3Mnt2fZg=
 00001_init.sql h1:7Y2AyxE07YHD1IEkIQk7x7RoDMDgx4/mXAIdrTMFokg=
 00002_update.sql h1:E4vXMxuZkbHq6JwwVqUBhIo3/gVb+wrFcOKoKknOP60=
 00003_manifest-txt-format.sql h1:dWZfC9UTiBuNFtQvZwleST8Iio8fmBVSvyDvjisbWyQ=
+00004_bronze-txt-kind.sql h1:uDweI4Sw0UfkywqZczqN3o3x+wYAIo1af71wG8GwWvM=

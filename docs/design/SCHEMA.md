@@ -56,7 +56,7 @@ document text** (log-leak rule).
 | Table | Role | Notes |
 |-------|------|-------|
 | `source_file` | One row per ingested file observation | `manifest_rel_path` · `sha256` · `framework_code`/`version_label` · **license provenance:** `source_url` (official publisher page), `license_kind` (verbatim class: `public-domain`/`cc-by-nc-nd`/`click-through`/`purchased`/`membership`/`unverified`), `retrieved_on`, `provenance_note` (e.g. "ITU X.1631 co-publication", "operator-accepted re-hosted copy") · **`serve_gate`** (`public`/`auth-only`) — the read path enforces this per document |
-| `raw_extract` | Extracted raw structures per file | `kind` (`text-markdown`/`oscal-catalog-json`/`workbook-rows-json`/`pdf-pages-json`) · `content` / `content_jsonb` · UNIQUE `(source_file_id, kind)` (idempotent re-extract) |
+| `raw_extract` | Extracted raw structures per file | `kind` (`text-markdown`/`oscal-catalog-json`/`workbook-rows-json`/`pdf-pages-json`/`txt-pages-json`) · `content` / `content_jsonb` · UNIQUE `(source_file_id, kind)` (idempotent re-extract) |
 
 **`workbook-rows-json` capture:** the canonical raw extraction for XLSX files — cell grid as
 `{"sheets":[{"name":…,"rows":[{"ref":"A5","value":…}…]}…]}`, shared strings resolved, no styling.
@@ -67,6 +67,11 @@ extraction (unlike PDF `text-markdown`, where the file itself is byte-preserved 
 go-fitz (purego, no cgo): `{"pages":[{"n":1,"text":"…"},…]}`. Page numbers enable parser provenance
 citations (`p.37`). Supersedes the earlier `text-markdown` intent for PDFs — `text-markdown` remains
 valid for non-PDF text sources.
+
+**`txt-pages-json` capture:** the canonical raw extraction for page-marked plain-text files — same
+page shape as `pdf-pages-json` (`{"pages":[{"n":1,"text":"…"},…]}`). Pages are split on marker lines
+of the exact form `===== [trang N] =====`; marker lines are stripped, N becomes the page number, and
+all other whitespace is preserved verbatim (text before the first marker belongs to page 1).
 
 ## `silver` — frameworks, controls, versions, mappings
 
