@@ -70,7 +70,7 @@ type Normalizer struct {
 // It dispatches by the framework's citation_scheme — implemented: 'oscal-catalog',
 // 'csf-workbook', 'cis-workbook', 'ccm-workbook', 'pci-requirement',
 // 'tsc-criteria', 'cobit-objective', 'iso-ams', 'iso-control-catalog',
-// 'tcvn-clause' (tcvn11930 only); other schemes and non-'main' doc roles are
+// 'tcvn-clause' (tcvn11930, tcvn14423); other schemes and non-'main' doc roles are
 // skipped as deferrals.
 func (n *Normalizer) Run(
 	ctx context.Context,
@@ -242,19 +242,26 @@ func (n *Normalizer) Run(
 				sum.Succeeded++
 			}
 		case "tcvn-clause":
-			// The tcvn-clause scheme is shared: tcvn11930:2017 (PDF, handled
-			// here) and tcvn14423 (separate document/task). Defer any other
-			// tcvn-clause framework rather than mis-parsing its capture.
-			if fwCode != "tcvn11930" {
+			// The tcvn-clause scheme is shared across TCVN standards with
+			// different captures: tcvn11930:2017 (PDF, pdf-pages-json) and
+			// tcvn14423:2025 (txt, txt-pages-json). Dispatch by framework; defer
+			// any other tcvn-clause framework rather than mis-parsing its capture.
+			var tcvnErr error
+			switch fwCode {
+			case "tcvn11930":
+				tcvnErr = n.normalizeTCVN11930(ctx, f, ingQ, bronzeQ, silverQ)
+			case "tcvn14423":
+				tcvnErr = n.normalizeTCVN14423(ctx, f, ingQ, bronzeQ, silverQ)
+			default:
 				n.Log.Info("normalize: deferred tcvn-clause framework", "path", f.RelPath, "framework", fwCode)
 				sum.Skipped++
 				continue
 			}
-			if err := n.normalizeTCVN11930(ctx, f, ingQ, bronzeQ, silverQ); err != nil {
-				n.Log.Error("normalize failed", "path", f.RelPath, "err", err)
+			if tcvnErr != nil {
+				n.Log.Error("normalize failed", "path", f.RelPath, "err", tcvnErr)
 				_ = ingQ.SetStageError(ctx, dbingest.SetStageErrorParams{
 					ID:         f.ID,
-					StageError: fmt.Sprintf("normalize: %s: %s", f.RelPath, err.Error()),
+					StageError: fmt.Sprintf("normalize: %s: %s", f.RelPath, tcvnErr.Error()),
 				})
 				sum.Failed++
 			} else {
@@ -574,6 +581,53 @@ func (n *Normalizer) normalizeTCVN11930(
 	tree, err := BuildTCVN11930Tree(json.RawMessage(re.ContentJsonb), fwCode, verLabel)
 	if err != nil {
 		return fmt.Errorf("build TCVN 11930 tree: %w", err)
+	}
+
+	// Write tree to silver.
+	doc := DocIdentity{
+		ManifestID:    f.ID,
+		RelPath:       f.RelPath,
+		Sha256:        f.Sha256,
+		FrameworkCode: fwCode,
+		VersionLabel:  verLabel,
+		DocRole:       deref(f.DocRole),
+		Qualifier:     f.Qualifier,
+		ServeGate:     sf.ServeGate,
+	}
+	return n.writeTree(ctx, doc, tree, ingQ, silverQ)
+}
+
+func (n *Normalizer) normalizeTCVN14423(
+	ctx context.Context,
+	f dbingest.IngestManifestFile,
+	ingQ IngestQuerier,
+	bronzeQ BronzeQuerier,
+	silverQ SilverQuerier,
+) error {
+	// Load source file from bronze.
+	sf, err := bronzeQ.GetSourceFile(ctx, dbbronze.GetSourceFileParams{
+		ManifestRelPath: f.RelPath,
+		Sha256:          f.Sha256,
+	})
+	if err != nil {
+		return fmt.Errorf("get source_file: %w", err)
+	}
+
+	// Load raw extract (txt-pages-json capture from the txt extractor).
+	re, err := bronzeQ.GetRawExtract(ctx, dbbronze.GetRawExtractParams{
+		SourceFileID: sf.ID,
+		Kind:         "txt-pages-json",
+	})
+	if err != nil {
+		return fmt.Errorf("get raw_extract: %w", err)
+	}
+
+	// Parse the capture into in-memory tree (pure function).
+	fwCode := deref(f.FrameworkCode)
+	verLabel := deref(f.VersionLabel)
+	tree, err := BuildTCVN14423Tree(json.RawMessage(re.ContentJsonb), fwCode, verLabel)
+	if err != nil {
+		return fmt.Errorf("build TCVN 14423 tree: %w", err)
 	}
 
 	// Write tree to silver.
