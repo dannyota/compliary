@@ -174,3 +174,13 @@ v4-abstain-maritime,What cybersecurity requirements does the IMO Maritime Safety
 v4-abstain-telecom,What requirements does the FCC impose on telecommunications carriers for network security?,,,,true,false,Out of scope: FCC telecom regulation is not in the corpus
 v4-version-iso27018-jurisdiction,What does the 2019 edition of ISO 27018 require for documenting the countries where PII is stored?,iso27018,2019,A.12.1,false,false,Version-pin: ISO 27018:2019 is superseded by 2025; A.12.1 covers PII storage jurisdiction documentation
 v4-version-iso27018-disclosure,What ISO 27018:2019 control governs disclosure of information about sub-contracted PII processing?,iso27018,2019,A.8.1,false,false,Version-pin: ISO 27018:2019 is superseded; A.8.1 covers sub-contractor transparency for PII processing
+tcvn14423-dmarc,Giải pháp xác thực email bằng DMARC để chống giả mạo tên miền là gì?,tcvn14423,2025,5.9.2.5,false,false,TCVN 14423:2025 DMARC email authentication
+tcvn14423-dns,Biện pháp lọc DNS nào giúp chặn các tên miền độc hại?,tcvn14423,2025,5.9.2.2,false,false,TCVN 14423:2025 DNS filtering of malicious domains
+tcvn14423-sdlc,Yêu cầu về quy trình phát triển phần mềm an toàn theo vòng đời SDLC?,tcvn14423,2025,5.16.2.1,false,false,TCVN 14423:2025 secure software development lifecycle
+tcvn14423-eol,Quy định rà soát và loại bỏ phần mềm hết hỗ trợ của nhà cung cấp?,tcvn14423,2025,5.3.2.3,false,false,TCVN 14423:2025 removal of end-of-life unsupported software
+tcvn14423-logs,Quy định thu thập và lưu trữ nhật ký an ninh mạng gồm những gì?,tcvn14423,2025,5.8.2.1,false,false,TCVN 14423:2025 security log collection and retention
+tcvn11930-fire,Yêu cầu phòng cháy chữa cháy cho phòng máy chủ?,tcvn11930,2017,A.5.5,false,false,TCVN 11930:2017 server room fire detection and suppression
+tcvn11930-lightning,Biện pháp phòng chống sét và nối đất cho thiết bị?,tcvn11930,2017,A.2.3,false,false,TCVN 11930:2017 lightning protection and equipment grounding
+tcvn11930-svracc,Kiểm soát ra vào phòng máy chủ với xác thực hai yếu tố?,tcvn11930,2017,A.5.2,false,false,TCVN 11930:2017 server room physical access control
+tcvn11930-integrity,Biện pháp kiểm tra và bảo đảm tính toàn vẹn dữ liệu?,tcvn11930,2017,9.2.4.1,false,false,TCVN 11930:2017 data integrity verification
+tcvn11930-svrloc,Quy định về vị trí bố trí đặt phòng máy chủ trong tòa nhà?,tcvn11930,2017,A.4.1,false,false,TCVN 11930:2017 server room siting and location
