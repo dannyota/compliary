@@ -1717,3 +1717,410 @@ csaccm,v4.1,UEM-11,Implementing data loss prevention
 csaccm,v4.1,UEM-12,Enabling remote locate capability
 csaccm,v4.1,UEM-13,Enabling remote wipe capability
 csaccm,v4.1,UEM-14,Assessing third-party endpoint security posture
+tcvn11930,2017,5.1.1.1,Ban hành quy định bảo đảm an toàn thông tin
+tcvn11930,2017,5.1.1.2,Phê duyệt và ban hành chính sách
+tcvn11930,2017,5.1.1.3,Định kỳ cập nhật chính sách bảo mật
+tcvn11930,2017,5.1.2.1,Bố trí lực lượng chuyên trách bảo mật
+tcvn11930,2017,5.1.2.2,Đầu mối phối hợp xử lý sự cố
+tcvn11930,2017,5.1.3.1,Tuyển chọn nhân sự phụ trách bảo mật
+tcvn11930,2017,5.1.3.2,Nâng cao ý thức bảo mật cho nhân viên
+tcvn11930,2017,5.1.3.3,Thu hồi quyền khi nhân sự nghỉ việc
+tcvn11930,2017,5.1.4.1,Lập hồ sơ thiết kế bảo đảm an toàn
+tcvn11930,2017,5.1.4.2,Kiểm thử và bàn giao hệ thống
+tcvn11930,2017,5.1.5.1,Vận hành và bảo vệ hạ tầng mạng
+tcvn11930,2017,5.1.5.2,Vận hành an toàn máy chủ và dịch vụ
+tcvn11930,2017,5.1.5.3,Bảo vệ và mã hóa dữ liệu
+tcvn11930,2017,5.2.1.1,Phân vùng kiến trúc mạng an toàn
+tcvn11930,2017,5.2.1.2,Chặn lọc kết nối từ bên ngoài
+tcvn11930,2017,5.2.1.3,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,5.2.1.4,Ngăn chặn và phát hiện tấn công mạng
+tcvn11930,2017,5.2.1.5,Xác thực và bảo mật thiết bị mạng
+tcvn11930,2017,5.2.2.1,Kiểm chứng danh tính người truy cập
+tcvn11930,2017,5.2.2.2,Giới hạn kết nối quản trị từ xa
+tcvn11930,2017,5.2.2.3,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,5.2.2.4,Ngăn chặn và phát hiện tấn công mạng
+tcvn11930,2017,5.2.2.5,Ngăn chặn và diệt mã độc
+tcvn11930,2017,5.2.3.1,Kiểm chứng danh tính người truy cập
+tcvn11930,2017,5.2.3.2,Giới hạn kết nối quản trị từ xa
+tcvn11930,2017,5.2.3.3,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,5.2.4.1,Bảo đảm khôi phục dữ liệu sau sự cố
+tcvn11930,2017,6.1.1.1,Ban hành quy định bảo đảm an toàn thông tin
+tcvn11930,2017,6.1.1.2,Phê duyệt và ban hành chính sách
+tcvn11930,2017,6.1.1.3,Định kỳ cập nhật chính sách bảo mật
+tcvn11930,2017,6.1.2.1,Bố trí lực lượng chuyên trách bảo mật
+tcvn11930,2017,6.1.2.2,Đầu mối phối hợp xử lý sự cố
+tcvn11930,2017,6.1.3.1,Tuyển chọn nhân sự phụ trách bảo mật
+tcvn11930,2017,6.1.3.2,Nâng cao ý thức bảo mật cho nhân viên
+tcvn11930,2017,6.1.3.3,Thu hồi quyền khi nhân sự nghỉ việc
+tcvn11930,2017,6.1.4.1,Lập hồ sơ thiết kế bảo đảm an toàn
+tcvn11930,2017,6.1.4.2,Kiểm soát phần mềm gia công thuê ngoài
+tcvn11930,2017,6.1.4.3,Kiểm thử và bàn giao hệ thống
+tcvn11930,2017,6.1.5.1,Vận hành và bảo vệ hạ tầng mạng
+tcvn11930,2017,6.1.5.2,Vận hành an toàn máy chủ và dịch vụ
+tcvn11930,2017,6.1.5.3,Bảo vệ và mã hóa dữ liệu
+tcvn11930,2017,6.1.5.4,Tiếp nhận và ứng phó sự cố
+tcvn11930,2017,6.1.5.5,Quản lý truy cập của người dùng cuối
+tcvn11930,2017,6.2.1.1,Phân vùng kiến trúc mạng an toàn
+tcvn11930,2017,6.2.1.2,Chặn lọc kết nối từ bên ngoài
+tcvn11930,2017,6.2.1.3,Hạn chế truy cập dịch vụ ngoài mạng
+tcvn11930,2017,6.2.1.4,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,6.2.1.5,Ngăn chặn và phát hiện tấn công mạng
+tcvn11930,2017,6.2.1.6,Xác thực và bảo mật thiết bị mạng
+tcvn11930,2017,6.2.2.1,Kiểm chứng danh tính người truy cập
+tcvn11930,2017,6.2.2.2,Giới hạn kết nối quản trị từ xa
+tcvn11930,2017,6.2.2.3,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,6.2.2.4,Ngăn chặn và phát hiện tấn công mạng
+tcvn11930,2017,6.2.2.5,Ngăn chặn và diệt mã độc
+tcvn11930,2017,6.2.2.6,Xóa dữ liệu khi thanh lý máy chủ
+tcvn11930,2017,6.2.3.1,Kiểm chứng danh tính người truy cập
+tcvn11930,2017,6.2.3.2,Giới hạn kết nối quản trị từ xa
+tcvn11930,2017,6.2.3.3,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,6.2.3.4,Kiểm tra hợp lệ đầu vào ứng dụng
+tcvn11930,2017,6.2.4.1,Mã hóa dữ liệu lưu trữ
+tcvn11930,2017,6.2.4.2,Bảo đảm khôi phục dữ liệu sau sự cố
+tcvn11930,2017,7.1.1.1,Ban hành quy định bảo đảm an toàn thông tin
+tcvn11930,2017,7.1.1.2,Phê duyệt và ban hành chính sách
+tcvn11930,2017,7.1.1.3,Định kỳ cập nhật chính sách bảo mật
+tcvn11930,2017,7.1.2.1,Bố trí lực lượng chuyên trách bảo mật
+tcvn11930,2017,7.1.2.2,Đầu mối phối hợp xử lý sự cố
+tcvn11930,2017,7.1.3.1,Tuyển chọn nhân sự phụ trách bảo mật
+tcvn11930,2017,7.1.3.2,Nâng cao ý thức bảo mật cho nhân viên
+tcvn11930,2017,7.1.3.3,Thu hồi quyền khi nhân sự nghỉ việc
+tcvn11930,2017,7.1.4.1,Lập hồ sơ thiết kế bảo đảm an toàn
+tcvn11930,2017,7.1.4.2,Kiểm soát phần mềm gia công thuê ngoài
+tcvn11930,2017,7.1.4.3,Kiểm thử và bàn giao hệ thống
+tcvn11930,2017,7.1.5.1,Vận hành và bảo vệ hạ tầng mạng
+tcvn11930,2017,7.1.5.2,Vận hành an toàn máy chủ và dịch vụ
+tcvn11930,2017,7.1.5.3,Bảo vệ và mã hóa dữ liệu
+tcvn11930,2017,7.1.5.4,Kiểm soát cấu hình thiết bị người dùng cuối
+tcvn11930,2017,7.1.5.5,Chính sách kiểm soát mã độc
+tcvn11930,2017,7.1.5.6,Theo dõi và cảnh báo an ninh hệ thống
+tcvn11930,2017,7.1.5.7,Theo dõi và vá lỗ hổng bảo mật
+tcvn11930,2017,7.1.5.8,Tiếp nhận và ứng phó sự cố
+tcvn11930,2017,7.1.5.9,Quản lý truy cập của người dùng cuối
+tcvn11930,2017,7.2.1.1,Phân vùng kiến trúc mạng an toàn
+tcvn11930,2017,7.2.1.2,Chặn lọc kết nối từ bên ngoài
+tcvn11930,2017,7.2.1.3,Hạn chế truy cập dịch vụ ngoài mạng
+tcvn11930,2017,7.2.1.4,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,7.2.1.5,Ngăn chặn và phát hiện tấn công mạng
+tcvn11930,2017,7.2.1.6,Ngăn mã độc lây lan qua mạng
+tcvn11930,2017,7.2.1.7,Xác thực và bảo mật thiết bị mạng
+tcvn11930,2017,7.2.2.1,Kiểm chứng danh tính người truy cập
+tcvn11930,2017,7.2.2.2,Giới hạn kết nối quản trị từ xa
+tcvn11930,2017,7.2.2.3,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,7.2.2.4,Ngăn chặn và phát hiện tấn công mạng
+tcvn11930,2017,7.2.2.5,Ngăn chặn và diệt mã độc
+tcvn11930,2017,7.2.2.6,Xóa dữ liệu khi thanh lý máy chủ
+tcvn11930,2017,7.2.3.1,Kiểm chứng danh tính người truy cập
+tcvn11930,2017,7.2.3.2,Giới hạn kết nối quản trị từ xa
+tcvn11930,2017,7.2.3.3,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,7.2.3.4,Mã hóa dữ liệu truyền trên mạng
+tcvn11930,2017,7.2.3.5,Chữ ký số bảo đảm không chối bỏ
+tcvn11930,2017,7.2.3.6,Kiểm tra hợp lệ đầu vào ứng dụng
+tcvn11930,2017,7.2.4.1,Kiểm tra tính toàn vẹn dữ liệu
+tcvn11930,2017,7.2.4.2,Mã hóa dữ liệu lưu trữ
+tcvn11930,2017,7.2.4.3,Bảo đảm khôi phục dữ liệu sau sự cố
+tcvn11930,2017,8.1.1.1,Ban hành quy định bảo đảm an toàn thông tin
+tcvn11930,2017,8.1.1.2,Phê duyệt và ban hành chính sách
+tcvn11930,2017,8.1.1.3,Định kỳ cập nhật chính sách bảo mật
+tcvn11930,2017,8.1.2.1,Bố trí lực lượng chuyên trách bảo mật
+tcvn11930,2017,8.1.2.2,Đầu mối phối hợp xử lý sự cố
+tcvn11930,2017,8.1.3.1,Tuyển chọn nhân sự phụ trách bảo mật
+tcvn11930,2017,8.1.3.2,Nâng cao ý thức bảo mật cho nhân viên
+tcvn11930,2017,8.1.4.1,Lập hồ sơ thiết kế bảo đảm an toàn
+tcvn11930,2017,8.1.4.2,Kiểm soát phần mềm gia công thuê ngoài
+tcvn11930,2017,8.1.4.3,Kiểm thử và bàn giao hệ thống
+tcvn11930,2017,8.1.5.1,Vận hành và bảo vệ hạ tầng mạng
+tcvn11930,2017,8.1.5.2,Vận hành an toàn máy chủ và dịch vụ
+tcvn11930,2017,8.1.5.3,Bảo vệ và mã hóa dữ liệu
+tcvn11930,2017,8.1.5.4,Kiểm soát cấu hình thiết bị người dùng cuối
+tcvn11930,2017,8.1.5.5,Chính sách kiểm soát mã độc
+tcvn11930,2017,8.1.5.6,Theo dõi và cảnh báo an ninh hệ thống
+tcvn11930,2017,8.1.5.7,Theo dõi và vá lỗ hổng bảo mật
+tcvn11930,2017,8.1.5.8,Tiếp nhận và ứng phó sự cố
+tcvn11930,2017,8.1.5.9,Quản lý truy cập của người dùng cuối
+tcvn11930,2017,8.2.1.1,Phân vùng kiến trúc mạng an toàn
+tcvn11930,2017,8.2.1.2,Chặn lọc kết nối từ bên ngoài
+tcvn11930,2017,8.2.1.3,Hạn chế truy cập dịch vụ ngoài mạng
+tcvn11930,2017,8.2.1.4,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,8.2.1.5,Ngăn chặn và phát hiện tấn công mạng
+tcvn11930,2017,8.2.1.6,Ngăn mã độc lây lan qua mạng
+tcvn11930,2017,8.2.1.7,Xác thực và bảo mật thiết bị mạng
+tcvn11930,2017,8.2.2.1,Kiểm chứng danh tính người truy cập
+tcvn11930,2017,8.2.2.2,Giới hạn kết nối quản trị từ xa
+tcvn11930,2017,8.2.2.3,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,8.2.2.4,Ngăn chặn và phát hiện tấn công mạng
+tcvn11930,2017,8.2.2.5,Ngăn chặn và diệt mã độc
+tcvn11930,2017,8.2.2.6,Xóa dữ liệu khi thanh lý máy chủ
+tcvn11930,2017,8.2.3.1,Kiểm chứng danh tính người truy cập
+tcvn11930,2017,8.2.3.2,Giới hạn kết nối quản trị từ xa
+tcvn11930,2017,8.2.3.3,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,8.2.3.4,Mã hóa dữ liệu truyền trên mạng
+tcvn11930,2017,8.2.3.5,Chữ ký số bảo đảm không chối bỏ
+tcvn11930,2017,8.2.3.6,Kiểm tra hợp lệ đầu vào ứng dụng
+tcvn11930,2017,8.2.4.1,Kiểm tra tính toàn vẹn dữ liệu
+tcvn11930,2017,8.2.4.2,Mã hóa dữ liệu lưu trữ
+tcvn11930,2017,8.2.4.3,Bảo đảm khôi phục dữ liệu sau sự cố
+tcvn11930,2017,9.1.1.1,Ban hành quy định bảo đảm an toàn thông tin
+tcvn11930,2017,9.1.1.2,Phê duyệt và ban hành chính sách
+tcvn11930,2017,9.1.1.3,Định kỳ cập nhật chính sách bảo mật
+tcvn11930,2017,9.1.2.1,Bố trí lực lượng chuyên trách bảo mật
+tcvn11930,2017,9.1.2.2,Đầu mối phối hợp xử lý sự cố
+tcvn11930,2017,9.1.3.1,Tuyển chọn nhân sự phụ trách bảo mật
+tcvn11930,2017,9.1.3.2,Nâng cao ý thức bảo mật cho nhân viên
+tcvn11930,2017,9.1.4.1,Lập hồ sơ thiết kế bảo đảm an toàn
+tcvn11930,2017,9.1.4.2,Kiểm soát phần mềm gia công thuê ngoài
+tcvn11930,2017,9.1.4.3,Kiểm thử và bàn giao hệ thống
+tcvn11930,2017,9.1.5.1,Vận hành và bảo vệ hạ tầng mạng
+tcvn11930,2017,9.1.5.2,Vận hành an toàn máy chủ và dịch vụ
+tcvn11930,2017,9.1.5.3,Bảo vệ và mã hóa dữ liệu
+tcvn11930,2017,9.1.5.4,Kiểm soát cấu hình thiết bị người dùng cuối
+tcvn11930,2017,9.1.5.5,Chính sách kiểm soát mã độc
+tcvn11930,2017,9.1.5.6,Theo dõi và cảnh báo an ninh hệ thống
+tcvn11930,2017,9.1.5.7,Theo dõi và vá lỗ hổng bảo mật
+tcvn11930,2017,9.1.5.8,Tiếp nhận và ứng phó sự cố
+tcvn11930,2017,9.1.5.9,Quản lý truy cập của người dùng cuối
+tcvn11930,2017,9.2.1.1,Phân vùng kiến trúc mạng an toàn
+tcvn11930,2017,9.2.1.2,Chặn lọc kết nối từ bên ngoài
+tcvn11930,2017,9.2.1.3,Hạn chế truy cập dịch vụ ngoài mạng
+tcvn11930,2017,9.2.1.4,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,9.2.1.5,Ngăn chặn và phát hiện tấn công mạng
+tcvn11930,2017,9.2.1.6,Ngăn mã độc lây lan qua mạng
+tcvn11930,2017,9.2.1.7,Xác thực và bảo mật thiết bị mạng
+tcvn11930,2017,9.2.2.1,Kiểm chứng danh tính người truy cập
+tcvn11930,2017,9.2.2.2,Giới hạn kết nối quản trị từ xa
+tcvn11930,2017,9.2.2.3,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,9.2.2.4,Ngăn chặn và phát hiện tấn công mạng
+tcvn11930,2017,9.2.2.5,Ngăn chặn và diệt mã độc
+tcvn11930,2017,9.2.2.6,Xóa dữ liệu khi thanh lý máy chủ
+tcvn11930,2017,9.2.3.1,Kiểm chứng danh tính người truy cập
+tcvn11930,2017,9.2.3.2,Giới hạn kết nối quản trị từ xa
+tcvn11930,2017,9.2.3.3,Ghi và lưu vết hoạt động hệ thống
+tcvn11930,2017,9.2.3.4,Mã hóa dữ liệu truyền trên mạng
+tcvn11930,2017,9.2.3.5,Chữ ký số bảo đảm không chối bỏ
+tcvn11930,2017,9.2.3.6,Kiểm tra hợp lệ đầu vào ứng dụng
+tcvn11930,2017,9.2.4.1,Kiểm tra tính toàn vẹn dữ liệu
+tcvn11930,2017,9.2.4.2,Mã hóa dữ liệu lưu trữ
+tcvn11930,2017,9.2.4.3,Bảo đảm khôi phục dữ liệu sau sự cố
+tcvn11930,2017,A.1.1,Kiểm soát ra vào phòng máy chủ
+tcvn11930,2017,A.1.2,Bảo vệ thiết bị khỏi trộm cắp và xâm hại
+tcvn11930,2017,A.1.3,Phòng cháy chữa cháy phòng máy chủ
+tcvn11930,2017,A.1.4,Bảo đảm nguồn điện phòng máy chủ
+tcvn11930,2017,A.2.1,Kiểm soát ra vào phòng máy chủ
+tcvn11930,2017,A.2.2,Bảo vệ thiết bị khỏi trộm cắp và xâm hại
+tcvn11930,2017,A.2.3,Phòng chống sét và nối đất thiết bị
+tcvn11930,2017,A.2.4,Phòng cháy chữa cháy phòng máy chủ
+tcvn11930,2017,A.2.5,Điều hòa môi trường phòng máy chủ
+tcvn11930,2017,A.2.6,Bảo đảm nguồn điện phòng máy chủ
+tcvn11930,2017,A.3.1,Bố trí vị trí đặt phòng máy chủ
+tcvn11930,2017,A.3.2,Kiểm soát ra vào phòng máy chủ
+tcvn11930,2017,A.3.3,Bảo vệ thiết bị khỏi trộm cắp và xâm hại
+tcvn11930,2017,A.3.4,Phòng chống sét và nối đất thiết bị
+tcvn11930,2017,A.3.5,Phòng cháy chữa cháy phòng máy chủ
+tcvn11930,2017,A.3.6,Ngăn ẩm và thấm nước phòng máy chủ
+tcvn11930,2017,A.3.7,Ngăn ngừa tĩnh điện thiết bị
+tcvn11930,2017,A.3.8,Điều hòa môi trường phòng máy chủ
+tcvn11930,2017,A.3.9,Bảo đảm nguồn điện phòng máy chủ
+tcvn11930,2017,A.3.10,Cách ly nhiễu điện từ thiết bị
+tcvn11930,2017,A.4.1,Bố trí vị trí đặt phòng máy chủ
+tcvn11930,2017,A.4.2,Kiểm soát ra vào phòng máy chủ
+tcvn11930,2017,A.4.3,Bảo vệ thiết bị khỏi trộm cắp và xâm hại
+tcvn11930,2017,A.4.4,Phòng chống sét và nối đất thiết bị
+tcvn11930,2017,A.4.5,Phòng cháy chữa cháy phòng máy chủ
+tcvn11930,2017,A.4.6,Ngăn ẩm và thấm nước phòng máy chủ
+tcvn11930,2017,A.4.7,Ngăn ngừa tĩnh điện thiết bị
+tcvn11930,2017,A.4.8,Điều hòa môi trường phòng máy chủ
+tcvn11930,2017,A.4.9,Bảo đảm nguồn điện phòng máy chủ
+tcvn11930,2017,A.4.10,Cách ly nhiễu điện từ thiết bị
+tcvn11930,2017,A.5.1,Bố trí vị trí đặt phòng máy chủ
+tcvn11930,2017,A.5.2,Kiểm soát ra vào phòng máy chủ
+tcvn11930,2017,A.5.3,Bảo vệ thiết bị khỏi trộm cắp và xâm hại
+tcvn11930,2017,A.5.4,Phòng chống sét và nối đất thiết bị
+tcvn11930,2017,A.5.5,Phòng cháy chữa cháy phòng máy chủ
+tcvn11930,2017,A.5.6,Ngăn ẩm và thấm nước phòng máy chủ
+tcvn11930,2017,A.5.7,Ngăn ngừa tĩnh điện thiết bị
+tcvn11930,2017,A.5.8,Điều hòa môi trường phòng máy chủ
+tcvn11930,2017,A.5.9,Bảo đảm nguồn điện phòng máy chủ
+tcvn11930,2017,A.5.10,Cách ly nhiễu điện từ thiết bị
+tcvn14423,2025,4.1.1,Tổng quan quản lý rủi ro an ninh mạng
+tcvn14423,2025,4.1.2.1,Ban hành quy chế đánh giá rủi ro
+tcvn14423,2025,4.1.2.2,Lập danh mục nguy cơ trong tổ chức
+tcvn14423,2025,4.1.2.3,Phân tích mức độ rủi ro
+tcvn14423,2025,4.1.2.4,Áp dụng biện pháp giảm thiểu rủi ro
+tcvn14423,2025,4.1.2.5,Theo dõi biến động rủi ro
+tcvn14423,2025,4.1.2.6,Thông báo rủi ro cho bên liên quan
+tcvn14423,2025,4.2.1,Tổng quan quản lý tài sản phần cứng
+tcvn14423,2025,4.2.2.1,Lập danh mục kiểm kê thiết bị phần cứng
+tcvn14423,2025,4.2.2.2,Phát hiện thiết bị kết nối trái phép
+tcvn14423,2025,4.2.2.3,Xóa dữ liệu khi thanh lý thiết bị
+tcvn14423,2025,4.3.1,Tổng quan quản lý tài sản phần mềm
+tcvn14423,2025,4.3.2.1,Lập danh mục kiểm kê phần mềm
+tcvn14423,2025,4.3.2.2,Gỡ bỏ phần mềm không được phép
+tcvn14423,2025,4.4.1,Tổng quan quản lý tài sản thông tin
+tcvn14423,2025,4.4.2.1,Ban hành quy định quản lý dữ liệu
+tcvn14423,2025,4.4.2.2,Kiểm kê và phân loại dữ liệu
+tcvn14423,2025,4.4.2.3,Phân quyền truy cập theo tài sản
+tcvn14423,2025,4.4.2.4,Bảo vệ dữ liệu nhạy cảm bằng mã hóa
+tcvn14423,2025,4.5.1,Tổng quan cấu hình an toàn hệ thống
+tcvn14423,2025,4.5.2.1,Ban hành tiêu chuẩn cấu hình an toàn
+tcvn14423,2025,4.5.2.2,Tự động ngắt phiên khi không sử dụng
+tcvn14423,2025,4.5.2.3,Kiểm soát phần mềm gia công thuê ngoài
+tcvn14423,2025,4.6.1,Tổng quan quản lý tài khoản và truy cập
+tcvn14423,2025,4.6.2.1,Lập danh mục và theo dõi tài khoản
+tcvn14423,2025,4.6.2.2,Chính sách mật khẩu an toàn
+tcvn14423,2025,4.6.2.3,Quản trị tập trung vòng đời tài khoản
+tcvn14423,2025,4.6.2.4,Nguyên tắc đặc quyền tối thiểu
+tcvn14423,2025,4.6.2.5,Quản lý vòng đời quyền truy cập
+tcvn14423,2025,4.7.1,Tổng quan quản lý lỗ hổng bảo mật
+tcvn14423,2025,4.7.2.1,Rà quét và xử lý lỗ hổng
+tcvn14423,2025,4.7.2.2,Triển khai vá lỗi tập trung
+tcvn14423,2025,4.8.1,Tổng quan quản lý nhật ký an ninh mạng
+tcvn14423,2025,4.8.2.1,Thu thập và lưu trữ nhật ký
+tcvn14423,2025,4.9.1,Tổng quan bảo vệ email và trình duyệt
+tcvn14423,2025,4.9.2.1,Danh mục trình duyệt email được phép
+tcvn14423,2025,4.9.2.2,Chặn tên miền độc hại qua DNS
+tcvn14423,2025,4.10.1,Tổng quan phòng chống mã độc
+tcvn14423,2025,4.10.2.1,Cài đặt phần mềm diệt mã độc
+tcvn14423,2025,4.10.2.2,Quét mã độc thiết bị lưu trữ ngoài
+tcvn14423,2025,4.10.2.3,Bật chống khai thác lỗ hổng
+tcvn14423,2025,4.11.1,Tổng quan sao lưu và khôi phục dữ liệu
+tcvn14423,2025,4.11.2.1,Ban hành quy chế dự phòng dữ liệu
+tcvn14423,2025,4.11.2.2,Tự động dự phòng dữ liệu định kỳ
+tcvn14423,2025,4.11.2.3,Mã hóa và bảo toàn bản dự phòng
+tcvn14423,2025,4.11.2.4,Lưu bản dự phòng ở hạ tầng riêng
+tcvn14423,2025,4.12.1,Tổng quan quản lý hạ tầng mạng
+tcvn14423,2025,4.12.2.1,Phân vùng và tài liệu hóa kiến trúc mạng
+tcvn14423,2025,4.12.2.2,Bảo vệ và dự phòng thiết bị mạng
+tcvn14423,2025,4.12.2.3,Mã hóa giao thức truyền tin và quản trị
+tcvn14423,2025,4.12.2.4,Chính sách truy cập từ xa qua VPN
+tcvn14423,2025,4.12.2.5,Kiểm tra hệ thống trước khi vận hành
+tcvn14423,2025,4.13.1,Tổng quan đào tạo nhận thức an ninh mạng
+tcvn14423,2025,4.13.2.1,Phân tách bộ phận vận hành và an ninh
+tcvn14423,2025,4.13.2.2,Đào tạo nhận thức an ninh cho toàn thể
+tcvn14423,2025,4.13.2.3,Đào tạo an ninh theo vai trò
+tcvn14423,2025,4.14.1,Tổng quan quản lý nhà cung cấp dịch vụ
+tcvn14423,2025,4.14.2,Kiểm kê và phân loại nhà cung cấp
+tcvn14423,2025,4.15.1,Tổng quan ứng phó sự cố an ninh mạng
+tcvn14423,2025,4.15.2.1,Chỉ định đội ứng phó sự cố
+tcvn14423,2025,4.15.2.2,Kênh nội bộ báo cáo sự cố
+tcvn14423,2025,4.15.2.3,Quy trình xử lý và khắc phục sự cố
+tcvn14423,2025,4.15.2.4,Kênh trao đổi kỹ thuật khi ứng cứu
+tcvn14423,2025,5.1.1,Tổng quan quản lý rủi ro an ninh mạng
+tcvn14423,2025,5.1.2.1,Ban hành quy chế đánh giá rủi ro
+tcvn14423,2025,5.1.2.2,Lập danh mục nguy cơ trong tổ chức
+tcvn14423,2025,5.1.2.3,Phân tích mức độ rủi ro
+tcvn14423,2025,5.1.2.4,Áp dụng biện pháp giảm thiểu rủi ro
+tcvn14423,2025,5.1.2.5,Theo dõi biến động rủi ro
+tcvn14423,2025,5.1.2.6,Thông báo rủi ro cho bên liên quan
+tcvn14423,2025,5.2.1,Tổng quan quản lý tài sản phần cứng
+tcvn14423,2025,5.2.2.1,Lập danh mục kiểm kê thiết bị phần cứng
+tcvn14423,2025,5.2.2.2,Phát hiện thiết bị kết nối trái phép
+tcvn14423,2025,5.2.2.3,Rà quét tài sản kết nối mạng
+tcvn14423,2025,5.2.2.4,Dùng nhật ký DHCP cập nhật kiểm kê
+tcvn14423,2025,5.2.2.5,Xóa dữ liệu khi thanh lý thiết bị
+tcvn14423,2025,5.3.1,Tổng quan quản lý tài sản phần mềm
+tcvn14423,2025,5.3.2.1,Lập danh mục kiểm kê phần mềm
+tcvn14423,2025,5.3.2.2,Danh mục phần mềm được phép cài đặt
+tcvn14423,2025,5.3.2.3,Loại bỏ phần mềm hết hỗ trợ
+tcvn14423,2025,5.3.2.4,Gỡ bỏ phần mềm không được phép
+tcvn14423,2025,5.4.1,Tổng quan quản lý tài sản thông tin
+tcvn14423,2025,5.4.2.1,Ban hành quy định quản lý dữ liệu
+tcvn14423,2025,5.4.2.2,Kiểm kê và phân loại dữ liệu
+tcvn14423,2025,5.4.2.3,Phân quyền truy cập theo tài sản
+tcvn14423,2025,5.4.2.4,Bảo vệ dữ liệu nhạy cảm bằng mã hóa
+tcvn14423,2025,5.4.2.5,Lập sơ đồ luồng dữ liệu quan trọng
+tcvn14423,2025,5.4.2.6,Phân tách dữ liệu theo độ nhạy cảm
+tcvn14423,2025,5.4.2.7,Ngăn rò rỉ dữ liệu nhạy cảm (DLP)
+tcvn14423,2025,5.4.2.8,Ghi nhật ký truy cập dữ liệu nhạy cảm
+tcvn14423,2025,5.4.2.9,Ký điện tử khi trao đổi dữ liệu mật
+tcvn14423,2025,5.5.1,Tổng quan cấu hình an toàn hệ thống
+tcvn14423,2025,5.5.2.1,Ban hành tiêu chuẩn cấu hình an toàn
+tcvn14423,2025,5.5.2.2,Tự động ngắt phiên khi không sử dụng
+tcvn14423,2025,5.5.2.3,Tắt tính năng dịch vụ không cần thiết
+tcvn14423,2025,5.5.2.4,Dùng máy chủ phân giải tên tin cậy
+tcvn14423,2025,5.5.2.5,Xóa dữ liệu di động từ xa
+tcvn14423,2025,5.5.2.6,Tách vùng làm việc trên thiết bị di động
+tcvn14423,2025,5.6.1,Tổng quan quản lý tài khoản và truy cập
+tcvn14423,2025,5.6.2.1,Lập danh mục và theo dõi tài khoản
+tcvn14423,2025,5.6.2.2,Chính sách mật khẩu an toàn
+tcvn14423,2025,5.6.2.3,Quản trị tập trung vòng đời tài khoản
+tcvn14423,2025,5.6.2.4,Nguyên tắc đặc quyền tối thiểu
+tcvn14423,2025,5.6.2.5,Quản lý vòng đời quyền truy cập
+tcvn14423,2025,5.7.1,Tổng quan quản lý lỗ hổng bảo mật
+tcvn14423,2025,5.7.2.1,Rà quét và xử lý lỗ hổng
+tcvn14423,2025,5.7.2.2,Triển khai vá lỗi tập trung
+tcvn14423,2025,5.8.1,Tổng quan quản lý nhật ký an ninh mạng
+tcvn14423,2025,5.8.2.1,Thu thập và lưu trữ nhật ký
+tcvn14423,2025,5.8.2.2,Lấy nhật ký từ dịch vụ bên ngoài
+tcvn14423,2025,5.8.2.3,Chống sửa đổi và mất nhật ký
+tcvn14423,2025,5.9.1,Tổng quan bảo vệ email và trình duyệt
+tcvn14423,2025,5.9.2.1,Danh mục trình duyệt email được phép
+tcvn14423,2025,5.9.2.2,Chặn tên miền độc hại qua DNS
+tcvn14423,2025,5.9.2.3,Chặn URL độc hại và hạn chế kết nối
+tcvn14423,2025,5.9.2.4,Quản lý tiện ích mở rộng trình duyệt
+tcvn14423,2025,5.9.2.5,Xác thực email bằng DMARC
+tcvn14423,2025,5.9.2.6,Kiểm soát tệp đính kèm email
+tcvn14423,2025,5.9.2.7,Chống mã độc trên máy chủ email
+tcvn14423,2025,5.10.1,Tổng quan phòng chống mã độc
+tcvn14423,2025,5.10.2.1,Cài đặt phần mềm diệt mã độc
+tcvn14423,2025,5.10.2.2,Quét mã độc thiết bị lưu trữ ngoài
+tcvn14423,2025,5.10.2.3,Điều khiển tập trung phần mềm diệt mã độc
+tcvn14423,2025,5.10.2.4,Bật chống khai thác lỗ hổng
+tcvn14423,2025,5.10.2.5,Phát hiện mã độc theo hành vi (EDR)
+tcvn14423,2025,5.11.1,Tổng quan sao lưu và khôi phục dữ liệu
+tcvn14423,2025,5.11.2.1,Ban hành quy chế dự phòng dữ liệu
+tcvn14423,2025,5.11.2.2,Tự động dự phòng dữ liệu định kỳ
+tcvn14423,2025,5.11.2.3,Mã hóa và bảo toàn bản dự phòng
+tcvn14423,2025,5.11.2.4,Lưu bản dự phòng ở hạ tầng riêng
+tcvn14423,2025,5.11.2.5,Diễn tập phục hồi dữ liệu
+tcvn14423,2025,5.12.1,Tổng quan quản lý hạ tầng mạng
+tcvn14423,2025,5.12.2.1,Phân vùng và tài liệu hóa kiến trúc mạng
+tcvn14423,2025,5.12.2.2,Bảo vệ và dự phòng thiết bị mạng
+tcvn14423,2025,5.12.2.3,Kiểm soát định danh và truy cập tập trung
+tcvn14423,2025,5.12.2.4,Mã hóa giao thức truyền tin và quản trị
+tcvn14423,2025,5.12.2.5,Chính sách truy cập từ xa qua VPN
+tcvn14423,2025,5.12.2.6,Tách riêng hạ tầng quản trị hệ thống
+tcvn14423,2025,5.12.2.7,Kiểm tra hệ thống trước khi vận hành
+tcvn14423,2025,5.13.1,Tổng quan giám sát và phòng thủ mạng
+tcvn14423,2025,5.13.2.1,Theo dõi tập trung cảnh báo an ninh (SIEM)
+tcvn14423,2025,5.13.2.2,Bật tường lửa và IDS/IPS hệ thống
+tcvn14423,2025,5.13.2.3,Trang bị thiết bị bảo mật mạng chuyên dụng
+tcvn14423,2025,5.13.2.4,Kiểm soát cổng kết nối trên thiết bị mạng
+tcvn14423,2025,5.13.2.5,Ghi nhận lưu lượng và luồng mạng
+tcvn14423,2025,5.13.2.6,Rà soát mức kích hoạt cảnh báo
+tcvn14423,2025,5.14.1,Tổng quan đào tạo nhận thức an ninh mạng
+tcvn14423,2025,5.14.2.1,Phân tách bộ phận vận hành và an ninh
+tcvn14423,2025,5.14.2.2,Đào tạo nhận thức an ninh cho toàn thể
+tcvn14423,2025,5.14.2.3,Đào tạo an ninh theo vai trò
+tcvn14423,2025,5.14.2.4,Đánh giá trình độ chuyên môn cán bộ an ninh
+tcvn14423,2025,5.15.1,Tổng quan quản lý nhà cung cấp dịch vụ
+tcvn14423,2025,5.15.2.1,Lập danh mục nhà cung cấp dịch vụ
+tcvn14423,2025,5.15.2.2,Ban hành quy chế quản lý nhà cung cấp
+tcvn14423,2025,5.15.2.3,Ràng buộc bảo mật trong hợp đồng dịch vụ
+tcvn14423,2025,5.15.2.4,Giám sát tuân thủ của nhà cung cấp
+tcvn14423,2025,5.15.2.5,Xử lý bảo mật khi kết thúc hợp đồng
+tcvn14423,2025,5.16.1,Tổng quan an toàn phần mềm ứng dụng
+tcvn14423,2025,5.16.2.1,Vòng đời phát triển phần mềm bảo mật (SDLC)
+tcvn14423,2025,5.16.2.2,Quy trình tiếp nhận báo cáo lỗ hổng
+tcvn14423,2025,5.16.2.3,Truy tìm nguyên nhân gốc của lỗ hổng
+tcvn14423,2025,5.16.2.4,Theo dõi thư viện thành phần bên thứ ba
+tcvn14423,2025,5.16.2.5,Cô lập môi trường phát triển và vận hành
+tcvn14423,2025,5.16.2.6,Huấn luyện viết mã an toàn cho lập trình viên
+tcvn14423,2025,5.16.2.7,Áp dụng nguyên tắc bảo mật khi thiết kế
+tcvn14423,2025,5.16.2.8,Dùng thành phần bảo mật đã kiểm chứng
+tcvn14423,2025,5.16.2.9,Kiểm thử bảo mật và rà lỗ hổng ứng dụng
+tcvn14423,2025,5.17.1,Tổng quan ứng phó sự cố an ninh mạng
+tcvn14423,2025,5.17.2.1,Chỉ định đội ứng phó sự cố
+tcvn14423,2025,5.17.2.2,Kênh nội bộ báo cáo sự cố
+tcvn14423,2025,5.17.2.3,Quy trình xử lý và khắc phục sự cố
+tcvn14423,2025,5.17.2.4,Kênh trao đổi kỹ thuật khi ứng cứu
+tcvn14423,2025,5.17.2.5,Rút kinh nghiệm sau sự cố
+tcvn14423,2025,5.17.2.6,Thực hành kịch bản xử lý sự cố
+tcvn14423,2025,5.17.2.7,Thiết lập ngưỡng phân loại sự cố
+tcvn14423,2025,5.18.1,Tổng quan kiểm thử xâm nhập
+tcvn14423,2025,5.18.2.1,Xây dựng kế hoạch đánh giá xâm nhập
+tcvn14423,2025,5.18.2.2,Đánh giá tấn công từ ngoài mạng
+tcvn14423,2025,5.18.2.3,Khắc phục lỗ hổng sau kiểm thử
+tcvn14423,2025,5.18.2.4,Kiểm chứng hiệu quả kiểm soát bảo mật
+tcvn14423,2025,5.18.2.5,Đánh giá tấn công từ nội bộ mạng
+tcvn14423,2025,5.18.2.6,Truy tìm dấu vết xâm nhập hệ thống

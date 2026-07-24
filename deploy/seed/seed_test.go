@@ -194,11 +194,12 @@ func TestControlTitleSeed(t *testing.T) {
 	}
 
 	rows := readCSV(t, "control_title.csv")[1:]
-	if len(rows) < 700 {
-		t.Fatalf("control_title.csv: want >=700 rows, got %d", len(rows))
+	if len(rows) < 2100 {
+		t.Fatalf("control_title.csv: want >=2100 rows, got %d", len(rows))
 	}
 
 	seen := map[string]bool{}
+	perFramework := map[string]int{}
 	for _, r := range rows {
 		fw, ver, cite, title := r[0], r[1], r[2], r[3]
 		key := fw + "|" + ver + "|" + cite
@@ -206,6 +207,7 @@ func TestControlTitleSeed(t *testing.T) {
 			t.Errorf("control_title %s: duplicate", key)
 		}
 		seen[key] = true
+		perFramework[fw]++
 		if !frameworks[fw] {
 			t.Errorf("control_title %s: unknown framework_code %q", key, fw)
 		}
@@ -217,6 +219,15 @@ func TestControlTitleSeed(t *testing.T) {
 		}
 		if cite == "" {
 			t.Errorf("control_title %s: empty citation_norm", key)
+		}
+	}
+
+	// Vietnamese paraphrases cover every control (not clause) of both TCVN
+	// corpora: TCVN 11930:2017 has 225 controls, TCVN 14423:2025 has 182.
+	wantCounts := map[string]int{"tcvn11930": 225, "tcvn14423": 182}
+	for fw, want := range wantCounts {
+		if perFramework[fw] != want {
+			t.Errorf("control_title: framework %q has %d title rows, want %d", fw, perFramework[fw], want)
 		}
 	}
 }
