@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"strings"
 )
 
 // reTCVN14423Heading matches a numbered heading in the normative sections 4 or
@@ -75,145 +74,17 @@ func BuildTCVN14423Tree(raw json.RawMessage, frameworkCode, versionLabel string)
 		return nil, fmt.Errorf("no numbered requirement clauses found in capture")
 	}
 
-	result := &TreeResult{
-		Title: "TCVN 14423 " + versionLabel,
-	}
-
-	// Structural leaf detection: a citation is intermediate iff another citation
-	// has it as a dotted prefix.
-	citSet := make(map[string]bool, len(headings))
-	for _, h := range headings {
-		citSet[h.Citation] = true
-	}
-	isIntermediate := func(c string) bool {
-		prefix := c + "."
-		for other := range citSet {
-			if strings.HasPrefix(other, prefix) {
-				return true
-			}
-		}
-		return false
-	}
-
-	citationToIdx := make(map[string]int, len(headings))
-	var ordinal int32
-	for _, h := range headings {
-		kind := "control"
-		titlePrefix := "Control "
-		if isIntermediate(h.Citation) {
-			kind = "clause"
-			titlePrefix = "Clause "
-		}
-
-		cr := ControlRow{
-			Citation:     h.Citation,
-			CitationNorm: h.Citation, // already the canonical printed number
-			Kind:         kind,
-			Status:       "active",
-			Title:        titlePrefix + h.Citation,
-			Ordinal:      ordinal,
-		}
-
-		// Verbatim Vietnamese heading (gated by serve_gate downstream).
-		if h.Title != "" {
-			title := h.Title
-			cr.TitleOriginal = &title
-		}
-		// Verbatim Vietnamese clause body (intermediate headings have none).
-		if h.Body != "" {
-			body := h.Body
-			cr.Body = &body
-		}
-
-		// Parent = citation with the last dotted segment removed. Section roots
-		// (4, 5) resolve to a non-heading prefix and become roots.
-		parentCite := tcvnParentCitation(h.Citation)
-		if idx, ok := citationToIdx[parentCite]; ok {
-			cr.ParentIdx = idx
-		} else {
-			cr.ParentIdx = -1
-		}
-
-		citationToIdx[h.Citation] = len(result.Controls)
-		result.Controls = append(result.Controls, cr)
-		ordinal++
-	}
-
-	return result, nil
+	return buildTCVNTree(headings, "TCVN 14423 "+versionLabel), nil
 }
 
 // parseTCVN14423Headings scans all pages in document order for numbered headings
 // in sections 4 and 5, collecting the verbatim body text that follows each.
 // Front matter, table-of-contents entries, and the page-header artifact are
-// filtered. Each citation is kept once (first occurrence).
+// filtered. Each citation is kept once (first occurrence). The shared engine is
+// parseTCVNPages; the 14423-specific skip and classify functions encode this
+// document's heading ranges and artifacts.
 func parseTCVN14423Headings(pages []tcvnPage) []tcvnHeading {
-	type line struct {
-		text     string
-		citation string // non-empty if this line opens a heading
-		title    string
-	}
-
-	var lines []line
-	for _, p := range pages {
-		for _, raw := range strings.Split(p.Text, "\n") {
-			s := strings.TrimSpace(raw)
-			if s == "" {
-				continue
-			}
-			if isTCVN14423SkipLine(s) {
-				continue
-			}
-			cit, title := classifyTCVN14423Line(s)
-			lines = append(lines, line{text: s, citation: cit, title: title})
-		}
-	}
-
-	// Pass 1: record the first occurrence of each heading citation, in order.
-	type start struct {
-		lineIdx  int
-		citation string
-		title    string
-	}
-	var starts []start
-	seen := make(map[string]bool)
-	headingLine := make(map[string]string) // citation -> verbatim heading line text
-	for i, li := range lines {
-		if li.citation == "" || seen[li.citation] {
-			continue
-		}
-		seen[li.citation] = true
-		headingLine[li.citation] = li.text
-		starts = append(starts, start{lineIdx: i, citation: li.citation, title: li.title})
-	}
-
-	// Pass 2: collect the verbatim body for each heading (lines up to the next
-	// distinct heading occurrence). A DUPLICATE citation line is dropped from the
-	// body ONLY when it exactly reproduces its own heading line (a repeated
-	// running header). A duplicate-citation line whose text differs is genuine
-	// verbatim body content (a wrapped line that opens with a number, or a source
-	// numbering collision) and must be preserved, or the verbatim-body invariant
-	// breaks.
-	headings := make([]tcvnHeading, 0, len(starts))
-	for k, st := range starts {
-		endIdx := len(lines)
-		if k+1 < len(starts) {
-			endIdx = starts[k+1].lineIdx
-		}
-		var bodyParts []string
-		for j := st.lineIdx + 1; j < endIdx; j++ {
-			if c := lines[j].citation; c != "" && headingLine[c] == lines[j].text {
-				continue
-			}
-			bodyParts = append(bodyParts, lines[j].text)
-		}
-		headings = append(headings, tcvnHeading{
-			Citation: st.citation,
-			Title:    strings.TrimSpace(st.title),
-			Body:     strings.TrimSpace(strings.Join(bodyParts, "\n")),
-		})
-	}
-
-	return headings
+	return parseTCVNPages(pages, isTCVN14423SkipLine, classifyTCVN14423Line)
 }
 
 // classifyTCVN14423Line returns the citation + heading title if the line opens a
