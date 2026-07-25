@@ -28,6 +28,22 @@ type ConfigControlTitle struct {
 	UpdatedAt     time.Time
 }
 
+type ConfigCuratedMapping struct {
+	ID                int64
+	FromFrameworkCode string
+	FromVersionLabel  string
+	FromCitationNorm  string
+	ToFrameworkCode   string
+	ToVersionLabel    *string
+	ToCitationNorm    string
+	Relationship      string
+	MappingSourceCode string
+	Note              string
+	Origin            string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
 type ConfigFileRule struct {
 	ID             int64
 	Ordinal        int32

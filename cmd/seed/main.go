@@ -200,6 +200,24 @@ func run(cfgPath string, log *slog.Logger) error {
 	}
 	counts["control_title"] = len(rows)
 
+	if err := q.DeleteSeedCuratedMappings(ctx); err != nil {
+		return fmt.Errorf("clear curated_mapping seed: %w", err)
+	}
+	rows, err = readSeedCSV("curated_mapping.csv")
+	if err != nil {
+		return err
+	}
+	for _, r := range rows {
+		if err := q.InsertSeedCuratedMapping(ctx, dbconfig.InsertSeedCuratedMappingParams{
+			FromFrameworkCode: r[0], FromVersionLabel: r[1], FromCitationNorm: r[2],
+			ToFrameworkCode: r[3], ToVersionLabel: nullText(r[4]), ToCitationNorm: r[5],
+			Relationship: r[6], MappingSourceCode: r[7], Note: r[8],
+		}); err != nil {
+			return fmt.Errorf("insert curated_mapping %s/%s/%s → %s/%s: %w", r[0], r[1], r[2], r[3], r[5], err)
+		}
+	}
+	counts["curated_mapping"] = len(rows)
+
 	if err := q.DeleteSeedFileRules(ctx); err != nil {
 		return fmt.Errorf("clear file_rule seed: %w", err)
 	}
@@ -247,6 +265,7 @@ func run(cfgPath string, log *slog.Logger) error {
 		"setting", counts["setting"],
 		"reference_source", counts["reference_source"],
 		"control_title", counts["control_title"],
+		"curated_mapping", counts["curated_mapping"],
 		"file_rule", counts["file_rule"],
 	)
 	return nil

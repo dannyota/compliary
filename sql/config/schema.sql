@@ -157,6 +157,37 @@ CREATE TABLE config.control_title (
     CONSTRAINT chk_config_control_title_origin CHECK (origin IN ('seed', 'user'))
 );
 
+-- config.curated_mapping: operator-authored cross-framework edges for corpora
+-- whose publications ship no crosswalk table (e.g. the TCVN corpora). Each row
+-- is the operator's own analysis of both endpoints' text — never a publisher
+-- mapping. The mapedges stage resolves the from side to a silver.control and
+-- upserts a silver.control_mapping edge under mapping_source (typically
+-- 'operator'); the to side resolves lazily like any other edge. relationship
+-- and mapping_source_code mirror silver.control_mapping's vocabulary.
+-- to_version_label NULL means the row does not pin a target version.
+-- note carries the operator's honesty caveats (e.g. MOD-lineage version drift);
+-- it is our own wording, never licensed document text.
+-- origin='seed' rows are replaced by re-seed; origin='user' survive.
+CREATE TABLE config.curated_mapping (
+    id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    from_framework_code TEXT NOT NULL,
+    from_version_label  TEXT NOT NULL,
+    from_citation_norm  TEXT NOT NULL,
+    to_framework_code   TEXT NOT NULL,
+    to_version_label    TEXT,
+    to_citation_norm    TEXT NOT NULL,
+    relationship        TEXT NOT NULL DEFAULT 'related',
+    mapping_source_code TEXT NOT NULL DEFAULT 'operator',
+    note                TEXT NOT NULL DEFAULT '',
+    origin              TEXT NOT NULL DEFAULT 'seed',
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_config_curated_mapping UNIQUE NULLS NOT DISTINCT
+        (from_framework_code, from_version_label, from_citation_norm, to_framework_code, to_version_label, to_citation_norm, mapping_source_code),
+    CONSTRAINT chk_config_curated_mapping_origin CHECK (origin IN ('seed', 'user')),
+    CONSTRAINT chk_config_curated_mapping_rel CHECK (relationship IN ('equivalent', 'subset-of', 'superset-of', 'intersects', 'related', 'incorporated-into', 'moved-to'))
+);
+
 -- config.setting: generic key/value store for operator-tunable gates.
 CREATE TABLE config.setting (
     id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

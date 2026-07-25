@@ -20,6 +20,7 @@ banhmi (re-seed replaces seed rows, never touches user rows).
 | `mapping_source` | Provenance vocab for mapping edges | `code` (`nist-olir`, `csa-ccm-v4.1`, `cis-v8.1-mappings`, `publisher-catalog`, `iso-structural`, `operator`) · `name` · `authority_note` | `(code)` |
 | `control_kind` | Vocab for `silver.control.kind` | `code` (`domain`/`family`/`clause`/`control`/`enhancement`/`criterion`/`point-of-focus`/`requirement`/`objective`/`practice`/`safeguard`/`annex-control`/`function`/`category`/`subcategory`) — framework-native unit naming; COBIT practices (`EDM01.01`) and TSC points of focus are first-class citable units, not body text | `(code)` |
 | `reference_source` | Prefix→target mapping for informative-reference extraction | `prefix` (exact colon-split match, e.g. `SP 800-53 Rev 5.2.0`) · `to_framework_code` · `to_version_label` (nullable = version-unspecified) · `mapping_source_code` (default `publisher-catalog`) · `enabled` · UNIQUE `(prefix)` — seeded from CSV; unknown/disabled prefixes are skipped and counted, never guessed | `(prefix)` |
+| `curated_mapping` | **Operator-authored cross-framework edges** for corpora that ship no crosswalk table (the TCVN corpora) | `from_framework_code`+`from_version_label`+`from_citation_norm` (business key resolved to a `silver.control`) · `to_framework_code`+`to_version_label` (nullable = unpinned)+`to_citation_norm` · `relationship` (same vocab as `silver.control_mapping`) · `mapping_source_code` (default `operator`) · `note` (our own honesty caveat, e.g. MOD-lineage version drift — never licensed text) · `origin` seed/user · UNIQUE NULLS NOT DISTINCT `(from_framework_code, from_version_label, from_citation_norm, to_framework_code, to_version_label, to_citation_norm, mapping_source_code)` — the mapedges stage resolves each row's from side and upserts a `silver.control_mapping` edge; rows whose from-control is absent are counted + reported, never dropped | `(from…, to…, mapping_source_code)` |
 | `file_rule` | Filename→document matching + per-file license provenance | `ordinal` (match order; first match wins) · `pattern` (path.Match glob over rel_path) · `framework_code`/`version_label`/`doc_role`/`qualifier` (NULL for ignore rules) · `ignore`/`ignore_reason` · `file_format` · `license_kind`/`source_url`/`provenance_note` (provenance flows to `bronze.source_file` at extract time) · `origin` seed/user | `(pattern)` |
 | `setting` | key/value gates | `key`, `value` | `(key)` |
 
@@ -90,6 +91,12 @@ Publisher citation typos (e.g. ISO `6.11`/`6.13`) are recorded **verbatim** — 
 surfaced later as quality gaps by design. Version-unspecified targets (e.g. PCI DSS with no version
 in the reference line) use `to_version_label=NULL`, resolving lazily to the current version when
 that framework's parser lands.
+
+**Operator-curated edges:** for corpora whose publications ship no crosswalk table (the TCVN
+corpora), the mapedges stage resolves `config.curated_mapping` rows into `control_mapping` under
+`mapping_source_code='operator'`. Each row is the operator's own analysis of both endpoints' text —
+never publisher-authoritative; `provenance_detail` carries the operator note (e.g. MOD-lineage version
+drift), not a source cell. From-controls absent from the corpus are counted + reported, never dropped.
 
 **Withdrawn-in-document modeling:** when a publisher lists superseded items inline (e.g. CSF v1.1
 categories/subcategories inside the 2.0 workbook, marked `[Withdrawn: Incorporated into …]`),

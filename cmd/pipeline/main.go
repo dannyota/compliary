@@ -264,6 +264,15 @@ func runMapEdges(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) erro
 		return fmt.Errorf("mapedges: cis mappings: %w", err)
 	}
 
+	// Operator-curated edges (config.curated_mapping) — e.g. the TCVN corpora,
+	// whose publications ship no crosswalk table. Unresolvable from-controls are
+	// counted and reported, never silently dropped.
+	curatedSum, err := normalize.EmitCuratedEdges(ctx, pool, silverQ, log)
+	if err != nil {
+		return fmt.Errorf("mapedges: curated edges: %w", err)
+	}
+	log.Info("mapedges: curated", "total", curatedSum.Total, "emitted", curatedSum.Emitted, "unresolved", curatedSum.Unresolved, "resolved", curatedSum.Resolved)
+
 	// --- Enhanced resolution passes ---
 
 	// 1. Annex-A prefix normalization: bare "5.26" → corpus "A.5.26" for
@@ -284,8 +293,10 @@ func runMapEdges(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) erro
 	}
 
 	log.Info("mapedges complete",
-		"emitted", sum.Emitted+olirSum.Emitted+cisSum.Emitted,
-		"resolved", sum.Resolved+olirSum.Resolved+cisSum.Resolved,
+		"emitted", sum.Emitted+olirSum.Emitted+cisSum.Emitted+curatedSum.Emitted,
+		"resolved", sum.Resolved+olirSum.Resolved+cisSum.Resolved+curatedSum.Resolved,
+		"curated_emitted", curatedSum.Emitted,
+		"curated_unresolved", curatedSum.Unresolved,
 		"annex_prefix_resolved", annexResolved,
 		"supersession_resolved", supersessionResolved,
 	)

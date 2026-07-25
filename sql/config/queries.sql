@@ -92,6 +92,18 @@ DELETE FROM config.control_title WHERE origin = 'seed';
 INSERT INTO config.control_title (framework_code, version_label, citation_norm, title, origin)
 VALUES ($1, $2, $3, $4, 'seed') ON CONFLICT (framework_code, version_label, citation_norm) DO NOTHING;
 
+-- name: ListCuratedMappings :many
+SELECT * FROM config.curated_mapping
+ORDER BY from_framework_code, from_version_label, from_citation_norm, to_framework_code, to_citation_norm;
+
+-- name: DeleteSeedCuratedMappings :exec
+DELETE FROM config.curated_mapping WHERE origin = 'seed';
+
+-- name: InsertSeedCuratedMapping :exec
+INSERT INTO config.curated_mapping (from_framework_code, from_version_label, from_citation_norm, to_framework_code, to_version_label, to_citation_norm, relationship, mapping_source_code, note, origin)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'seed')
+ON CONFLICT (from_framework_code, from_version_label, from_citation_norm, to_framework_code, to_version_label, to_citation_norm, mapping_source_code) DO NOTHING;
+
 -- name: DeleteSeedFileRules :exec
 DELETE FROM config.file_rule WHERE origin = 'seed';
 

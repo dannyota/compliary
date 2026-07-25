@@ -28,6 +28,15 @@ func (q *Queries) DeleteSeedControlTitles(ctx context.Context) error {
 	return err
 }
 
+const deleteSeedCuratedMappings = `-- name: DeleteSeedCuratedMappings :exec
+DELETE FROM config.curated_mapping WHERE origin = 'seed'
+`
+
+func (q *Queries) DeleteSeedCuratedMappings(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteSeedCuratedMappings)
+	return err
+}
+
 const deleteSeedFileRules = `-- name: DeleteSeedFileRules :exec
 DELETE FROM config.file_rule WHERE origin = 'seed'
 `
@@ -199,6 +208,39 @@ func (q *Queries) InsertSeedControlTitle(ctx context.Context, arg InsertSeedCont
 		arg.VersionLabel,
 		arg.CitationNorm,
 		arg.Title,
+	)
+	return err
+}
+
+const insertSeedCuratedMapping = `-- name: InsertSeedCuratedMapping :exec
+INSERT INTO config.curated_mapping (from_framework_code, from_version_label, from_citation_norm, to_framework_code, to_version_label, to_citation_norm, relationship, mapping_source_code, note, origin)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'seed')
+ON CONFLICT (from_framework_code, from_version_label, from_citation_norm, to_framework_code, to_version_label, to_citation_norm, mapping_source_code) DO NOTHING
+`
+
+type InsertSeedCuratedMappingParams struct {
+	FromFrameworkCode string
+	FromVersionLabel  string
+	FromCitationNorm  string
+	ToFrameworkCode   string
+	ToVersionLabel    *string
+	ToCitationNorm    string
+	Relationship      string
+	MappingSourceCode string
+	Note              string
+}
+
+func (q *Queries) InsertSeedCuratedMapping(ctx context.Context, arg InsertSeedCuratedMappingParams) error {
+	_, err := q.db.Exec(ctx, insertSeedCuratedMapping,
+		arg.FromFrameworkCode,
+		arg.FromVersionLabel,
+		arg.FromCitationNorm,
+		arg.ToFrameworkCode,
+		arg.ToVersionLabel,
+		arg.ToCitationNorm,
+		arg.Relationship,
+		arg.MappingSourceCode,
+		arg.Note,
 	)
 	return err
 }
@@ -443,6 +485,45 @@ func (q *Queries) ListControlTitles(ctx context.Context, arg ListControlTitlesPa
 			&i.VersionLabel,
 			&i.CitationNorm,
 			&i.Title,
+			&i.Origin,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCuratedMappings = `-- name: ListCuratedMappings :many
+SELECT id, from_framework_code, from_version_label, from_citation_norm, to_framework_code, to_version_label, to_citation_norm, relationship, mapping_source_code, note, origin, created_at, updated_at FROM config.curated_mapping
+ORDER BY from_framework_code, from_version_label, from_citation_norm, to_framework_code, to_citation_norm
+`
+
+func (q *Queries) ListCuratedMappings(ctx context.Context) ([]ConfigCuratedMapping, error) {
+	rows, err := q.db.Query(ctx, listCuratedMappings)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ConfigCuratedMapping
+	for rows.Next() {
+		var i ConfigCuratedMapping
+		if err := rows.Scan(
+			&i.ID,
+			&i.FromFrameworkCode,
+			&i.FromVersionLabel,
+			&i.FromCitationNorm,
+			&i.ToFrameworkCode,
+			&i.ToVersionLabel,
+			&i.ToCitationNorm,
+			&i.Relationship,
+			&i.MappingSourceCode,
+			&i.Note,
 			&i.Origin,
 			&i.CreatedAt,
 			&i.UpdatedAt,
