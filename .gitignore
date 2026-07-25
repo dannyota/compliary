@@ -25,3 +25,4 @@ coverage.*
 .DS_Store
 Thumbs.db
 *.swp
+/config/config.yaml
