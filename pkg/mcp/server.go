@@ -44,7 +44,7 @@ func WithBehindProxy() ServerOption {
 	return func(s *Server) { s.behindProxy = true }
 }
 
-const defaultServerVersion = "0.2.0"
+const defaultServerVersion = "0.2.1"
 
 func (s *Server) effectiveVersion() string {
 	if s.version != "" {
