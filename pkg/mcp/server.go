@@ -97,7 +97,7 @@ func NewServer(core *Core, log *slog.Logger, opts ...ServerOption) *Server {
 	mcpsdk.AddTool(srv, &mcpsdk.Tool{
 		Annotations: &mcpsdk.ToolAnnotations{ReadOnlyHint: true, OpenWorldHint: &closedWorld, DestructiveHint: &notDestructive, Title: "Corpus quality gaps"},
 		Name:        "quality_gaps",
-		Description: "Unresolved mapping edges by target, deferred docs (amendments, CAIQ), unrecognized manifest rows, body-quality caveats (PCI guidance interleave), abstain/eval floors.",
+		Description: "Unresolved mapping edges by target, curated-mapping drift (seeded operator edges not materialized — a stale mapedges stage), deferred docs (amendments, CAIQ), unrecognized manifest rows, body-quality caveats (PCI guidance interleave), abstain/eval floors.",
 		InputSchema: inputSchemaFor[QualityGapsInput](),
 	}, s.handleQualityGaps)
 

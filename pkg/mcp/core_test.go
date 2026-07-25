@@ -3,6 +3,8 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"testing"
 
@@ -308,9 +310,10 @@ func TestQualityGaps_Categories(t *testing.T) {
 		want  int
 		err   bool
 	}{
-		{"", 5, false},
-		{"all", 5, false},
+		{"", 6, false},
+		{"all", 6, false},
 		{"unresolved_mappings", 1, false},
+		{"curated_mappings", 1, false},
 		{"deferred_docs", 1, false},
 		{"manifest", 1, false},
 		{"body_quality", 1, false},
@@ -600,6 +603,44 @@ func TestStaticEvalFloors(t *testing.T) {
 		}
 		if f.Floor <= 0 {
 			t.Errorf("floor %q should be positive", f.Metric)
+		}
+	}
+}
+
+// TestStaticEvalFloors_V6Baseline pins the served floors and last-measured
+// values to the documented golden v6 open-corpus baseline (205 cases,
+// 2026-07-25) recorded in docs/design/MCP.md and docs/design/RETRIEVAL.md.
+// quality_gaps serves these over MCP and the public landing page renders them,
+// so a stale copy is served evidence — this test makes the drift loud.
+func TestStaticEvalFloors_V6Baseline(t *testing.T) {
+	want := map[string]EvalFloor{
+		"recall@8":        {Metric: "recall@8", Floor: 0.66, Last: 0.863},
+		"MRR@8":           {Metric: "MRR@8", Floor: 0.44, Last: 0.663},
+		"current-version": {Metric: "current-version", Floor: 0.98, Last: 1.000},
+		"abstention":      {Metric: "abstention", Floor: 0.90, Last: 0.966},
+	}
+
+	got := map[string]EvalFloor{}
+	for _, f := range EvalFloors() {
+		got[f.Metric] = f
+	}
+	if len(got) != len(want) {
+		t.Fatalf("eval floors: got %d metrics %v, want %d", len(got), slices.Sorted(maps.Keys(got)), len(want))
+	}
+	for metric, w := range want {
+		g, ok := got[metric]
+		if !ok {
+			t.Errorf("eval floors: metric %q missing", metric)
+			continue
+		}
+		if g.Floor != w.Floor {
+			t.Errorf("eval floor %q: got %.3f, want %.3f (docs/design/MCP.md)", metric, g.Floor, w.Floor)
+		}
+		if g.Last != w.Last {
+			t.Errorf("eval last-measured %q: got %.3f, want %.3f (golden v6, 205 cases)", metric, g.Last, w.Last)
+		}
+		if g.Last < g.Floor {
+			t.Errorf("eval %q: last-measured %.3f is below its own floor %.3f", metric, g.Last, g.Floor)
 		}
 	}
 }

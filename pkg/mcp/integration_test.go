@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -268,6 +269,101 @@ func TestIntegration_LiveCorpus(t *testing.T) {
 		t.Logf("reduced document: %d chunks (content stripped), %d mappings",
 			len(out.Chunks), len(out.Mappings))
 	})
+}
+
+// TestIntegration_CuratedMappingDrift exercises the quality_gaps
+// curated-mapping drift surface against the real dev corpus. It needs the DB
+// only (no embedder), so it runs without the onnx build tag.
+//
+// Why this gap exists: re-normalizing a framework deletes and recreates its
+// silver.control rows, which cascade-deletes the silver.control_mapping edges
+// pointing at them. mapedges is not in cmd/pipeline's default stage list, so a
+// normalize run silently drops curated edges until mapedges is re-run.
+func TestIntegration_CuratedMappingDrift(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	corpus := DBCorpus(pool)
+
+	// --- healthy corpus: no drift, no drift note ---
+	out, err := corpus.QualityGaps(ctx, QualityGapsInput{Category: "curated_mappings"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out.CuratedMappingGaps) != 0 {
+		t.Errorf("healthy corpus: expected no curated-mapping drift, got %d rows (first: %+v)",
+			len(out.CuratedMappingGaps), out.CuratedMappingGaps[0])
+	}
+	for _, n := range out.Notes {
+		if strings.Contains(n, "curated mapping drift") {
+			t.Errorf("healthy corpus: unexpected drift note %q", n)
+		}
+	}
+	t.Logf("healthy corpus: 0 curated-mapping drift rows")
+
+	// --- drift case: delete a framework's operator edges inside a rolled-back
+	// transaction and run the same query the tool runs. The tool reads through
+	// the pool, so the drift branch is exercised via the shared query const —
+	// the dev DB is never left in a broken state.
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil {
+			t.Fatalf("rollback failed — dev DB may be left with dropped edges: %v", err)
+		}
+	}()
+
+	tag, err := tx.Exec(ctx, `
+DELETE FROM silver.control_mapping cm
+USING silver.control sc, silver.document d
+WHERE sc.id = cm.from_control_id
+  AND d.id = sc.document_id
+  AND d.framework_code = 'tcvn11930'
+  AND cm.mapping_source_code = 'operator'`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deleted := tag.RowsAffected()
+	if deleted == 0 {
+		t.Skip("no tcvn11930 operator edges in this corpus — nothing to simulate")
+	}
+
+	rows, err := tx.Query(ctx, curatedMappingDriftQuery, maxGapLimit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got, total int64
+	var reason string
+	for rows.Next() {
+		var g CuratedMappingGap
+		if err := rows.Scan(&g.FromFrameworkCode, &g.FromVersionLabel, &g.FromCitationNorm,
+			&g.ToFrameworkCode, &g.ToVersionLabel, &g.ToCitationNorm,
+			&g.MappingSource, &g.Reason, &total); err != nil {
+			rows.Close()
+			t.Fatal(err)
+		}
+		if g.FromFrameworkCode != "tcvn11930" {
+			t.Errorf("unexpected drift row for %s (only tcvn11930 edges were dropped)", g.FromFrameworkCode)
+		}
+		reason = g.Reason
+		got++
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+
+	if got != deleted || total != deleted {
+		t.Errorf("drift rows: got %d (total %d), want %d", got, total, deleted)
+	}
+	if !strings.Contains(reason, "mapedges") {
+		t.Errorf("drift reason should name the mapedges stage, got %q", reason)
+	}
+	if note := curatedDriftNote(total); !strings.Contains(note, "-stage mapedges") {
+		t.Errorf("drift note should name the remediation command, got %q", note)
+	}
+	t.Logf("simulated drift: %d dropped edges → %d drift rows, reason %q", deleted, got, reason)
 }
 
 // --- Test helpers ---

@@ -9,7 +9,7 @@ import (
 
 // QualityGapsInput is the quality_gaps tool's argument schema.
 type QualityGapsInput struct {
-	Category string `json:"category,omitempty" jsonschema:"one gap category: unresolved_mappings, deferred_docs, manifest, body_quality, eval_floors; omit (or 'all') for every category"`
+	Category string `json:"category,omitempty" jsonschema:"one gap category: unresolved_mappings, curated_mappings, deferred_docs, manifest, body_quality, eval_floors; omit (or 'all') for every category"`
 	Limit    int    `json:"limit,omitempty" jsonschema:"max rows per category (default 20, max 100)"`
 }
 
@@ -18,6 +18,7 @@ type QualityGapsOutput struct {
 	Limit              int                    `json:"limit"`
 	Categories         []string               `json:"categories"`
 	UnresolvedMappings []UnresolvedMappingGap `json:"unresolved_mappings,omitempty"`
+	CuratedMappingGaps []CuratedMappingGap    `json:"curated_mapping_gaps,omitempty"`
 	DeferredDocs       []DeferredDocGap       `json:"deferred_docs,omitempty"`
 	ManifestGaps       []ManifestGap          `json:"manifest_gaps,omitempty"`
 	BodyQualityCaveats []BodyQualityCaveat    `json:"body_quality_caveats,omitempty"`
@@ -33,6 +34,19 @@ type UnresolvedMappingGap struct {
 	MappingSource   string `json:"mapping_source_code"`
 	Count           int64  `json:"count"`
 	FromFrameworks  string `json:"from_frameworks,omitempty"`
+}
+
+// CuratedMappingGap is a seeded config.curated_mapping row that is not
+// materialized as a silver.control_mapping edge.
+type CuratedMappingGap struct {
+	FromFrameworkCode string `json:"from_framework_code"`
+	FromVersionLabel  string `json:"from_version_label"`
+	FromCitationNorm  string `json:"from_citation_norm"`
+	ToFrameworkCode   string `json:"to_framework_code"`
+	ToVersionLabel    string `json:"to_version_label,omitempty"`
+	ToCitationNorm    string `json:"to_citation_norm"`
+	MappingSource     string `json:"mapping_source_code"`
+	Reason            string `json:"reason"`
 }
 
 // DeferredDocGap is a document deferred from parsing.
@@ -68,6 +82,7 @@ type EvalFloor struct {
 const (
 	gapCategoryAll         = "all"
 	gapCategoryUnresolved  = "unresolved_mappings"
+	gapCategoryCurated     = "curated_mappings"
 	gapCategoryDeferred    = "deferred_docs"
 	gapCategoryManifest    = "manifest"
 	gapCategoryBodyQuality = "body_quality"
@@ -107,6 +122,17 @@ func (dc *dbCorpus) QualityGaps(ctx context.Context, in QualityGapsInput) (Quali
 		}
 	}
 
+	if gapIncludes(categories, gapCategoryCurated) {
+		gaps, total, err := dc.curatedMappingGaps(ctx, limit)
+		if err != nil {
+			return QualityGapsOutput{}, err
+		}
+		out.CuratedMappingGaps = gaps
+		if total > 0 {
+			out.Notes = append(out.Notes, curatedDriftNote(total))
+		}
+	}
+
 	if gapIncludes(categories, gapCategoryDeferred) {
 		out.DeferredDocs, err = dc.deferredDocs(ctx, limit)
 		if err != nil {
@@ -137,6 +163,7 @@ func gapCategories(category string) ([]string, error) {
 	if category == "" || category == gapCategoryAll {
 		return []string{
 			gapCategoryUnresolved,
+			gapCategoryCurated,
 			gapCategoryDeferred,
 			gapCategoryManifest,
 			gapCategoryBodyQuality,
@@ -145,14 +172,15 @@ func gapCategories(category string) ([]string, error) {
 	}
 	switch category {
 	case gapCategoryUnresolved,
+		gapCategoryCurated,
 		gapCategoryDeferred,
 		gapCategoryManifest,
 		gapCategoryBodyQuality,
 		gapCategoryEvalFloors:
 		return []string{category}, nil
 	default:
-		return nil, fmt.Errorf("unknown quality gap category %q; valid: %s, %s, %s, %s, %s, or all",
-			category, gapCategoryUnresolved, gapCategoryDeferred, gapCategoryManifest, gapCategoryBodyQuality, gapCategoryEvalFloors)
+		return nil, fmt.Errorf("unknown quality gap category %q; valid: %s, %s, %s, %s, %s, %s, or all",
+			category, gapCategoryUnresolved, gapCategoryCurated, gapCategoryDeferred, gapCategoryManifest, gapCategoryBodyQuality, gapCategoryEvalFloors)
 	}
 }
 
@@ -201,6 +229,107 @@ LIMIT $1`
 		out = append(out, row)
 	}
 	return out, rows.Err()
+}
+
+// curatedMappingDriftQuery lists seeded config.curated_mapping rows that have
+// no matching silver.control_mapping edge, newest-drift-agnostic and ordered
+// deterministically. The match mirrors the mapedges upsert key
+// (from_control_id, to_framework_code, to_version_label, to_citation_norm,
+// mapping_source_code) and the case-insensitive from-side business key the
+// curated pass uses. count(*) OVER () carries the pre-LIMIT total so the note
+// can state the real drift size.
+//
+// Two distinct reasons are reported: the from-control exists but the edge is
+// missing (stale mapedges — a normalize run cascade-deletes that framework's
+// edges), versus the from-control is absent entirely (framework not ingested).
+const curatedMappingDriftQuery = `
+WITH missing AS (
+    SELECT
+        cur.from_framework_code,
+        cur.from_version_label,
+        cur.from_citation_norm,
+        cur.to_framework_code,
+        COALESCE(cur.to_version_label, '') AS to_version_label,
+        cur.to_citation_norm,
+        cur.mapping_source_code,
+        EXISTS (
+            SELECT 1
+            FROM silver.control sc
+            JOIN silver.document d ON d.id = sc.document_id
+            WHERE d.framework_code = cur.from_framework_code
+              AND d.version_label = cur.from_version_label
+              AND upper(sc.citation_norm) = upper(cur.from_citation_norm)
+        ) AS from_present
+    FROM config.curated_mapping cur
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM silver.control_mapping cm
+        JOIN silver.control sc ON sc.id = cm.from_control_id
+        JOIN silver.document d ON d.id = sc.document_id
+        WHERE d.framework_code = cur.from_framework_code
+          AND d.version_label = cur.from_version_label
+          AND upper(sc.citation_norm) = upper(cur.from_citation_norm)
+          AND cm.to_framework_code = cur.to_framework_code
+          AND cm.to_citation_norm = cur.to_citation_norm
+          AND cm.mapping_source_code = cur.mapping_source_code
+          AND cm.to_version_label IS NOT DISTINCT FROM cur.to_version_label
+    )
+)
+SELECT
+    from_framework_code,
+    from_version_label,
+    from_citation_norm,
+    to_framework_code,
+    to_version_label,
+    to_citation_norm,
+    mapping_source_code,
+    CASE WHEN from_present
+        THEN 'seeded edge not materialized — re-run the mapedges pipeline stage'
+        ELSE 'from-control not in corpus — that framework/version is not ingested'
+    END AS reason,
+    count(*) OVER () AS total
+FROM missing
+ORDER BY from_framework_code, from_version_label, from_citation_norm, to_framework_code, to_citation_norm
+LIMIT $1`
+
+// curatedDriftNote is the operator-facing remediation line attached to the
+// notes list whenever curated-mapping drift is detected.
+func curatedDriftNote(total int64) string {
+	return fmt.Sprintf("curated mapping drift: %d seeded config.curated_mapping row(s) are not materialized in silver.control_mapping — run `go run ./cmd/pipeline -stage mapedges` (a normalize run cascade-deletes the re-written framework's mapping edges).", total)
+}
+
+// curatedMappingGaps returns the drift rows (capped by limit) and the pre-LIMIT
+// total.
+func (dc *dbCorpus) curatedMappingGaps(ctx context.Context, limit int) ([]CuratedMappingGap, int64, error) {
+	rows, err := dc.pool.Query(ctx, curatedMappingDriftQuery, limit)
+	if err != nil {
+		return nil, 0, fmt.Errorf("query curated mapping gaps: %w", err)
+	}
+	defer rows.Close()
+
+	var out []CuratedMappingGap
+	var total int64
+	for rows.Next() {
+		var row CuratedMappingGap
+		if err := rows.Scan(
+			&row.FromFrameworkCode,
+			&row.FromVersionLabel,
+			&row.FromCitationNorm,
+			&row.ToFrameworkCode,
+			&row.ToVersionLabel,
+			&row.ToCitationNorm,
+			&row.MappingSource,
+			&row.Reason,
+			&total,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan curated mapping gap: %w", err)
+		}
+		out = append(out, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	return out, total, nil
 }
 
 func (dc *dbCorpus) deferredDocs(ctx context.Context, limit int) ([]DeferredDocGap, error) {
@@ -314,16 +443,19 @@ func staticBodyQualityCaveats() []BodyQualityCaveat {
 func EvalFloors() []EvalFloor { return staticEvalFloors() }
 
 func staticEvalFloors() []EvalFloor {
-	// Open-corpus lane on the 175-case golden set (v3), re-baselined
-	// 2026-07-21 after 6 golden-label corrections (collision-51-iso27002,
-	// iso27002-824, csf-idam07, pcidss-1234, iso27017-121, v3-cobit-vendor-risk)
-	// and the CurrentPrecision version-pin refinement. Abstention uses the
-	// raw-cosine floor (search_abstain_floor = 0.5): it catches clearly-distant
-	// OOS queries, but compliance-adjacent OOS still embeds close to InfoSec text.
+	// Open-corpus lane on the 205-case golden set (v6), re-baselined
+	// 2026-07-25 after the 20 Vietnamese TCVN cases landed. The v5→v6 lift is
+	// set composition (the new TCVN cases score above the corpus average), not
+	// a retriever change — a control run of the unchanged 185-case v5 set
+	// reproduced v5 exactly. Abstention uses the raw-cosine floor
+	// (search_abstain_floor = 0.5): it catches clearly-distant OOS queries, but
+	// compliance-adjacent OOS still embeds close to InfoSec text.
+	// Keep in sync with docs/design/MCP.md and docs/design/RETRIEVAL.md —
+	// TestStaticEvalFloors_V6Baseline pins these values.
 	return []EvalFloor{
-		{Metric: "recall@8", Floor: 0.66, Last: 0.838},
-		{Metric: "MRR@8", Floor: 0.44, Last: 0.624},
+		{Metric: "recall@8", Floor: 0.66, Last: 0.863},
+		{Metric: "MRR@8", Floor: 0.44, Last: 0.663},
 		{Metric: "current-version", Floor: 0.98, Last: 1.000},
-		{Metric: "abstention", Floor: 0.90, Last: 0.954},
+		{Metric: "abstention", Floor: 0.90, Last: 0.966},
 	}
 }
