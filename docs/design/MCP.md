@@ -174,14 +174,14 @@ embedder) never abstain on the floor — there is no cosine to compare.
 
 | Lane | Recall@8 | MRR@8 | Current | Abstain |
 |------|----------|-------|---------|---------|
-| Open-corpus (no pins) | 83.8% | 62.4% | 100% | 95.4% |
-| Framework-filtered | 91.9% | 80.1% | 100% | 94.9% |
+| Open-corpus (no pins) | 84.7% | 63.1% | 100% | 96.2% |
+| Framework-filtered | 92.4% | 79.6% | 100% | 95.1% |
 
-Golden set v3: 175 cases (105 v2 + 20 new: 8 COBIT, 5 OOS, 4 ISO 27001 topic-phrased, 3
-27017/27018). Re-baselined 2026-07-21 after 6 golden-label corrections and the
-CurrentPrecision version-pin refinement (details in RETRIEVAL.md baseline section).
+Golden set v5: 185 cases (175 v4 + 10 Vietnamese TCVN cases, all hitting rank 1–3).
+Re-baselined 2026-07-25 after the TCVN 11930/14423 corpora landed (13 documents,
+539 new chunks; details in RETRIEVAL.md baseline section).
 
-Floors (open-corpus lane, 125-case set): recall >= 0.66, MRR >= 0.44, current >= 0.98,
+Floors (open-corpus lane, 185-case set): recall >= 0.66, MRR >= 0.44, current >= 0.98,
 abstain >= 0.90. The raw-cosine floor (0.5) catches the clearly-distant OOS cases; the
 remaining compliance-adjacent OOS cases embed too close to InfoSec text to separate —
 95.2% open-lane abstention accuracy is the calibrated optimum at this corpus size

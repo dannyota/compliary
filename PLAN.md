@@ -155,12 +155,11 @@ to 0.2.x follow-ups.
 - **Mappings:** neither document ships clause-level crosswalk tables — no mapping edges;
   MOD lineage (11930 ← ISO 27001:2013 + 800-53 r4; 14423 ← CIS v8) stays registry metadata.
 
-**Remaining to cut v0.2.0:**
+**Cut prep done (2026-07-25):** index engine guard (Kaggle explicit opt-in only); golden v5
+baseline re-recorded over 185 cases — open 84.7/63.1/100/96.2, filtered 92.4/79.6, floors
+unchanged (66/44/98/90), pre-TCVN control run reproduced v4 exactly.
 
-1. **Re-record eval floors** over the 185-row golden set (accepted-baseline re-measure).
-2. **Index engine guard** — the index stage must not auto-select the Kaggle engine just because
-   a token is configured; explicit opt-in.
-3. **Release:** version bump to 0.2.0, deploy, prod corpus sync.
+**Remaining to cut v0.2.0:** release — version bump to 0.2.0, deploy, prod corpus sync.
 
 ### v0.2.x — phase-2 corpus completion (follow-ups)
 

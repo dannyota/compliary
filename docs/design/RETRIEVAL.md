@@ -54,7 +54,24 @@ doc_cap (12 documents total).
 
 ## Baselines
 
-### Golden v3 baseline (125 cases — 2026-07-21, current)
+### Golden v5 baseline (185 cases — 2026-07-25, current)
+
+185 cases = the 175-case v4 set + 10 Vietnamese TCVN cases (5 tcvn11930, 5 tcvn14423; all
+DB-verified targets; all hit at rank 1–3 in both lanes). First baseline covering Vietnamese
+content (539 TCVN chunks, dense + BM25). Same reproducible invocation as v4 below; open-corpus
+lane adds `-use-pins=false`.
+
+| Lane | Recall@8 | MRR@8 | Current | Abstain | Floor |
+|------|----------|-------|---------|---------|-------|
+| Open-corpus (no pins) | 84.7% | 63.1% | 100% | 96.2% | recall ≥66%, MRR ≥44%, current ≥98%, abstain ≥90% |
+| Framework-filtered | 92.4% | 79.6% | 100% | 95.1% | — |
+
+Floors carried over from v4 unchanged (all comfortably met); numbers and floors also live in
+[`MCP.md`](MCP.md) (single source: MCP.md wins on conflict). The pre-TCVN 175-case control run
+on the same corpus reproduced v4 exactly (83.8/62.5/100/96.0), confirming the English lanes
+were unaffected by the TCVN round.
+
+### Golden v4 baseline (175 cases — 2026-07-21, superseded)
 
 175 adversarially-verified cases (105 v2 + 20 v3 + 50 v4: 8 COBIT, 5 OOS, 4 ISO 27001 topic-phrased,
 3 ISO 27017/27018). Hybrid ONNX, raw-cosine abstention floor 0.5. Reproducible invocation
