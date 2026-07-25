@@ -98,6 +98,14 @@ func TestGuide(t *testing.T) {
 	if len(g.EvidenceContract) == 0 {
 		t.Error("evidence contract should not be empty")
 	}
+	// Regression: the guide must steer agents to query TCVN frameworks in
+	// Vietnamese, not English — the corpus gained tcvn11930/tcvn14423 in v0.2.0.
+	if !strings.Contains(g.Purpose, "Vietnamese") {
+		t.Error("guide purpose should mention Vietnamese for the TCVN frameworks")
+	}
+	if !strings.Contains(g.Purpose, "tcvn11930") || !strings.Contains(g.Purpose, "tcvn14423") {
+		t.Error("guide purpose should name the TCVN framework codes")
+	}
 }
 
 func TestSearch_EmptyQuery(t *testing.T) {

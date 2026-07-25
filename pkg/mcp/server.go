@@ -179,9 +179,11 @@ func (s *Server) handleSearch(ctx context.Context, _ *mcpsdk.CallToolRequest, in
 func buildInstructions(core *Core) string {
 	base := "compliary is an evidence-only knowledge base for InfoSec & Cybersecurity control frameworks " +
 		"(ISO 27001, SOC 2 TSC, PCI DSS, NIST CSF, NIST SP 800-53, CIS Controls, ISO 27002/27017/27018, " +
-		"CSA CCM, COBIT). It returns exact control citations, version lineage, cross-framework mapping edges, " +
+		"CSA CCM, COBIT, TCVN 11930/14423). It returns exact control citations, version lineage, cross-framework mapping edges, " +
 		"provenance, and explicit gaps. It never answers — you retrieve evidence and decide the answer. " +
-		"Query in English (the frameworks' publication language). " +
+		"LANGUAGE RULE: query in each framework's publication language — English for the international frameworks, " +
+		"Vietnamese for the TCVN frameworks (tcvn11930, tcvn14423). Cross-language queries return degraded rankings; " +
+		"translate the question first, then translate the retrieved evidence back for your user. " +
 		"Use the framework filter for higher recall (~92% filtered vs ~84% unfiltered)."
 
 	if core.corpus != nil {

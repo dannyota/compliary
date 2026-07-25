@@ -19,6 +19,12 @@ structured data, never prose.
 1. `guide` -- read the evidence contract.
 2. `corpus_status` -- see what is indexed, which versions are current.
 3. `search` with framework filter for ~91% (vs ~84% unfiltered) unfiltered open-corpus). Use `detail=compact` for cheap discovery (citations, scores, version badges only); then read full text via `document include=["chunks"]`.
+
+**Query language (per-framework):** search in each framework's publication language — **English** for the
+international frameworks, **Vietnamese** for the TCVN frameworks (`tcvn11930`, `tcvn14423`). Cross-language
+queries return degraded rankings (the BM25 arm cannot match, the dense arm loses precision). Translate the
+question into the target language first, then translate the retrieved evidence back for the user. The `guide`
+and server-instruction strings carry this rule so a connecting agent sees it without reading repo docs.
 4. `document` for citation-keyed traversal: body, mapping edges (both directions), version lineage.
 5. `quality_gaps` to surface what the corpus cannot answer.
 
