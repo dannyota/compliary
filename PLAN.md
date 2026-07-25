@@ -173,10 +173,13 @@ unchanged (66/44/98/90), pre-TCVN control run reproduced v4 exactly.
 controls / 3,943 chunks dense+sparse / 4,462 mapping edges — the round-7 prod backlog cleared
 with it), image rolled, live version + auth verified.
 
-**Undeployed since that release** (local only): the TCVN improvement round — per-framework
-language guidance, 39 curated mapping edges (4,501 total), level-qualified 11930 titles + their
-re-embedded chunks, Vietnamese BM25 stopwords, golden v6. Prod still serves the release corpus;
-next deploy needs a corpus re-sync plus `release.sh`.
+**Released 2026-07-25** (`0.2.1-20260725` live, task-def rev 23): the TCVN improvement round —
+per-framework language guidance, 39 curated mapping edges (4,501 total), level-qualified 11930
+titles + re-embedded chunks, Vietnamese BM25 stopwords, golden v6, and the mapedges staleness
+marker. Prod corpus re-synced by dump/restore (17 frameworks / 3,943 controls / 3,943 chunks
+dense+sparse / 4,501 edges incl. 39 operator / 2,125 curated titles / 0 stale documents — the
+marker carries across a restore, so no post-migration mapedges run was needed); live version,
+`/healthz` 200 and unauthenticated `/mcp` 401 all verified.
 
 ### Settled — mapedges staleness marker (2026-07-25)
 
