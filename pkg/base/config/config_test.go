@@ -19,9 +19,9 @@ func TestEmbedEngineAutoNoToken(t *testing.T) {
 
 func TestEmbedEngineAutoWithToken(t *testing.T) {
 	c := Default()
-	c.KaggleToken = "some-kgat-token"
-	if got := c.EmbedEngine(); got != "kaggle" {
-		t.Errorf("EmbedEngine() = %q, want kaggle (token set)", got)
+	c.KaggleToken = "some-kgat-token" // token alone must NOT select kaggle
+	if got := c.EmbedEngine(); got != "local" {
+		t.Errorf("EmbedEngine() = %q, want local (token set but no explicit opt-in)", got)
 	}
 }
 

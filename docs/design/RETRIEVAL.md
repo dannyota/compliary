@@ -21,9 +21,10 @@ Schema in [`SCHEMA.md`](SCHEMA.md); pipeline + stack in [`../ARCHITECTURE.md`](.
 
 ## Embedding strategy
 
-- **Bulk embed:** Kaggle T4 GPU engine, auto-selected when `KAGGLE_API_TOKEN` is set and
-  >=200 chunks need embedding. Uploads chunk text to the operator's **private** Kaggle dataset
-  (warned in logs). CPU bulk embedding remains the supported fallback (engine=local) but is slow; Kaggle T4 is auto-selected when a token is present and the batch is large.
+- **Bulk embed:** local ONNX by default. The Kaggle T4 GPU engine is **explicit opt-in only**
+  (`COMPLIARY_EMBED_ENGINE=kaggle`) — it uploads chunk text to the operator's **private** Kaggle
+  dataset (warned in logs), so a configured `KAGGLE_API_TOKEN` alone never selects it. CPU bulk
+  embedding is slow for large batches; opt into Kaggle deliberately for those runs.
 - **Query-time embed:** two paths, selected at runtime. `COMPLIARY_EMBED_ENDPOINT` set → an
   OpenAI-compatible HTTP embedder (the deployed path: banhmi's shared embedder; no ONNX in the
   image). Unset → local ONNX in-process (requires `-tags onnx` build + model at

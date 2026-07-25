@@ -22,7 +22,7 @@ type Config struct {
 
 	// KaggleToken is the Kaggle API token (KGAT). Like the DB password it is a
 	// secret sourced from the environment (KAGGLE_API_TOKEN), never the YAML file.
-	// It drives the "auto" bulk-engine choice and authenticates the Kaggle client.
+	// It authenticates the Kaggle client; it never selects the engine by itself.
 	KaggleToken string `yaml:"-"`
 }
 
@@ -43,9 +43,10 @@ type DatabaseConfig struct {
 // EmbedConfig selects how chunk embeddings are produced for indexing. Engine
 // only chooses the BULK embedding engine, never the synchronous query path.
 //
-// Engine: "auto" (default) uses Kaggle when KAGGLE_API_TOKEN is set AND the
-// missing-chunk count >= MinBatch, else local ONNX; "local" forces the local
-// ONNX embedder; "kaggle" forces the Kaggle batch engine.
+// Engine: "kaggle" is explicit opt-in for the Kaggle batch engine; everything
+// else ("auto"/default/"local") uses the local ONNX embedder — corpus text
+// leaves the machine only on an explicit engine choice, never because a token
+// happens to be configured.
 type EmbedConfig struct {
 	Engine string            `yaml:"engine"` // "auto" | "local" | "kaggle"
 	Kaggle EmbedKaggleConfig `yaml:"kaggle"`
@@ -151,18 +152,14 @@ func (c *Config) applyEnv() {
 }
 
 // EmbedEngine resolves the bulk-embedding engine: "kaggle" or "local".
-// Configured "auto" (or empty) resolves to "kaggle" when KAGGLE_API_TOKEN is
-// set, otherwise "local".
+// Kaggle is explicit opt-in only ("kaggle"): a configured KAGGLE_API_TOKEN
+// must never route corpus text off-machine by itself, so "auto" (or empty)
+// always resolves to "local".
 func (c *Config) EmbedEngine() string {
 	switch strings.ToLower(strings.TrimSpace(c.Embed.Engine)) {
-	case "local":
-		return "local"
 	case "kaggle":
 		return "kaggle"
-	default: // "auto" or empty
-		if c.KaggleToken != "" {
-			return "kaggle"
-		}
+	default: // "local", "auto", or empty
 		return "local"
 	}
 }
