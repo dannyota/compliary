@@ -159,7 +159,9 @@ to 0.2.x follow-ups.
 baseline re-recorded over 185 cases — open 84.7/63.1/100/96.2, filtered 92.4/79.6, floors
 unchanged (66/44/98/90), pre-TCVN control run reproduced v4 exactly.
 
-**Remaining to cut v0.2.0:** release — version bump to 0.2.0, deploy, prod corpus sync.
+**Released 2026-07-25** (`0.2.0-20260725` live): prod corpus synced (17 frameworks / 3,943
+controls / 3,943 chunks dense+sparse / 4,462 mapping edges — the round-7 prod backlog cleared
+with it), image rolled, live version + auth verified.
 
 ### v0.2.x — phase-2 corpus completion (follow-ups)
 
