@@ -303,10 +303,22 @@ func TestCuratedMappingSeed(t *testing.T) {
 
 	seen := map[string]bool{}
 	perFrom := map[string]int{}
+	annexRows := 0
 	for _, r := range rows {
 		fromFw, fromVer, fromCite := r[0], r[1], r[2]
 		toFw, toVer, toCite := r[3], r[4], r[5]
 		relation, source, note := r[6], r[7], r[8]
+
+		// The 11930 Annex-A edges use Level-3 (A.3.x) rows to represent a
+		// mapping that recurs across all five levels (A.1-A.5). Every such
+		// note must carry that recurrence caveat so an agent reading a single
+		// A.3.x edge knows the other levels share it.
+		if fromFw == "tcvn11930" && strings.HasPrefix(fromCite, "A.3.") {
+			annexRows++
+			if !strings.Contains(note, "A.1-A.5") {
+				t.Errorf("curated_mapping %s/%s -> %s/%s: Annex-A note missing recurrence caveat (A.1-A.5)", fromFw, fromCite, toFw, toCite)
+			}
+		}
 
 		// Uniqueness on the seed's ON CONFLICT key.
 		key := strings.Join([]string{fromFw, fromVer, fromCite, toFw, toVer, toCite, source}, "|")
@@ -349,6 +361,11 @@ func TestCuratedMappingSeed(t *testing.T) {
 	}
 	if perFrom["tcvn11930"] != 17 {
 		t.Errorf("curated_mapping: tcvn11930 from-rows = %d, want 17", perFrom["tcvn11930"])
+	}
+	// All 17 Annex-A edges (9 → 800-53, 8 → ISO 27001) are Level-3 rows and
+	// must each carry the recurrence caveat asserted in the loop above.
+	if annexRows != 17 {
+		t.Errorf("curated_mapping: found %d Annex-A (A.3.x) rows, want 17", annexRows)
 	}
 }
 
