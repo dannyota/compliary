@@ -268,6 +268,171 @@ func TestQueryVector_citationHits(t *testing.T) {
 	}
 }
 
+// activeDims returns the set of hash dimensions present in a query vector.
+func activeDims(t *testing.T, query string) map[int32]bool {
+	t.Helper()
+	out := map[int32]bool{}
+	for id := range parseSparse(t, QueryVector(query)) {
+		out[id] = true
+	}
+	return out
+}
+
+// TestQueryVector_vietnameseStopwords verifies that Vietnamese function
+// syllables are dropped from the query vector while domain-bearing syllables
+// survive. The tokenizer splits on whitespace/punctuation only, so every
+// Vietnamese syllable is its own token: a stopword entry filters exactly one
+// syllable and can never remove a whole multi-syllable term.
+func TestQueryVector_vietnameseStopwords(t *testing.T) {
+	// Function syllables: grammatical words in every context of this corpus's
+	// register, so each must produce an empty query vector on its own.
+	filtered := []string{
+		"và", "hoặc", "nếu",
+		"các", "những", "này", "đó",
+		"của", "trong", "trên", "với", "cho", "về", "để", "khi",
+		"là", "được",
+		"nào", "gì",
+	}
+	for _, w := range filtered {
+		t.Run("filtered/"+w, func(t *testing.T) {
+			if got := activeDims(t, w); len(got) != 0 {
+				t.Errorf("stopword %q should produce an empty query vector, got %d dims", w, len(got))
+			}
+		})
+	}
+
+	// Domain-bearing syllables that must survive: security compounds
+	// (an toàn, bảo mật, mật khẩu, hệ thống, máy chủ, sao lưu, theo dõi,
+	// từ xa, ra vào) and the collision-risk words deliberately NOT listed.
+	kept := []string{
+		"toàn", "ninh", "bảo", "mật", "khẩu", "hệ", "thống", "yêu", "cầu", "máy", "chủ",
+		"có", "không", "phải", "theo", "dõi", "đối", "bằng", "gồm", "bao",
+		"một", "vào", "ra", "từ", "sao", "lưu", "tại", "ai",
+	}
+	for _, w := range kept {
+		t.Run("kept/"+w, func(t *testing.T) {
+			if len(activeDims(t, w)) == 0 {
+				t.Errorf("domain syllable %q must survive query filtering", w)
+			}
+		})
+	}
+}
+
+// TestQueryVector_vietnameseDiacritics guards the tone-mark boundary: the
+// tokenizer lowercases but never folds diacritics, so a stopword must never
+// swallow its differently-toned domain twin (về/vệ, là/lý, các/cách).
+func TestQueryVector_vietnameseDiacritics(t *testing.T) {
+	pairs := []struct{ stopword, domain string }{
+		{"về", "vệ"},    // về = about; vệ = bảo vệ (protect)
+		{"là", "lý"},    // là = copula; lý = quản lý (manage)
+		{"các", "cách"}, // các = plural marker; cách = biện pháp/cách thức (method)
+		{"cho", "chủ"},  // cho = for; chủ = máy chủ (server)
+	}
+	for _, p := range pairs {
+		t.Run(p.stopword+"/"+p.domain, func(t *testing.T) {
+			if len(activeDims(t, p.stopword)) != 0 {
+				t.Errorf("%q should be filtered", p.stopword)
+			}
+			if len(activeDims(t, p.domain)) == 0 {
+				t.Errorf("%q must survive — it is not the stopword %q", p.domain, p.stopword)
+			}
+		})
+	}
+}
+
+// TestQueryVector_vietnameseGoldenQueries walks the shape of the Vietnamese
+// golden-set questions: function words drop, every domain syllable stays.
+func TestQueryVector_vietnameseGoldenQueries(t *testing.T) {
+	cases := []struct {
+		name string
+		q    string
+		want []string // domain tokens that must remain
+		drop []string // stopwords that must be gone
+	}{
+		{
+			name: "sdlc",
+			q:    "Yêu cầu về quy trình phát triển phần mềm an toàn theo vòng đời SDLC?",
+			want: []string{"yêu", "cầu", "quy", "trình", "phát", "triển", "phần", "mềm", "toàn", "theo", "vòng", "đời", "sdlc"},
+			drop: []string{"về"},
+		},
+		{
+			name: "server-room-access",
+			q:    "Kiểm soát ra vào phòng máy chủ với xác thực hai yếu tố?",
+			want: []string{"kiểm", "soát", "ra", "vào", "phòng", "máy", "chủ", "xác", "thực", "hai", "yếu", "tố"},
+			drop: []string{"với"},
+		},
+		{
+			name: "log-retention",
+			q:    "Quy định thu thập và lưu trữ nhật ký an ninh mạng gồm những gì?",
+			want: []string{"quy", "định", "thu", "thập", "lưu", "trữ", "nhật", "ký", "ninh", "mạng", "gồm"},
+			drop: []string{"và", "những", "gì"},
+		},
+		{
+			name: "server-room-siting",
+			q:    "Quy định về vị trí bố trí đặt phòng máy chủ trong tòa nhà?",
+			want: []string{"quy", "định", "vị", "trí", "bố", "đặt", "phòng", "máy", "chủ", "tòa", "nhà"},
+			drop: []string{"về", "trong"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := activeDims(t, tc.q)
+			for _, w := range tc.want {
+				if !got[termID(w)] {
+					t.Errorf("query %q lost domain token %q", tc.name, w)
+				}
+			}
+			for _, w := range tc.drop {
+				if got[termID(w)] {
+					t.Errorf("query %q retained stopword %q", tc.name, w)
+				}
+			}
+		})
+	}
+}
+
+// TestQueryVector_vietnameseAnCollision pins a deliberate cross-language
+// collision. Vietnamese "an" is domain-bearing (an toàn = safety, an ninh =
+// security) but is spelled exactly like the English article "an", already in
+// the stopword list — and the corpus is majority English, so "an" is the least
+// discriminative token available and would otherwise pull English chunks into
+// Vietnamese results. It stays filtered; the second syllable (toàn / ninh) is
+// Vietnamese-only and carries the phrase's retrieval signal.
+func TestQueryVector_vietnameseAnCollision(t *testing.T) {
+	if len(activeDims(t, "an")) != 0 {
+		t.Error(`"an" must stay filtered — English article and Vietnamese syllable share the token`)
+	}
+	got := activeDims(t, "an toàn thông tin và an ninh mạng")
+	for _, w := range []string{"toàn", "thông", "tin", "ninh", "mạng"} {
+		if !got[termID(w)] {
+			t.Errorf("security phrase lost its carrying syllable %q", w)
+		}
+	}
+	if got[termID("an")] {
+		t.Error(`"an" leaked into the query vector`)
+	}
+}
+
+// TestQueryVector_englishUnchanged pins the pre-existing English stopword
+// behavior so the Vietnamese additions cannot regress it.
+func TestQueryVector_englishUnchanged(t *testing.T) {
+	for _, w := range []string{"what", "how", "which", "does", "the", "for", "and", "are",
+		"is", "of", "that", "a", "to", "in", "an", "control", "requirement", "cover", "address"} {
+		t.Run("filtered/"+w, func(t *testing.T) {
+			if len(activeDims(t, w)) != 0 {
+				t.Errorf("english stopword %q should be filtered", w)
+			}
+		})
+	}
+	for _, w := range []string{"access", "encryption", "authentication", "firewall", "logging", "backup"} {
+		t.Run("kept/"+w, func(t *testing.T) {
+			if len(activeDims(t, w)) == 0 {
+				t.Errorf("english content word %q must survive", w)
+			}
+		})
+	}
+}
+
 // TestSparseLiteral_format verifies the pgvector literal format.
 func TestSparseLiteral_format(t *testing.T) {
 	got := sparseLiteral(map[int32]float64{3: 1.5, 1: 2.0})

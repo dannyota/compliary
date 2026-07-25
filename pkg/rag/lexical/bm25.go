@@ -13,7 +13,10 @@
 // digit (or a dot). Everything else splits on non-alnum boundaries.
 //
 // Adapted from banhmi pkg/rag/lexical — Vietnamese diacritic folding, Thai TCC
-// segmentation, and all non-English normalizers are stripped. English-only.
+// segmentation, and all non-English normalizers are stripped. Tokenization is
+// language-neutral: lowercase + alnum split with diacritics preserved, so each
+// Vietnamese syllable of a TCVN chunk is its own token. Only the query-side
+// stopword list is language-aware (English + Vietnamese function words).
 package lexical
 
 import (
@@ -203,12 +206,42 @@ func (e *Encoder) DocVector(text string) string {
 // question AND every corpus chunk, contributing no discriminative BM25 signal.
 // Filtered at query time only — document vectors stay unchanged so no re-index
 // is needed. The list is deliberately short and domain-specific.
+//
+// Vietnamese entries (TCVN frameworks) are single syllables: the tokenizer
+// splits on non-alphanumeric boundaries, so a multi-syllable Vietnamese word is
+// several tokens and an entry here removes exactly one syllable. Only grammatical function
+// syllables qualify — never a syllable that heads or completes a domain
+// compound. Deliberately kept OUT for that reason: có (có thể), không (không
+// dây = wireless), phải (the normative "shall"), theo (theo dõi = monitor),
+// đối (đối tượng), bằng (cân bằng tải), gồm/bao (bao gồm), một (một lần =
+// one-time), vào/ra (ra vào = entry-exit), từ (từ xa = remote, từ chối =
+// deny), sao (sao lưu = backup), tại (tồn tại), ai (collides with "AI").
+//
+// Note the cross-language collision on "an": the English article and the
+// Vietnamese syllable of "an toàn"/"an ninh" share one token. It stays
+// filtered — the corpus is majority English, so the token is the least
+// discriminative one available and would drag English chunks into Vietnamese
+// results; the Vietnamese-only second syllable (toàn/ninh) carries the signal.
 var queryStopwords = map[string]bool{
+	// English.
 	"what": true, "how": true, "which": true, "does": true,
 	"the": true, "for": true, "and": true, "are": true,
 	"is": true, "of": true, "that": true, "a": true,
 	"to": true, "in": true, "an": true,
 	"control": true, "requirement": true, "cover": true, "address": true,
+
+	// Vietnamese — conjunctions.
+	"và": true, "hoặc": true, "nếu": true,
+	// Vietnamese — determiners and demonstratives.
+	"các": true, "những": true, "này": true, "đó": true,
+	// Vietnamese — prepositions and subordinators.
+	"của": true, "trong": true, "trên": true, "với": true, "cho": true,
+	"về": true, "để": true, "khi": true,
+	// Vietnamese — copula and passive marker.
+	"là": true, "được": true,
+	// Vietnamese — interrogatives (query-side only; absent from the corpus,
+	// so their high IDF would otherwise spike unrelated chunks).
+	"nào": true, "gì": true,
 }
 
 // QueryVector returns the query sparse vector — term presence (1.0) per token —

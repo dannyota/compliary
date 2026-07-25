@@ -149,7 +149,9 @@ to 0.2.x follow-ups.
 - **Titles:** 407 Vietnamese paraphrased `control_title` rows (our own wording) on the reduced
   surface; paraphrase-distance machine-checked.
 - **Index:** 539 TCVN chunks, dense + BM25 sparse; tokenizer verified Vietnamese-correct
-  (diacritics preserved, syllable split). Deferred tuning: Vietnamese stopwords, per-batch IDF.
+  (diacritics preserved, syllable split). Vietnamese query-side stopwords landed 2026-07-25
+  (19 function syllables; −14.1% query dims on the 10 TCVN cases, BM25-arm aggregates unchanged).
+  Deferred tuning: per-batch IDF.
 - **Eval:** 10 Vietnamese golden cases (DB-verified targets; indicative BM25 10/10 recall@8 —
   not a baseline).
 - **Mappings:** neither document ships a clause-level crosswalk table, so edges are

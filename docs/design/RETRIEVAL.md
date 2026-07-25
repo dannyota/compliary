@@ -8,8 +8,16 @@ Schema in [`SCHEMA.md`](SCHEMA.md); pipeline + stack in [`../ARCHITECTURE.md`](.
 
 - **Dense arm:** Qwen3-Embedding-0.6B ONNX, 1024-d cosine, exact scan (not HNSW — 3.4k rows,
   ~2 ms; re-evaluate at 10k+).
-- **Sparse arm:** BM25 `sparsevec` (2^20 hashing trick), English citation-aware tokenizer
-  (lowercase + alnum split; citation tokens like `AC-2(3)`, `A&A`, `I&S` kept intact).
+- **Sparse arm:** BM25 `sparsevec` (2^20 hashing trick), language-neutral citation-aware tokenizer
+  (lowercase + alnum split, diacritics preserved so each Vietnamese syllable is a token; citation
+  tokens like `AC-2(3)`, `A&A`, `I&S` kept intact).
+- **Query-side stopwords:** function words are dropped from the QUERY vector only (documents keep
+  every term — no re-index). English list + a Vietnamese list for the TCVN corpora (conjunctions,
+  determiners, prepositions, copula/passive marker, interrogatives). Function words only: syllables
+  that head or complete a domain compound stay (`theo` → theo dõi, `không` → không dây, `từ` → từ
+  xa, `sao` → sao lưu, `vào`/`ra` → ra vào). `an` (an toàn) is filtered as the English article —
+  a deliberate cross-language collision, since the majority-English corpus makes it the least
+  discriminative token and `toàn`/`ninh` carry the phrase.
 - **Fusion:** RRF (`rrf_k=20`, `lex_weight=0.5`); top_k=8, vector_k=50, bm25_k=50, doc_cap=0.
 - **Version filter:** default `is_current` only; explicit version pin via `SearchOpts`.
 - **Citation routing:** 10 scheme regexes (from `config.framework.citation_scheme`); matched
