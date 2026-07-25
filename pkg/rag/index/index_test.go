@@ -394,6 +394,35 @@ func TestBuildContextPrefix_noParent(t *testing.T) {
 	}
 }
 
+// TestBuildContextPrefix_carriesLevelBearingTitle locks in the mechanism that
+// makes TCVN chunks level-aware: the control's own (paraphrased) title is
+// appended to the context_prefix, so when that title carries a level/group
+// qualifier (e.g. "— cấp độ 3, kỹ thuật mạng", added in the control_title seed),
+// the level rides into the prefix through the existing title term. This is why
+// buildContextPrefix needs no TCVN special-casing — the ancestor chain stays
+// citation-only, and the leaf title supplies the level.
+func TestBuildContextPrefix_carriesLevelBearingTitle(t *testing.T) {
+	doc := dbsilver.SilverDocument{FrameworkCode: "tcvn11930", VersionLabel: "2017"}
+	clause := dbsilver.SilverControl{ID: 1, Citation: "7", Kind: "clause", Title: "Clause 7"}
+	sub := dbsilver.SilverControl{ID: 2, ParentControlID: ptrI64(1), Citation: "7.2", Kind: "clause", Title: "Clause 7.2"}
+	grp := dbsilver.SilverControl{ID: 3, ParentControlID: ptrI64(2), Citation: "7.2.1", Kind: "clause", Title: "Clause 7.2.1"}
+	leaf := dbsilver.SilverControl{
+		ID: 4, ParentControlID: ptrI64(3), Citation: "7.2.1.4", Kind: "control",
+		Title: "Ghi và lưu vết hoạt động hệ thống — cấp độ 3, kỹ thuật mạng",
+	}
+	byID := map[int64]*dbsilver.SilverControl{1: &clause, 2: &sub, 3: &grp, 4: &leaf}
+
+	prefix := buildContextPrefix(doc, leaf, byID)
+	// Ancestor chain is citation-only; the level/group rides in via the title.
+	want := "tcvn11930 2017 > 7 > 7.2 > 7.2.1 > Ghi và lưu vết hoạt động hệ thống — cấp độ 3, kỹ thuật mạng"
+	if prefix != want {
+		t.Errorf("prefix = %q\nwant %q", prefix, want)
+	}
+	if !strings.Contains(prefix, "cấp độ 3") {
+		t.Errorf("prefix must carry the level qualifier, got %q", prefix)
+	}
+}
+
 func TestAncestorCitations_deepNesting(t *testing.T) {
 	root := dbsilver.SilverControl{ID: 1, Citation: "Root"}
 	mid := dbsilver.SilverControl{ID: 2, ParentControlID: ptrI64(1), Citation: "Mid"}
