@@ -152,8 +152,14 @@ to 0.2.x follow-ups.
   (diacritics preserved, syllable split). Deferred tuning: Vietnamese stopwords, per-batch IDF.
 - **Eval:** 10 Vietnamese golden cases (DB-verified targets; indicative BM25 10/10 recall@8 —
   not a baseline).
-- **Mappings:** neither document ships clause-level crosswalk tables — no mapping edges;
-  MOD lineage (11930 ← ISO 27001:2013 + 800-53 r4; 14423 ← CIS v8) stays registry metadata.
+- **Mappings:** neither document ships a clause-level crosswalk table, so edges are
+  **operator-curated** (`config.curated_mapping` → `mapping_source='operator'`, seeded from
+  `deploy/seed/curated_mapping.csv`; consumed by the mapedges stage): 39 edges, all resolved —
+  14423 §5 families → CIS v8 Controls (18; 5.1 risk has no CIS peer, omitted), 14423 → 11930
+  explicit normative references (4), 11930 Annex A physical (Level 3) → 800-53 r5 PE + ISO
+  27001:2022 A.7 (17). Each row is our own analysis of both endpoints' text with an honest note on
+  MOD-lineage version drift (11930 ← ISO 27001:2013 + 800-53 r4; 14423 ← CIS v8; corpus holds the
+  later editions). Relation is `related` — the vocabulary has no `derived-from`.
 
 **Cut prep done (2026-07-25):** index engine guard (Kaggle explicit opt-in only); golden v5
 baseline re-recorded over 185 cases — open 84.7/63.1/100/96.2, filtered 92.4/79.6, floors

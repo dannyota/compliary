@@ -275,6 +275,83 @@ func TestControlTitleCorpusCoverage(t *testing.T) {
 	}
 }
 
+func TestCuratedMappingSeed(t *testing.T) {
+	// Cross-reference registry.
+	frameworks := map[string]bool{}
+	for _, r := range readCSV(t, "framework.csv")[1:] {
+		frameworks[r[0]] = true
+	}
+	versions := map[string]bool{}
+	for _, r := range readCSV(t, "framework_version.csv")[1:] {
+		versions[r[0]+"|"+r[1]] = true
+	}
+	sources := map[string]bool{}
+	for _, r := range readCSV(t, "mapping_source.csv")[1:] {
+		sources[r[0]] = true
+	}
+
+	// Relation vocabulary must mirror silver.control_mapping's CHECK.
+	relations := map[string]bool{
+		"equivalent": true, "subset-of": true, "superset-of": true,
+		"intersects": true, "related": true, "incorporated-into": true, "moved-to": true,
+	}
+
+	rows := readCSV(t, "curated_mapping.csv")[1:]
+	if len(rows) != 39 {
+		t.Fatalf("curated_mapping.csv: want 39 rows, got %d", len(rows))
+	}
+
+	seen := map[string]bool{}
+	perFrom := map[string]int{}
+	for _, r := range rows {
+		fromFw, fromVer, fromCite := r[0], r[1], r[2]
+		toFw, toVer, toCite := r[3], r[4], r[5]
+		relation, source, note := r[6], r[7], r[8]
+
+		// Uniqueness on the seed's ON CONFLICT key.
+		key := strings.Join([]string{fromFw, fromVer, fromCite, toFw, toVer, toCite, source}, "|")
+		if seen[key] {
+			t.Errorf("curated_mapping: duplicate edge %s", key)
+		}
+		seen[key] = true
+		perFrom[fromFw]++
+
+		if !frameworks[fromFw] {
+			t.Errorf("curated_mapping %s: unknown from_framework %q", key, fromFw)
+		}
+		if !versions[fromFw+"|"+fromVer] {
+			t.Errorf("curated_mapping %s: unknown from_version %s/%s", key, fromFw, fromVer)
+		}
+		if !frameworks[toFw] {
+			t.Errorf("curated_mapping %s: unknown to_framework %q", key, toFw)
+		}
+		// to_version may be empty (NULL = unpinned); validate when present.
+		if toVer != "" && !versions[toFw+"|"+toVer] {
+			t.Errorf("curated_mapping %s: unknown to_version %s/%s", key, toFw, toVer)
+		}
+		if !relations[relation] {
+			t.Errorf("curated_mapping %s: bad relation %q", key, relation)
+		}
+		if !sources[source] {
+			t.Errorf("curated_mapping %s: unknown mapping_source %q", key, source)
+		}
+		if fromCite == "" || toCite == "" {
+			t.Errorf("curated_mapping %s: empty citation", key)
+		}
+		if note == "" {
+			t.Errorf("curated_mapping %s: empty note (honesty caveat required)", key)
+		}
+	}
+
+	// Per the three authored sets: 14423→CIS (18), 14423→11930 (4), 11930→ISO/800-53 (17).
+	if perFrom["tcvn14423"] != 22 {
+		t.Errorf("curated_mapping: tcvn14423 from-rows = %d, want 22", perFrom["tcvn14423"])
+	}
+	if perFrom["tcvn11930"] != 17 {
+		t.Errorf("curated_mapping: tcvn11930 from-rows = %d, want 17", perFrom["tcvn11930"])
+	}
+}
+
 func TestFileRuleSeed(t *testing.T) {
 	// Load frameworks for cross-reference.
 	frameworks := map[string]bool{}

@@ -1,0 +1,40 @@
+from_framework,from_version,from_citation,to_framework,to_version,to_citation,relation,mapping_source_code,note
+tcvn14423,2025,5.2,ciscontrols,v8.1,1,related,operator,14423 §5.2 hardware-asset inventory — CIS v8 Control 1 Enterprise Assets; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.3,ciscontrols,v8.1,2,related,operator,14423 §5.3 software-asset inventory — CIS v8 Control 2 Software Assets; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.4,ciscontrols,v8.1,3,related,operator,14423 §5.4 information-asset handling/classification — CIS v8 Control 3 Data Protection; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.5,ciscontrols,v8.1,4,related,operator,14423 §5.5 secure configuration of hardware/software — CIS v8 Control 4; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.6,ciscontrols,v8.1,5,related,operator,14423 §5.6 account provisioning/privilege management — CIS v8 Control 5 Account Management; family also covers Control 6 (paired edge); MOD-derived (corpus v8.1).
+tcvn14423,2025,5.6,ciscontrols,v8.1,6,related,operator,14423 §5.6 access-right assignment/least privilege — CIS v8 Control 6 Access Control Management; family also covers Control 5 (paired edge); MOD-derived (corpus v8.1).
+tcvn14423,2025,5.7,ciscontrols,v8.1,7,related,operator,14423 §5.7 vulnerability assessment/threat tracking — CIS v8 Control 7 Continuous Vulnerability Management; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.8,ciscontrols,v8.1,8,related,operator,14423 §5.8 log collection/analysis/retention — CIS v8 Control 8 Audit Log Management; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.9,ciscontrols,v8.1,9,related,operator,14423 §5.9 email/web-browser protection — CIS v8 Control 9; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.10,ciscontrols,v8.1,10,related,operator,14423 §5.10 malware defense — CIS v8 Control 10 Malware Defenses; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.11,ciscontrols,v8.1,11,related,operator,14423 §5.11 backup and recovery — CIS v8 Control 11 Data Recovery; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.12,ciscontrols,v8.1,12,related,operator,14423 §5.12 network-device/infrastructure management — CIS v8 Control 12; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.13,ciscontrols,v8.1,13,related,operator,14423 §5.13 network monitoring/defense — CIS v8 Control 13; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.14,ciscontrols,v8.1,14,related,operator,14423 §5.14 security-awareness training — CIS v8 Control 14; family also mandates role independence (no CIS peer); MOD-derived (corpus v8.1).
+tcvn14423,2025,5.15,ciscontrols,v8.1,15,related,operator,14423 §5.15 service-provider assessment — CIS v8 Control 15 Service Provider Management; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.16,ciscontrols,v8.1,16,related,operator,14423 §5.16 application-software security lifecycle — CIS v8 Control 16; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.17,ciscontrols,v8.1,17,related,operator,14423 §5.17 incident-response capability — CIS v8 Control 17; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.18,ciscontrols,v8.1,18,related,operator,14423 §5.18 exploitation/penetration testing — CIS v8 Control 18 Penetration Testing; MOD-derived (corpus v8.1).
+tcvn14423,2025,5.4.2.9,tcvn11930,2017,8.2.3.5,related,operator,14423 §5.4.2.9 states it satisfies TCVN 11930:2017 §8.2.3.5 (non-repudiation via digital signatures); explicit normative reference in 14423 text.
+tcvn14423,2025,5.10.2.2,tcvn11930,2017,9.2.2.5,related,operator,14423 §5.10.2.2 states it satisfies TCVN 11930:2017 §9.2.2.5 (malware protection); explicit normative reference in 14423 text.
+tcvn14423,2025,5.10.2.3,tcvn11930,2017,9.2.2.5,related,operator,14423 §5.10.2.3 states it satisfies TCVN 11930:2017 §9.2.2.5 (malware protection); explicit normative reference in 14423 text.
+tcvn14423,2025,5.11.2.4,tcvn11930,2017,9.2.4.3,related,operator,14423 §5.11.2.4 states it satisfies TCVN 11930:2017 §9.2.4.3 (backup); explicit normative reference in 14423 text.
+tcvn11930,2017,A.3.1,nist80053,r5,PE-18,related,operator,11930 Annex A Level-3 §A.3.1 server-room siting — 800-53 PE-18 Location of System Components; topic recurs across levels A.1-A.5; MOD lineage references the 2013/r4 edition (corpus holds r5).
+tcvn11930,2017,A.3.2,nist80053,r5,PE-03,related,operator,11930 §A.3.2 server-room access gate — 800-53 PE-3 Physical Access Control; recurs across A.1-A.5; MOD lineage references the 2013/r4 edition (corpus holds r5).
+tcvn11930,2017,A.3.2,nist80053,r5,PE-06,related,operator,11930 §A.3.2 CCTV logging of entry/exit — 800-53 PE-6 Monitoring Physical Access; recurs across A.1-A.5; MOD lineage references the 2013/r4 edition (corpus holds r5).
+tcvn11930,2017,A.3.5,nist80053,r5,PE-13,related,operator,11930 §A.3.5 fire alarm/suppression — 800-53 PE-13 Fire Protection; recurs across A.1-A.5; MOD lineage references the 2013/r4 edition (corpus holds r5).
+tcvn11930,2017,A.3.6,nist80053,r5,PE-15,related,operator,11930 §A.3.6 water-ingress drainage — 800-53 PE-15 Water Damage Protection; recurs across A.1-A.5; MOD lineage references the 2013/r4 edition (corpus holds r5).
+tcvn11930,2017,A.3.8,nist80053,r5,PE-14,related,operator,11930 §A.3.8 HVAC temperature/humidity — 800-53 PE-14 Environmental Controls; recurs across A.1-A.5; MOD lineage references the 2013/r4 edition (corpus holds r5).
+tcvn11930,2017,A.3.9,nist80053,r5,PE-09,related,operator,11930 §A.3.9 stable/regulated power — 800-53 PE-9 Power Equipment and Cabling; recurs across A.1-A.5; MOD lineage references the 2013/r4 edition (corpus holds r5).
+tcvn11930,2017,A.3.9,nist80053,r5,PE-11,related,operator,11930 §A.3.9 backup power/UPS — 800-53 PE-11 Emergency Power; recurs across A.1-A.5; MOD lineage references the 2013/r4 edition (corpus holds r5).
+tcvn11930,2017,A.3.10,nist80053,r5,PE-09,related,operator,11930 §A.3.10 power/signal cable separation — 800-53 PE-9 Power Equipment and Cabling; recurs across A.1-A.5; MOD lineage references the 2013/r4 edition (corpus holds r5).
+tcvn11930,2017,A.3.1,iso27001,2022,A.7.5,related,operator,11930 §A.3.1 siting to avoid environmental hazard — ISO/IEC 27001:2022 A.7.5 physical/environmental threats; MOD lineage references the 2013 edition (A.11 renumbered to A.7 in 2022).
+tcvn11930,2017,A.3.2,iso27001,2022,A.7.2,related,operator,11930 §A.3.2 controlled entry to server room — ISO/IEC 27001:2022 A.7.2 physical entry; MOD lineage references the 2013 edition (A.11 renumbered to A.7 in 2022).
+tcvn11930,2017,A.3.2,iso27001,2022,A.7.4,related,operator,11930 §A.3.2 CCTV surveillance — ISO/IEC 27001:2022 A.7.4 physical security monitoring; MOD lineage references the 2013 edition (A.11 renumbered to A.7 in 2022).
+tcvn11930,2017,A.3.5,iso27001,2022,A.7.5,related,operator,11930 §A.3.5 fire protection — ISO/IEC 27001:2022 A.7.5 physical/environmental threats; MOD lineage references the 2013 edition (A.11 renumbered to A.7 in 2022).
+tcvn11930,2017,A.3.6,iso27001,2022,A.7.5,related,operator,11930 §A.3.6 water-damage protection — ISO/IEC 27001:2022 A.7.5 physical/environmental threats; MOD lineage references the 2013 edition (A.11 renumbered to A.7 in 2022).
+tcvn11930,2017,A.3.8,iso27001,2022,A.7.11,related,operator,11930 §A.3.8 HVAC supporting utility — ISO/IEC 27001:2022 A.7.11 supporting utilities; MOD lineage references the 2013 edition (A.11 renumbered to A.7 in 2022).
+tcvn11930,2017,A.3.9,iso27001,2022,A.7.11,related,operator,11930 §A.3.9 power supporting utility — ISO/IEC 27001:2022 A.7.11 supporting utilities; MOD lineage references the 2013 edition (A.11 renumbered to A.7 in 2022).
+tcvn11930,2017,A.3.10,iso27001,2022,A.7.12,related,operator,11930 §A.3.10 cabling protection/separation — ISO/IEC 27001:2022 A.7.12 cabling security; MOD lineage references the 2013 edition (A.11 renumbered to A.7 in 2022).
