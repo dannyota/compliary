@@ -85,7 +85,7 @@ func NewServer(core *Core, log *slog.Logger, opts ...ServerOption) *Server {
 	mcpsdk.AddTool(srv, &mcpsdk.Tool{
 		Annotations: &mcpsdk.ToolAnnotations{ReadOnlyHint: true, OpenWorldHint: &closedWorld, DestructiveHint: &notDestructive, Title: "Guide: how to use compliary"},
 		Name:        "guide",
-		Description: "Playbook for using compliary's evidence tools: scope, citation forms per framework, version-pin semantics, mapping-edge semantics, gaps philosophy, query tips including the framework filter's recall advantage (~92% filtered vs ~84% unfiltered).",
+		Description: "Playbook for using compliary's evidence tools: scope, citation forms per framework, version-pin semantics, mapping-edge semantics, gaps philosophy, query tips including the framework filter's recall advantage (~93% filtered vs ~86% unfiltered).",
 	}, s.handleGuide)
 
 	mcpsdk.AddTool(srv, &mcpsdk.Tool{
@@ -184,7 +184,7 @@ func buildInstructions(core *Core) string {
 		"LANGUAGE RULE: query in each framework's publication language — English for the international frameworks, " +
 		"Vietnamese for the TCVN frameworks (tcvn11930, tcvn14423). Cross-language queries return degraded rankings; " +
 		"translate the question first, then translate the retrieved evidence back for your user. " +
-		"Use the framework filter for higher recall (~92% filtered vs ~84% unfiltered)."
+		"Use the framework filter for higher recall (~93% filtered vs ~86% unfiltered)."
 
 	if core.corpus != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)

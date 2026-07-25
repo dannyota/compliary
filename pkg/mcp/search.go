@@ -13,7 +13,7 @@ import (
 // SearchInput is the search tool's argument schema.
 type SearchInput struct {
 	Query            string `json:"query" jsonschema:"compliance question or control citation, in the target framework's publication language — English for the international frameworks, Vietnamese for the TCVN frameworks (tcvn11930, tcvn14423); cross-language queries return degraded rankings (e.g. 'multi-factor authentication for remote access', 'AC-2(3)', or 'xác thực đa yếu tố truy cập từ xa')"`
-	Framework        string `json:"framework,omitempty" jsonschema:"framework code filter — raises recall to ~91% filtered vs ~84% unfiltered; codes listed by corpus_status (e.g. nist80053, iso27001, pcidss, ciscontrols, soc2tsc)"`
+	Framework        string `json:"framework,omitempty" jsonschema:"framework code filter — raises recall to ~93% filtered vs ~86% unfiltered; codes listed by corpus_status (e.g. nist80053, iso27001, pcidss, ciscontrols, soc2tsc)"`
 	VersionLabel     string `json:"version_label,omitempty" jsonschema:"pin one framework version (e.g. r5, 2022, v4.0.1); omit to search the current version"`
 	IncludeWithdrawn bool   `json:"include_withdrawn,omitempty" jsonschema:"also retrieve withdrawn controls (e.g. 800-53r5's incorporated-into families); default false"`
 	TopK             int    `json:"top_k,omitempty" jsonschema:"number of hits to return; default 8"`
