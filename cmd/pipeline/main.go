@@ -29,6 +29,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -253,16 +254,17 @@ func runMapEdges(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) erro
 	// NIST OLIR crosswalk (800-53 r5 → ISO 27001:2022), if its workbook has
 	// been extracted into bronze. Absence is a deferral, not an error — the
 	// operator may not have fetched the crosswalk.
-	olirSum, err := runOLIREdges(ctx, pool, silverQ, log)
+	olirSum, olirSkipped, err := runOLIREdges(ctx, pool, silverQ, log)
 	if err != nil {
 		return fmt.Errorf("mapedges: olir: %w", err)
 	}
 
 	// CIS mapping workbooks (safeguards → ISO 27001 / CSF 2.0 / 800-53 r5).
-	cisSum, err := runCISMappingEdges(ctx, pool, silverQ, log)
+	cisSum, cisSkipped, err := runCISMappingEdges(ctx, pool, silverQ, log)
 	if err != nil {
 		return fmt.Errorf("mapedges: cis mappings: %w", err)
 	}
+	skipped := append(olirSkipped, cisSkipped...)
 
 	// Operator-curated edges (config.curated_mapping) — e.g. the TCVN corpora,
 	// whose publications ship no crosswalk table. Unresolvable from-controls are
@@ -292,12 +294,22 @@ func runMapEdges(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) erro
 		return fmt.Errorf("mapedges: supersession resolve: %w", err)
 	}
 
-	// Every emitter succeeded — the corpus's outbound edges are current, so
-	// clear the staleness marker on every document. Only reached on success:
-	// a partial run must stay stale (see normalize.MarkMapEdgesFresh).
-	marked, err := normalize.MarkMapEdgesFresh(ctx, silverQ, log)
-	if err != nil {
-		return fmt.Errorf("mapedges: %w", err)
+	// Clear the staleness marker only when every emitter actually ran. A
+	// skipped source (its workbook absent from bronze) is not a failure, but
+	// the edges it would have emitted are missing — stamping fresh would
+	// assert a completeness the corpus does not have, which is exactly the
+	// silent thinning this marker exists to prevent. Leave those documents
+	// stale and say why.
+	var marked int64
+	if len(skipped) > 0 {
+		log.Warn("mapedges: expected mapping source absent — leaving staleness markers set",
+			"skipped_sources", strings.Join(skipped, ","),
+			"hint", "extract the missing workbook into bronze, then re-run -stage mapedges")
+	} else {
+		marked, err = normalize.MarkMapEdgesFresh(ctx, silverQ, log)
+		if err != nil {
+			return fmt.Errorf("mapedges: %w", err)
+		}
 	}
 
 	// Per-source emission counts: which producer contributed what this run.
@@ -318,8 +330,9 @@ func runMapEdges(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) erro
 
 // runCISMappingEdges emits edges from each CIS mapping workbook whose capture
 // exists in bronze. Missing workbooks are deferrals, not errors.
-func runCISMappingEdges(ctx context.Context, pool *pgxpool.Pool, silverQ *dbsilver.Queries, log *slog.Logger) (normalize.MapEdgesSummary, error) {
+func runCISMappingEdges(ctx context.Context, pool *pgxpool.Pool, silverQ *dbsilver.Queries, log *slog.Logger) (normalize.MapEdgesSummary, []string, error) {
 	var total normalize.MapEdgesSummary
+	var skipped []string
 	for _, spec := range normalize.CISMappingSpecs {
 		var raw []byte
 		err := pool.QueryRow(ctx, `
@@ -329,24 +342,25 @@ JOIN bronze.source_file sf ON sf.id = re.source_file_id
 WHERE sf.manifest_rel_path = $1 AND re.kind = 'workbook-rows-json'
 ORDER BY re.id DESC LIMIT 1`, spec.RelPath).Scan(&raw)
 		if err != nil {
-			log.Info("mapedges: CIS mapping workbook not in bronze — skipping", "rel_path", spec.RelPath)
+			log.Warn("mapedges: CIS mapping workbook not in bronze — skipping", "rel_path", spec.RelPath)
+			skipped = append(skipped, spec.RelPath)
 			continue
 		}
 		s, err := normalize.EmitCISMappingEdges(ctx, pool, silverQ, spec, raw, log)
 		if err != nil {
-			return total, err
+			return total, skipped, err
 		}
 		log.Info("mapedges: CIS mapping workbook", "rel_path", spec.RelPath, "emitted", s.Emitted, "resolved", s.Resolved)
 		total.Emitted += s.Emitted
 		total.Resolved += s.Resolved
 	}
-	return total, nil
+	return total, skipped, nil
 }
 
 // runOLIREdges locates the OLIR crosswalk capture in bronze (by the manifest
 // rel_path the file_rule seed pins) and emits its mapping edges. Returns a
 // zero summary when the crosswalk is not in the corpus.
-func runOLIREdges(ctx context.Context, pool *pgxpool.Pool, silverQ *dbsilver.Queries, log *slog.Logger) (normalize.MapEdgesSummary, error) {
+func runOLIREdges(ctx context.Context, pool *pgxpool.Pool, silverQ *dbsilver.Queries, log *slog.Logger) (normalize.MapEdgesSummary, []string, error) {
 	const olirRelPath = "nist/nist-sp-800-53r5-to-iso27001-2022-olir.xlsx"
 
 	var raw []byte
@@ -357,16 +371,16 @@ JOIN bronze.source_file sf ON sf.id = re.source_file_id
 WHERE sf.manifest_rel_path = $1 AND re.kind = 'workbook-rows-json'
 ORDER BY re.id DESC LIMIT 1`, olirRelPath).Scan(&raw)
 	if err != nil {
-		log.Info("mapedges: OLIR crosswalk not in bronze — skipping", "rel_path", olirRelPath)
-		return normalize.MapEdgesSummary{}, nil
+		log.Warn("mapedges: OLIR crosswalk not in bronze — skipping", "rel_path", olirRelPath)
+		return normalize.MapEdgesSummary{}, []string{olirRelPath}, nil
 	}
 
 	olirSum, err := normalize.EmitOLIREdges(ctx, pool, silverQ, raw, log)
 	if err != nil {
-		return normalize.MapEdgesSummary{}, err
+		return normalize.MapEdgesSummary{}, nil, err
 	}
 	log.Info("mapedges: OLIR crosswalk", "emitted", olirSum.Emitted, "resolved", olirSum.Resolved)
-	return olirSum, nil
+	return olirSum, nil, nil
 }
 
 // defaultONNXModelDir returns ~/.cache/banhmi/qwen3-embedding — the shared

@@ -65,7 +65,16 @@ go run ./cmd/pipeline -stage lexindex           # BM25 sparse vectors
 ```
 
 (Alternative: build locally, then `pg_dump` → `pg_restore` into RDS. The
-env-pointed run avoids dump/restore drift.)
+env-pointed run avoids dump/restore drift; the dump carries `mapedges_at`, so a
+restored corpus stays fresh without a mapedges re-run.)
+
+**After any `make migrate` that adds the `mapedges_at` marker to an existing
+corpus**, every document reads stale until the stage runs once — `quality_gaps`
+will report the whole corpus stale to connected agents. Follow the migration
+with `go run ./cmd/pipeline -stage mapedges` (or a restore from a fresh dump).
+The stage refuses to clear the markers when an expected mapping workbook is
+absent from bronze — check the WARN and extract the missing capture rather than
+accepting a thinned corpus.
 
 ## 2. Secrets (SSM SecureString + Secrets Manager)
 

@@ -370,12 +370,16 @@ func (dc *dbCorpus) curatedMappingGaps(ctx context.Context, limit int) ([]Curate
 // cis-v8.1-mappings) have no seed table to diff against, so the only way to know
 // they are stale is the marker the normalize cascade clears.
 //
-// Two reasons, distinguished by whether any document is fresh: a corpus where
-// nothing is marked has simply never run the stage (a legitimate state for a
-// fresh self-deploy), whereas a NULL sitting next to fresh siblings is a
-// regression — that document was re-normalized after the last mapedges run.
+// Two reasons, distinguished by whether the stage has demonstrably run: a corpus
+// with no fresh marker AND no edges at all has simply never run the stage (a
+// legitimate state for a fresh self-deploy), whereas a NULL alongside fresh
+// siblings — or alongside existing edges, which a full-corpus re-normalize
+// leaves behind — is a regression.
 // outbound_edges is the count that survived (parser-carried edges are re-emitted
-// by normalize itself), so the operator can see the residual exposure.
+// by normalize itself), so the operator can see the residual exposure. A document
+// with zero outbound edges can still be stale-worthy: the inbound FK is
+// ON DELETE SET NULL, so re-normalizing it un-resolves every edge pointing INTO
+// it (those surface under unresolved_mappings until mapedges re-resolves them).
 const staleMapEdgesQuery = `
 SELECT
     d.framework_code,
@@ -387,7 +391,8 @@ SELECT
        JOIN silver.control sc ON sc.id = cm.from_control_id
       WHERE sc.document_id = d.id) AS outbound_edges,
     CASE WHEN EXISTS (SELECT 1 FROM silver.document f WHERE f.mapedges_at IS NOT NULL)
-        THEN 'document re-normalized since the last mapedges run — its outbound mapping edges were cascade-deleted'
+          OR EXISTS (SELECT 1 FROM silver.control_mapping)
+        THEN 'document re-normalized since the last mapedges run — its outbound mapping edges were cascade-deleted, and inbound edges pointing into it were un-resolved'
         ELSE 'mapedges stage has never run over this corpus — no derived or curated edges are guaranteed'
     END AS reason,
     count(*) OVER () AS total
