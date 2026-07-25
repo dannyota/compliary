@@ -12,7 +12,7 @@ structured data, never prose.
 | **corpus_status** | Live per-framework/version counts | none | frameworks[] (incl. mapping_edges outbound + inbound_edges resolved-into), totals, notes |
 | **search** | Hybrid retrieval (dense + BM25, RRF-fused) | query, framework?, version_label?, include_withdrawn?, top_k?, mode?, detail? | hits[], gaps[], abstain |
 | **document** | Citation lookup: control + mappings + lineage + chunks | citation, framework_code?, version_label?, include? | control, amended_by, parent, children, mappings, inbound_mappings, version_lineage, chunks, gaps |
-| **quality_gaps** | Known corpus gaps and caveats | category?, limit? | unresolved_mappings, deferred_docs, manifest_gaps, body_quality_caveats, eval_floors |
+| **quality_gaps** | Known corpus gaps and caveats | category?, limit? | unresolved_mappings, curated_mapping_gaps, deferred_docs, manifest_gaps, body_quality_caveats, eval_floors |
 
 ## Recommended agent flow
 
@@ -145,11 +145,10 @@ RRF-fused score, which is a rank artifact with no absolute scale). The check liv
 retriever, so `cmd/eval -abstain-floor` measures it directly. BM25-only deployments (no
 embedder) never abstain on the floor — there is no cosine to compare.
 
-- **Current floor: 0.5** (calibrated 2026-07-21 by sweeping 0.30–0.70 against the 125-case
-  golden set). At 0.5 the two clearly-distant OOS queries abstain and no in-scope case trips;
-  above 0.55 in-scope cases start failing. Honest limit: compliance-adjacent OOS (export
-  controls, medical-device software, environmental management) embeds close to InfoSec text, so
-  the cosine bands overlap — 8 of 10 OOS golden cases still return hits without abstaining.
+- **Current floor: 0.5** (calibrated 2026-07-21 by sweeping 0.30–0.70 against the then-125-case
+  golden set; not re-swept since). No in-scope case trips at 0.5; above 0.55 in-scope cases start
+  failing. Honest limit: compliance-adjacent OOS embeds close to InfoSec text, so the cosine bands
+  overlap — on the v6 set 7 of the 15 OOS golden cases still return hits without abstaining.
 - **Abstain response:** `abstain: true` + `gaps[].kind = "low_confidence"` or `"no_evidence"`.
   Hits are still returned; the agent sees the gap notice and decides how to proceed.
 
@@ -185,7 +184,10 @@ embedder) never abstain on the floor — there is no cosine to compare.
 
 Golden set v6: 205 cases (185 v5 + 20 Vietnamese TCVN cases). All 30 TCVN cases hit
 rank 1–3 in both lanes. Re-baselined 2026-07-25 after the level-qualified TCVN 11930
-titles landed (details in RETRIEVAL.md baseline section).
+titles landed (details in RETRIEVAL.md baseline section). **The v5→v6 lift is set
+composition, not a retriever capability change** — the 20 added Vietnamese cases score
+above the corpus average, and a control run of the unchanged 185-case v5 set against the
+same corpus reproduced v5 exactly.
 
 Floors (open-corpus lane, 205-case set): recall >= 0.66, MRR >= 0.44, current >= 0.98,
 abstain >= 0.90. The raw-cosine floor (0.5) catches the clearly-distant OOS cases; the
@@ -195,8 +197,11 @@ remaining compliance-adjacent OOS cases embed too close to InfoSec text to separ
 
 **Truth about abstain floors:** the raw-cosine floor (0.5) separates only the clearly-distant
 out-of-scope queries — 8 of the 15 OOS golden cases abstain; the other 7 are compliance-adjacent
-(export controls, medical devices, environmental management, GDPR, SOX) and embed too close to
-InfoSec text to separate at this corpus size. `no_evidence` fires on empty result sets
+and embed too close to InfoSec text to separate at this corpus size. (The OOS set is 13
+compliance-adjacent domains — GDPR, SOX, HIPAA, AML, export controls, medical devices,
+environmental management, food safety, automotive safety, maritime, telecom, tax, employment law
+— plus 2 clearly-distant non-compliance queries; see `deploy/eval/golden.csv`. Which 7 miss is not
+recorded per case.) `no_evidence` fires on empty result sets
 regardless. This is honest: the floor catches what it can prove, and the remaining overlap is
 documented rather than papered over.
 

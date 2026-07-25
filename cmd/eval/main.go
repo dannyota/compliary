@@ -76,13 +76,15 @@ func main() {
 	flag.IntVar(&o.reviewPreviewChars, "review-preview-chars", 240, "max content preview chars per hit")
 	flag.StringVar(&o.outPath, "out", "", "write JSON report to this path (empty = off)")
 	flag.BoolVar(&o.usePins, "use-pins", true, "pass framework/version pins from golden case metadata to SearchOpts")
-	// Floors: Phase A baseline (2026-07-20, hybrid ONNX Qwen3, 105 queries / 100 scored):
-	//   Open-corpus: recall@8=65.0%, MRR@8=43.1%, current=100%, abstain=95.2%
-	//   Filtered:    recall@8=81.0%, MRR@8=62.5%, current=94.2%, abstain=95.2%
-	// Floors set ~2pp under open-corpus lane (the hard mode, no pins):
+	// Floors: accepted gate values, unchanged since the Phase A baseline
+	// (recall 0.66 / MRR 0.44 / current 0.98 / abstain 0.90). Current measured
+	// baseline is golden v6, 205 cases (2026-07-25, hybrid ONNX Qwen3):
+	//   Open-corpus: recall@8=86.3%, MRR@8=66.3%, current=100%, abstain=96.6%
+	//   Filtered:    recall@8=93.2%, MRR@8=81.3%, current=100%, abstain=95.6%
+	// Gate the open-corpus lane (the hard mode, no pins):
 	//   CGO_LDFLAGS="-L$HOME/.local/lib" COMPLIARY_ONNX_LIB=$HOME/.local/lib/libonnxruntime.so \
 	//   COMPLIARY_DATABASE_PASSWORD=compliary go run -tags onnx ./cmd/eval \
-	//   -min-recall 0.63 -min-mrr 0.41 -min-current 0.98 -min-abstain 0.93
+	//   -min-recall 0.66 -min-mrr 0.44 -min-current 0.98 -min-abstain 0.90
 	flag.Float64Var(&o.minRecall, "min-recall", 0, "fail if recall@k below this (0 = no gate)")
 	flag.Float64Var(&o.minMRR, "min-mrr", 0, "fail if mrr@k below this (0 = no gate)")
 	flag.Float64Var(&o.minCurrent, "min-current", 0, "fail if current-version precision below this (0 = no gate)")

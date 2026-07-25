@@ -190,6 +190,7 @@ Superseded by golden v2. Kept for reference; not comparable (different set size/
   (national-security systems) restate the same control families, and the section heading that
   names the scope is not carried into the chunk (the ancestor chain is citation-only). The
   §4/§5 twins separate today only where their bodies differ; where they are byte-identical the
-  ranking is a coin flip. All 5 golden §4/§5 cases land at rank 1–2, but a prior BM25 probe saw
-  `5.9.2.2` lose to its §4 twin `4.9.2.2`. A scope qualifier on 14423 titles (the fix applied to
+  ranking is a coin flip. All 5 golden §4/§5 cases land at rank 1–2, but the v6 hybrid run
+  reproduces the defect a BM25 probe first saw: `tcvn14423-dns` sits at rank 2 in **both** lanes,
+  losing rank 1 to its §4 twin `4.9.2.2`. A scope qualifier on 14423 titles (the fix applied to
   11930 levels) would close it.

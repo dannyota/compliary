@@ -98,6 +98,14 @@ corpora), the mapedges stage resolves `config.curated_mapping` rows into `contro
 never publisher-authoritative; `provenance_detail` carries the operator note (e.g. MOD-lineage version
 drift), not a source cell. From-controls absent from the corpus are counted + reported, never dropped.
 
+**Stage ordering — re-run `-stage mapedges` after any normalize.** Re-normalizing a framework
+deletes and recreates its `silver.control` rows, and `control_mapping.from_control_id` is
+`ON DELETE CASCADE`, so every mapping edge leaving that framework is dropped. `mapedges` is **not**
+in `cmd/pipeline`'s default stage list, so a normalize-only run leaves curated and derived edges
+missing until mapedges runs again. `quality_gaps category=curated_mappings` reports the resulting
+drift (seeded `config.curated_mapping` rows with no materialized edge) so it surfaces as evidence
+instead of silently thinning the corpus.
+
 **Withdrawn-in-document modeling:** when a publisher lists superseded items inline (e.g. CSF v1.1
 categories/subcategories inside the 2.0 workbook, marked `[Withdrawn: Incorporated into …]`),
 they live in the **2.0 document** — never a fabricated v1.1 document we don't have. Status

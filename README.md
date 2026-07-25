@@ -78,12 +78,12 @@ learn what the corpus cannot answer. Full contract: [docs/design/MCP.md](docs/de
 
 ## Retrieval quality
 
-Adversarially-verified eval on a 175-case golden set:
+Adversarially-verified eval on the 205-case golden set (v6):
 
 | Lane | Recall@8 | MRR@8 | Current-version | Abstention |
 |------|----------|-------|-----------------|------------|
-| Open-corpus | 83.8% | 62.4% | 100% | 95.4% |
-| Framework-filtered | 91.9% | 80.1% | 100% | 94.9% |
+| Open-corpus | 86.3% | 66.3% | 100% | 96.6% |
+| Framework-filtered | 93.2% | 81.3% | 100% | 95.6% |
 
 Accepted floors gate every corpus change. The `quality_gaps` tool serves these numbers live.
 
