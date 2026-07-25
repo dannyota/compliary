@@ -173,6 +173,22 @@ unchanged (66/44/98/90), pre-TCVN control run reproduced v4 exactly.
 controls / 3,943 chunks dense+sparse / 4,462 mapping edges — the round-7 prod backlog cleared
 with it), image rolled, live version + auth verified.
 
+**Undeployed since that release** (local only): the TCVN improvement round — per-framework
+language guidance, 39 curated mapping edges (4,501 total), level-qualified 11930 titles + their
+re-embedded chunks, Vietnamese BM25 stopwords, golden v6. Prod still serves the release corpus;
+next deploy needs a corpus re-sync plus `release.sh`.
+
+### Open design question
+
+**Mapedges staleness is invisible.** Normalize cascade-deletes a framework's outbound mapping
+edges (`ON DELETE CASCADE`) and `mapedges` is not in the default stage list, so a scoped
+re-normalize silently drops them (this bit the TCVN round: 17 curated edges vanished, caught
+only in review). `quality_gaps` now reports drift for **curated** rows (39 of 4,501 edges);
+derived edges — e.g. nistcsf's 2,868 — have no detection. Recommendation (both reviewers concur):
+do **not** add mapedges to the default stages (it turns a scoped normalize into a whole-corpus
+rebuild); instead mirror the index stage's proven pattern — a `mapedges_at` marker NULLed by
+normalize, set by mapedges, surfaced by `quality_gaps`.
+
 ### v0.2.x — phase-2 corpus completion (follow-ups)
 
 1. Acquire the 5 deferred documents (see acquisition status above): ISO 22301:2019 base,
