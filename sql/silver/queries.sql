@@ -23,7 +23,29 @@ ORDER BY doc_role, qualifier;
 -- the control tree reproducible, and ON DELETE CASCADE clears mappings/topics.
 
 -- name: DeleteControlsForDocument :execrows
+-- The cascade destroys every mapping edge leaving this document, so the
+-- mapedges marker is NULLed in the same statement — a data-modifying CTE, not a
+-- second call, so a rebuilt control tree can never leave a stale-but-fresh
+-- marker behind. Mirrors MarkNormalized NULLing indexed_at in ingest.
+WITH invalidate AS (
+    UPDATE silver.document SET mapedges_at = NULL WHERE id = $1
+)
 DELETE FROM silver.control WHERE document_id = $1;
+
+-- name: CountMappingsForDocument :one
+-- Outbound mapping edges leaving this document — read before a rebuild so the
+-- normalize stage can WARN with the number of edges its cascade is about to
+-- destroy.
+SELECT count(*) FROM silver.control_mapping cm
+JOIN silver.control sc ON sc.id = cm.from_control_id
+WHERE sc.document_id = $1;
+
+-- name: MarkDocumentsMapEdged :execrows
+-- Set the mapedges marker corpus-wide after a successful mapedges stage. The
+-- stage has no per-framework mode — every emitter reads whatever the corpus
+-- holds and upserts all derivable edges — so a completed run makes every
+-- document's outbound edges current, and corpus-wide is the honest grain.
+UPDATE silver.document SET mapedges_at = now();
 
 -- name: InsertControl :one
 INSERT INTO silver.control (document_id, parent_control_id, citation, citation_norm, kind, status, title, title_original, body, amends_citation_norm, amend_action, ordinal)

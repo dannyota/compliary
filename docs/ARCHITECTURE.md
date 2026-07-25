@@ -74,7 +74,10 @@ Qwen3 dense embeddings — bulk local ONNX by default, Kaggle T4 on explicit opt
 model string `embed.CanonicalModel`; PCI bodies column-truncated, 0/351 noisy), LexIndex (3943
 BM25 sparse vectors). **Re-running Normalize for a framework cascade-deletes its outbound mapping
 edges** (FK `ON DELETE CASCADE`), and MapEdges is not in the default stage list — re-run
-`-stage mapedges` after any normalize. Retrieval design in [`design/RETRIEVAL.md`](design/RETRIEVAL.md).
+`-stage mapedges` after any normalize. The loss is **detectable, not silent**: Normalize WARNs with
+the deleted-edge count and NULLs `silver.document.mapedges_at`, MapEdges re-stamps it on success,
+and `quality_gaps category=stale_mapedges` lists every stale document
+([`design/SCHEMA.md`](design/SCHEMA.md)). Retrieval design in [`design/RETRIEVAL.md`](design/RETRIEVAL.md).
 Still deferred: CAIQ (assessment questions are not controls, by design) and the ISO 22301
 amendment (base document not acquired).
 

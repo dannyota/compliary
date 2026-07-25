@@ -20,6 +20,22 @@ func (q *Queries) CountControlsForDocument(ctx context.Context, documentID int64
 	return count, err
 }
 
+const countMappingsForDocument = `-- name: CountMappingsForDocument :one
+SELECT count(*) FROM silver.control_mapping cm
+JOIN silver.control sc ON sc.id = cm.from_control_id
+WHERE sc.document_id = $1
+`
+
+// Outbound mapping edges leaving this document — read before a rebuild so the
+// normalize stage can WARN with the number of edges its cascade is about to
+// destroy.
+func (q *Queries) CountMappingsForDocument(ctx context.Context, documentID int64) (int64, error) {
+	row := q.db.QueryRow(ctx, countMappingsForDocument, documentID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countUnresolvedMappings = `-- name: CountUnresolvedMappings :one
 SELECT count(*) FROM silver.control_mapping WHERE to_control_id IS NULL
 `
@@ -33,11 +49,18 @@ func (q *Queries) CountUnresolvedMappings(ctx context.Context) (int64, error) {
 
 const deleteControlsForDocument = `-- name: DeleteControlsForDocument :execrows
 
+WITH invalidate AS (
+    UPDATE silver.document SET mapedges_at = NULL WHERE id = $1
+)
 DELETE FROM silver.control WHERE document_id = $1
 `
 
 // Re-normalize is delete-and-rebuild per document: deterministic parsers make
 // the control tree reproducible, and ON DELETE CASCADE clears mappings/topics.
+// The cascade destroys every mapping edge leaving this document, so the
+// mapedges marker is NULLed in the same statement — a data-modifying CTE, not a
+// second call, so a rebuilt control tree can never leave a stale-but-fresh
+// marker behind. Mirrors MarkNormalized NULLing indexed_at in ingest.
 func (q *Queries) DeleteControlsForDocument(ctx context.Context, documentID int64) (int64, error) {
 	result, err := q.db.Exec(ctx, deleteControlsForDocument, documentID)
 	if err != nil {
@@ -79,7 +102,7 @@ func (q *Queries) GetControlByCitationNorm(ctx context.Context, arg GetControlBy
 }
 
 const getDocumentByKey = `-- name: GetDocumentByKey :one
-SELECT id, doc_key, framework_code, version_label, doc_role, qualifier, title, source_file_sha256, serve_gate, markdown, created_at, updated_at FROM silver.document WHERE doc_key = $1
+SELECT id, doc_key, framework_code, version_label, doc_role, qualifier, title, source_file_sha256, serve_gate, markdown, mapedges_at, created_at, updated_at FROM silver.document WHERE doc_key = $1
 `
 
 func (q *Queries) GetDocumentByKey(ctx context.Context, docKey string) (SilverDocument, error) {
@@ -96,6 +119,7 @@ func (q *Queries) GetDocumentByKey(ctx context.Context, docKey string) (SilverDo
 		&i.SourceFileSha256,
 		&i.ServeGate,
 		&i.Markdown,
+		&i.MapedgesAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -184,7 +208,7 @@ func (q *Queries) ListControlsForDocument(ctx context.Context, documentID int64)
 }
 
 const listDocuments = `-- name: ListDocuments :many
-SELECT id, doc_key, framework_code, version_label, doc_role, qualifier, title, source_file_sha256, serve_gate, markdown, created_at, updated_at FROM silver.document ORDER BY framework_code, version_label, doc_role, qualifier
+SELECT id, doc_key, framework_code, version_label, doc_role, qualifier, title, source_file_sha256, serve_gate, markdown, mapedges_at, created_at, updated_at FROM silver.document ORDER BY framework_code, version_label, doc_role, qualifier
 `
 
 func (q *Queries) ListDocuments(ctx context.Context) ([]SilverDocument, error) {
@@ -207,6 +231,7 @@ func (q *Queries) ListDocuments(ctx context.Context) ([]SilverDocument, error) {
 			&i.SourceFileSha256,
 			&i.ServeGate,
 			&i.Markdown,
+			&i.MapedgesAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -221,7 +246,7 @@ func (q *Queries) ListDocuments(ctx context.Context) ([]SilverDocument, error) {
 }
 
 const listDocumentsForVersion = `-- name: ListDocumentsForVersion :many
-SELECT id, doc_key, framework_code, version_label, doc_role, qualifier, title, source_file_sha256, serve_gate, markdown, created_at, updated_at FROM silver.document WHERE framework_code = $1 AND version_label = $2
+SELECT id, doc_key, framework_code, version_label, doc_role, qualifier, title, source_file_sha256, serve_gate, markdown, mapedges_at, created_at, updated_at FROM silver.document WHERE framework_code = $1 AND version_label = $2
 ORDER BY doc_role, qualifier
 `
 
@@ -250,6 +275,7 @@ func (q *Queries) ListDocumentsForVersion(ctx context.Context, arg ListDocuments
 			&i.SourceFileSha256,
 			&i.ServeGate,
 			&i.Markdown,
+			&i.MapedgesAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -387,6 +413,22 @@ func (q *Queries) ListVersionRelations(ctx context.Context) ([]SilverVersionRela
 	return items, nil
 }
 
+const markDocumentsMapEdged = `-- name: MarkDocumentsMapEdged :execrows
+UPDATE silver.document SET mapedges_at = now()
+`
+
+// Set the mapedges marker corpus-wide after a successful mapedges stage. The
+// stage has no per-framework mode — every emitter reads whatever the corpus
+// holds and upserts all derivable edges — so a completed run makes every
+// document's outbound edges current, and corpus-wide is the honest grain.
+func (q *Queries) MarkDocumentsMapEdged(ctx context.Context) (int64, error) {
+	result, err := q.db.Exec(ctx, markDocumentsMapEdged)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const resolveControlMappings = `-- name: ResolveControlMappings :execrows
 UPDATE silver.control_mapping cm
 SET to_control_id = c.id
@@ -459,7 +501,7 @@ ON CONFLICT (doc_key) DO UPDATE SET
     serve_gate         = EXCLUDED.serve_gate,
     markdown           = EXCLUDED.markdown,
     updated_at         = now()
-RETURNING id, doc_key, framework_code, version_label, doc_role, qualifier, title, source_file_sha256, serve_gate, markdown, created_at, updated_at
+RETURNING id, doc_key, framework_code, version_label, doc_role, qualifier, title, source_file_sha256, serve_gate, markdown, mapedges_at, created_at, updated_at
 `
 
 type UpsertDocumentParams struct {
@@ -498,6 +540,7 @@ func (q *Queries) UpsertDocument(ctx context.Context, arg UpsertDocumentParams) 
 		&i.SourceFileSha256,
 		&i.ServeGate,
 		&i.Markdown,
+		&i.MapedgesAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

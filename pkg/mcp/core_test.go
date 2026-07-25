@@ -310,10 +310,11 @@ func TestQualityGaps_Categories(t *testing.T) {
 		want  int
 		err   bool
 	}{
-		{"", 6, false},
-		{"all", 6, false},
+		{"", 7, false},
+		{"all", 7, false},
 		{"unresolved_mappings", 1, false},
 		{"curated_mappings", 1, false},
+		{"stale_mapedges", 1, false},
 		{"deferred_docs", 1, false},
 		{"manifest", 1, false},
 		{"body_quality", 1, false},

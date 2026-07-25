@@ -78,7 +78,7 @@ all other whitespace is preserved verbatim (text before the first marker belongs
 
 | Table | Role | Notes |
 |-------|------|-------|
-| `document` | One publication (framework version's document) | `doc_key` = `<framework_code>|<version_label>|<doc_role>[:<qualifier>]` — **amendments attach to the base version they modify** (`iso27001|2022|amendment:amd1-2024`), so the base linkage is explicit · `doc_role` (`main`/`amendment`/`companion-workbook`/`changelog`) · **`qualifier`** (explicit column backing the `doc_key` suffix, e.g. `amd1-2024`; empty for non-amendment docs) · title · `source_file_sha256` business key · **`serve_gate`** (`public`/`auth-only`, denormalized from `bronze.source_file`) · denormalized display `markdown` |
+| `document` | One publication (framework version's document) | `doc_key` = `<framework_code>|<version_label>|<doc_role>[:<qualifier>]` — **amendments attach to the base version they modify** (`iso27001|2022|amendment:amd1-2024`), so the base linkage is explicit · `doc_role` (`main`/`amendment`/`companion-workbook`/`changelog`) · **`qualifier`** (explicit column backing the `doc_key` suffix, e.g. `amd1-2024`; empty for non-amendment docs) · title · `source_file_sha256` business key · **`serve_gate`** (`public`/`auth-only`, denormalized from `bronze.source_file`) · denormalized display `markdown` · **`mapedges_at`** (outbound-mapping-edge staleness marker, nullable — NULL = edges unbuilt or cascade-deleted by a re-normalize; see *Stage ordering* below) |
 | `control` | **The citation unit** | `document_id` · `citation` UNIQUE per `(document_id, citation)` (`A.5.1`, `AC-2(3)`, `CC6.1`, `8.3.6`, `PR.AA-01`, `CLD.6.3.1`, `AIS-01`, `EDM01.01`, `5.1`; `tcvn-clause` dotted-numeric `5.1.1.1` + appendix `A.5.10` for TCVN) · `citation_norm` (uppercased, separator-normalized — the mapping join key; **scoped per framework, never globally unique** — 27017's 2013-numbered `6.1.1` ≠ 27001:2022's `6.1`) · `parent_control_id` (tree: domain → family → control → enhancement; objective → practice; criterion → point-of-focus) · `kind` (from `config.control_kind`) · **`status`** (`active`/`withdrawn`/`deprecated` — 800-53r5 has 182 withdrawn controls; incorporation edges go to `control_mapping` as `incorporated-into`) · **`title`** (always ours/paraphrased for `licensed` frameworks — public-safe by construction; may equal publisher's only for `public-domain`) · **`title_original`** (publisher's verbatim heading, nullable — auth-gated like `body`) · `body` (verbatim normative text — **auth-gated at serve time by the document's `serve_gate`**) · **`amends_citation_norm` + `amend_action`** (`add`/`replace`/`delete`, nullable — set only on controls inside amendment documents, linking each patch to the base control it modifies; a query for "current 27001 4.1" joins base + amendment deterministically) · `ordinal` |
 | `version_relation` | Version lineage edges | `from_framework_code`+`from_version_label` → `to_framework_code`+`to_version_label` · `relation_type` (`supersedes`/`amends`/`consolidates`) · `note` (e.g. "cancels and replaces; realigned to 27002:2022") — populated from registry knowledge + publisher forewords · endpoints validated against `config.framework_version` at pipeline time; unresolved → quality gap |
 | `control_mapping` | **Cross-framework edges, the product's second half** | `from_control_id` → `to_framework_code` + **`to_version_label`** (nullable = version-unspecified; the real data is version-specific — CSF 2.0's workbook maps separately to 800-53 r5.1.1 and r5.2.0) + `to_citation_norm` (business key — target may not be ingested yet, banhmi's `doc_ref` stub pattern flattened) · `mapping_source_code` (config vocab) · `relationship` (`equivalent`/`subset-of`/`superset-of`/`intersects`/`related`/`incorporated-into`/`moved-to`) · `provenance_detail` (row/cell reference only, source-specific format: OSCAL link href · `<sheet>!<cell>` for workbook rows · `<cell> [<prefix>]` for informative references — never quoted text) · resolved `to_control_id` nullable, filled when the target framework lands · candidate key `(from_control_id, to_framework_code, to_version_label, to_citation_norm, mapping_source_code)` |
@@ -101,10 +101,24 @@ drift), not a source cell. From-controls absent from the corpus are counted + re
 **Stage ordering — re-run `-stage mapedges` after any normalize.** Re-normalizing a framework
 deletes and recreates its `silver.control` rows, and `control_mapping.from_control_id` is
 `ON DELETE CASCADE`, so every mapping edge leaving that framework is dropped. `mapedges` is **not**
-in `cmd/pipeline`'s default stage list, so a normalize-only run leaves curated and derived edges
-missing until mapedges runs again. `quality_gaps category=curated_mappings` reports the resulting
-drift (seeded `config.curated_mapping` rows with no materialized edge) so it surfaces as evidence
-instead of silently thinning the corpus.
+in `cmd/pipeline`'s default stage list (adding it would turn a scoped normalize into a whole-corpus
+rebuild), so a normalize-only run leaves curated and derived edges missing until mapedges runs again.
+
+**`silver.document.mapedges_at` is the staleness marker** — the silver twin of
+`ingest.manifest_file.indexed_at`, making the loss queryable state rather than a log line:
+
+| Step | Behavior |
+|------|----------|
+| **Grain** | Per **document** — the exact unit the cascade destroys (`DeleteControlsForDocument` → CASCADE on every edge leaving that document) |
+| **Invalidated** | `DeleteControlsForDocument` NULLs it in the **same statement** (data-modifying CTE), so a rebuilt control tree can never leave a stale-but-fresh marker |
+| **Set** | `normalize.MarkMapEdgesFresh` stamps **every** document after the whole mapedges stage succeeds — the stage has no per-framework mode, so corpus-wide is the honest grain; a partial/failed run marks nothing |
+| **Surfaced** | `quality_gaps category=stale_mapedges` lists every NULL with its control + surviving-edge counts, distinguishing *never run* (cold corpus) from *re-normalized since the last run* (regression) |
+| **Warned** | The normalize stage logs a **WARN** naming the doc, `edges_deleted`, `edges_reemitted_by_parser`, and `needs_mapedges` — the moment the operator can act |
+
+`quality_gaps category=curated_mappings` remains the complementary check: it diffs seeded
+`config.curated_mapping` rows against materialized edges (39 of 4,501), while the marker covers
+**derived** edges (`iso-structural`, `nist-olir`, `cis-v8.1-mappings`, `publisher-catalog`), which
+have no seed table to diff against.
 
 **Withdrawn-in-document modeling:** when a publisher lists superseded items inline (e.g. CSF v1.1
 categories/subcategories inside the 2.0 workbook, marked `[Withdrawn: Incorporated into …]`),

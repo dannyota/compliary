@@ -35,6 +35,7 @@ type BronzeQuerier interface {
 type SilverQuerier interface {
 	UpsertDocument(ctx context.Context, arg dbsilver.UpsertDocumentParams) (dbsilver.SilverDocument, error)
 	GetDocumentByKey(ctx context.Context, docKey string) (dbsilver.SilverDocument, error)
+	CountMappingsForDocument(ctx context.Context, documentID int64) (int64, error)
 	DeleteControlsForDocument(ctx context.Context, documentID int64) (int64, error)
 	InsertControl(ctx context.Context, arg dbsilver.InsertControlParams) (int64, error)
 	UpsertControlMapping(ctx context.Context, arg dbsilver.UpsertControlMappingParams) error
@@ -808,10 +809,33 @@ func (n *Normalizer) writeTree(
 		return fmt.Errorf("upsert document: %w", err)
 	}
 
-	// Delete existing controls (idempotent rebuild).
+	// Count the outbound mapping edges the rebuild is about to destroy. The
+	// delete cascades through control_mapping.from_control_id, so every edge
+	// leaving this document dies — including derived (iso-structural, OLIR,
+	// CIS) and operator-curated ones that only the mapedges stage can rebuild.
+	// Counting before the delete is the one moment the operator can act on it.
+	edgesBefore, err := silverQ.CountMappingsForDocument(ctx, sdoc.ID)
+	if err != nil {
+		return fmt.Errorf("count mappings for document: %w", err)
+	}
+
+	// Delete existing controls (idempotent rebuild). The same statement NULLs
+	// silver.document.mapedges_at, so the loss is queryable state, not just
+	// this log line (quality_gaps category=stale_mapedges).
 	_, err = silverQ.DeleteControlsForDocument(ctx, sdoc.ID)
 	if err != nil {
 		return fmt.Errorf("delete controls: %w", err)
+	}
+
+	if edgesBefore > 0 {
+		// This parse re-emits only the edges the document itself carries
+		// (e.g. CSF informative references); everything else needs mapedges.
+		n.Log.Warn("normalize: re-write cascade-deleted outbound mapping edges — run `go run ./cmd/pipeline -stage mapedges` to rebuild",
+			"doc", docKey,
+			"edges_deleted", edgesBefore,
+			"edges_reemitted_by_parser", len(tree.Mappings),
+			"needs_mapedges", max(0, int(edgesBefore)-len(tree.Mappings)),
+		)
 	}
 
 	// Pre-insert duplicate-citation check: a duplicate CitationNorm within

@@ -292,13 +292,26 @@ func runMapEdges(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) erro
 		return fmt.Errorf("mapedges: supersession resolve: %w", err)
 	}
 
+	// Every emitter succeeded — the corpus's outbound edges are current, so
+	// clear the staleness marker on every document. Only reached on success:
+	// a partial run must stay stale (see normalize.MarkMapEdgesFresh).
+	marked, err := normalize.MarkMapEdgesFresh(ctx, silverQ, log)
+	if err != nil {
+		return fmt.Errorf("mapedges: %w", err)
+	}
+
+	// Per-source emission counts: which producer contributed what this run.
 	log.Info("mapedges complete",
 		"emitted", sum.Emitted+olirSum.Emitted+cisSum.Emitted+curatedSum.Emitted,
 		"resolved", sum.Resolved+olirSum.Resolved+cisSum.Resolved+curatedSum.Resolved,
-		"curated_emitted", curatedSum.Emitted,
+		"emitted_iso_structural", sum.Emitted,
+		"emitted_nist_olir", olirSum.Emitted,
+		"emitted_cis_mappings", cisSum.Emitted,
+		"emitted_operator_curated", curatedSum.Emitted,
 		"curated_unresolved", curatedSum.Unresolved,
 		"annex_prefix_resolved", annexResolved,
 		"supersession_resolved", supersessionResolved,
+		"documents_marked_fresh", marked,
 	)
 	return nil
 }

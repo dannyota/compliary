@@ -40,6 +40,30 @@ type MapEdgesQuerier interface {
 	ResolveControlMappings(ctx context.Context) (int64, error)
 }
 
+// MapEdgesMarker sets the corpus-wide mapedges staleness marker.
+type MapEdgesMarker interface {
+	MarkDocumentsMapEdged(ctx context.Context) (int64, error)
+}
+
+// MarkMapEdgesFresh stamps silver.document.mapedges_at on every document. Call
+// it only after the whole mapedges stage succeeded: the stage is corpus-wide
+// (each emitter reads whatever the corpus holds and upserts every derivable
+// edge), so there is no honest per-framework "fresh" — either the run completed
+// and all documents' outbound edges are current, or it failed and none are.
+// Marking on a partial run would hide exactly the drift the marker exists to
+// catch, so the caller must not reach here on error.
+func MarkMapEdgesFresh(ctx context.Context, q MapEdgesMarker, log *slog.Logger) (int64, error) {
+	if log == nil {
+		log = slog.New(slog.DiscardHandler)
+	}
+	marked, err := q.MarkDocumentsMapEdged(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("mark documents mapedged: %w", err)
+	}
+	log.Info("mapedges: marker refreshed", "documents", marked)
+	return marked, nil
+}
+
 const mappingSourceISO = "iso-structural"
 
 // EmitISOStructuralEdges generates the 27001 A.x.y ≡ 27002 x.y equivalence

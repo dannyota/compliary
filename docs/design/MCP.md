@@ -12,7 +12,7 @@ structured data, never prose.
 | **corpus_status** | Live per-framework/version counts | none | frameworks[] (incl. mapping_edges outbound + inbound_edges resolved-into), totals, notes |
 | **search** | Hybrid retrieval (dense + BM25, RRF-fused) | query, framework?, version_label?, include_withdrawn?, top_k?, mode?, detail? | hits[], gaps[], abstain |
 | **document** | Citation lookup: control + mappings + lineage + chunks | citation, framework_code?, version_label?, include? | control, amended_by, parent, children, mappings, inbound_mappings, version_lineage, chunks, gaps |
-| **quality_gaps** | Known corpus gaps and caveats | category?, limit? | unresolved_mappings, curated_mapping_gaps, deferred_docs, manifest_gaps, body_quality_caveats, eval_floors |
+| **quality_gaps** | Known corpus gaps and caveats | category?, limit? | unresolved_mappings, curated_mapping_gaps, stale_mapedges, deferred_docs, manifest_gaps, body_quality_caveats, eval_floors |
 
 ## Recommended agent flow
 

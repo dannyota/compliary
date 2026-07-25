@@ -172,6 +172,7 @@ type SilverDocument struct {
 	SourceFileSha256 string
 	ServeGate        string
 	Markdown         *string
+	MapedgesAt       *time.Time
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 }

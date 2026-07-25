@@ -74,6 +74,9 @@ type fakeSilverQuerier struct {
 	controls []dbsilver.InsertControlParams
 	mappings []dbsilver.UpsertControlMappingParams
 	nextID   int64
+	// existingEdges is the outbound mapping-edge count writeTree reads before
+	// its rebuild — the edges the ON DELETE CASCADE is about to destroy.
+	existingEdges int64
 }
 
 func newFakeSilverQuerier() *fakeSilverQuerier {
@@ -101,9 +104,15 @@ func (f *fakeSilverQuerier) UpsertDocument(_ context.Context, arg dbsilver.Upser
 	return doc, nil
 }
 
+func (f *fakeSilverQuerier) CountMappingsForDocument(_ context.Context, _ int64) (int64, error) {
+	return f.existingEdges, nil
+}
+
 func (f *fakeSilverQuerier) DeleteControlsForDocument(_ context.Context, _ int64) (int64, error) {
 	f.controls = nil
 	f.mappings = nil
+	// The real query NULLs silver.document.mapedges_at in the same statement.
+	f.existingEdges = 0
 	return 0, nil
 }
 
@@ -370,6 +379,11 @@ func (r *recordingSilverQuerier) UpsertDocument(ctx context.Context, arg dbsilve
 	return r.fakeSilverQuerier.UpsertDocument(ctx, arg)
 }
 
+func (r *recordingSilverQuerier) CountMappingsForDocument(ctx context.Context, docID int64) (int64, error) {
+	r.ops = append(r.ops, "count-mappings")
+	return r.fakeSilverQuerier.CountMappingsForDocument(ctx, docID)
+}
+
 func (r *recordingSilverQuerier) DeleteControlsForDocument(ctx context.Context, docID int64) (int64, error) {
 	r.ops = append(r.ops, "delete-controls")
 	return r.fakeSilverQuerier.DeleteControlsForDocument(ctx, docID)
@@ -441,10 +455,12 @@ func TestWriteTree_CallOrder(t *testing.T) {
 		t.Fatalf("writeTree: %v", err)
 	}
 
-	// Verify call order: upsert-document, delete-controls, insert-control (x2),
-	// upsert-mapping, resolve-mappings.
+	// Verify call order: upsert-document, count-mappings (before the cascade
+	// destroys them), delete-controls, insert-control (x2), upsert-mapping,
+	// resolve-mappings.
 	wantSilverOps := []string{
 		"upsert-document",
+		"count-mappings",
 		"delete-controls",
 		"insert-control",
 		"insert-control",
@@ -640,6 +656,137 @@ func TestWriteTree_DuplicateCitationNorm(t *testing.T) {
 
 func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+}
+
+// TestWriteTree_CascadeDeleteWarning covers the moment the operator can act on
+// edge loss: a rebuild whose ON DELETE CASCADE destroys outbound mapping edges
+// must WARN with the counts, and a rebuild that destroys nothing must stay quiet.
+func TestWriteTree_CascadeDeleteWarning(t *testing.T) {
+	tests := []struct {
+		name          string
+		existingEdges int64
+		treeMappings  []MappingEdge
+		wantWarn      bool
+		wantFields    []string
+	}{
+		{
+			// The tcvn14423 shape: 22 curated edges in, parser emits none —
+			// every edge needs the mapedges stage to come back.
+			name:          "curated edges lost, parser re-emits none",
+			existingEdges: 22,
+			wantWarn:      true,
+			wantFields:    []string{"edges_deleted=22", "edges_reemitted_by_parser=0", "needs_mapedges=22"},
+		},
+		{
+			// The CSF shape: the parser carries its own informative references,
+			// so most of what the cascade took is restored by this same write.
+			name:          "parser re-emits its own edges",
+			existingEdges: 3,
+			treeMappings: []MappingEdge{
+				{FromIdx: 1, ToFrameworkCode: "other", ToCitationNorm: "X-1", MappingSource: "test", Relationship: "related"},
+				{FromIdx: 1, ToFrameworkCode: "other", ToCitationNorm: "X-2", MappingSource: "test", Relationship: "related"},
+			},
+			wantWarn:   true,
+			wantFields: []string{"edges_deleted=3", "edges_reemitted_by_parser=2", "needs_mapedges=1"},
+		},
+		{
+			name:          "first normalize, nothing to lose",
+			existingEdges: 0,
+			wantWarn:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			silverQ := newFakeSilverQuerier()
+			silverQ.existingEdges = tt.existingEdges
+
+			var buf strings.Builder
+			log := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+			tree := &TreeResult{
+				Title: "Test Document",
+				Controls: []ControlRow{
+					{Citation: "FAM", CitationNorm: "FAM", Kind: "family", Status: "active", ParentIdx: -1, Ordinal: 0},
+					{Citation: "C-1", CitationNorm: "C-1", Kind: "control", Status: "active", ParentIdx: 0, Ordinal: 1},
+				},
+				Mappings: tt.treeMappings,
+			}
+			doc := DocIdentity{
+				ManifestID: 42, RelPath: "test/doc.json", Sha256: "abc123",
+				FrameworkCode: "testfw", VersionLabel: "v1", DocRole: "main", ServeGate: "public",
+			}
+
+			norm := &Normalizer{Log: log}
+			if err := norm.writeTree(context.Background(), doc, tree, newFakeIngestQuerier(), silverQ); err != nil {
+				t.Fatalf("writeTree: %v", err)
+			}
+
+			out := buf.String()
+			warned := strings.Contains(out, "cascade-deleted outbound mapping edges")
+			if warned != tt.wantWarn {
+				t.Fatalf("warn fired=%v, want %v; log: %s", warned, tt.wantWarn, out)
+			}
+			if !tt.wantWarn {
+				return
+			}
+			if !strings.Contains(out, "level=WARN") {
+				t.Errorf("cascade notice must be WARN level; log: %s", out)
+			}
+			if !strings.Contains(out, "-stage mapedges") {
+				t.Errorf("warning must name the remediation command; log: %s", out)
+			}
+			for _, f := range tt.wantFields {
+				if !strings.Contains(out, f) {
+					t.Errorf("missing field %q; log: %s", f, out)
+				}
+			}
+		})
+	}
+}
+
+// --- mapedges marker ---
+
+type fakeMapEdgesMarker struct {
+	calls  int
+	marked int64
+	err    error
+}
+
+func (f *fakeMapEdgesMarker) MarkDocumentsMapEdged(_ context.Context) (int64, error) {
+	f.calls++
+	if f.err != nil {
+		return 0, f.err
+	}
+	return f.marked, nil
+}
+
+func TestMarkMapEdgesFresh(t *testing.T) {
+	q := &fakeMapEdgesMarker{marked: 19}
+
+	var buf strings.Builder
+	log := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	got, err := MarkMapEdgesFresh(context.Background(), q, log)
+	if err != nil {
+		t.Fatalf("MarkMapEdgesFresh: %v", err)
+	}
+	if got != 19 {
+		t.Errorf("marked=%d, want 19", got)
+	}
+	if q.calls != 1 {
+		t.Errorf("calls=%d, want 1", q.calls)
+	}
+	if out := buf.String(); !strings.Contains(out, "documents=19") {
+		t.Errorf("marker refresh not logged with the count; log: %s", out)
+	}
+}
+
+func TestMarkMapEdgesFresh_ErrorPropagates(t *testing.T) {
+	q := &fakeMapEdgesMarker{err: errors.New("db down")}
+	if _, err := MarkMapEdgesFresh(context.Background(), q, nil); err == nil {
+		t.Fatal("expected error to propagate so the stage never reports success")
+	}
 }
 
 // TestNormalizer_TermsNoteWarning verifies the data-driven restricted-terms

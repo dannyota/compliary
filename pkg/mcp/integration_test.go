@@ -12,6 +12,7 @@ import (
 	ragembed "danny.vn/compliary/pkg/rag/embed"
 	"danny.vn/compliary/pkg/rag/embed/onnxembed"
 	"danny.vn/compliary/pkg/rag/retrieve"
+	dbsilver "danny.vn/compliary/pkg/store/silver"
 )
 
 // TestIntegration_LiveCorpus exercises all five tools against the real dev
@@ -374,6 +375,129 @@ WHERE sc.id = cm.from_control_id
 		t.Errorf("drift note should name the remediation command, got %q", note)
 	}
 	t.Logf("simulated drift: %d dropped edges → %d drift rows, reason %q", deleted, got, reason)
+}
+
+// TestIntegration_StaleMapEdges exercises the mapedges staleness marker against
+// the real dev corpus. It is the derived-edge counterpart of the curated-drift
+// test above: curated drift can only see the 39 seeded operator edges, while the
+// marker sees any document whose outbound edges were cascade-deleted.
+//
+// The simulation runs the shipped DeleteControlsForDocument query inside a
+// rolled-back transaction, so it proves the real statement's data-modifying CTE
+// NULLs silver.document.mapedges_at — the dev DB is never left damaged.
+func TestIntegration_StaleMapEdges(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	corpus := DBCorpus(pool)
+
+	var fresh int
+	if err := pool.QueryRow(ctx,
+		`SELECT count(*) FROM silver.document WHERE mapedges_at IS NOT NULL`).Scan(&fresh); err != nil {
+		t.Fatal(err)
+	}
+	if fresh == 0 {
+		t.Skip("no document has a mapedges marker: run the mapedges stage before this test")
+	}
+
+	// --- healthy corpus: no stale documents, no stale note ---
+	out, err := corpus.QualityGaps(ctx, QualityGapsInput{Category: "stale_mapedges"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out.StaleMapEdges) != 0 {
+		t.Errorf("healthy corpus: expected no stale-mapedges rows, got %d (first: %+v)",
+			len(out.StaleMapEdges), out.StaleMapEdges[0])
+	}
+	for _, n := range out.Notes {
+		if strings.Contains(n, "stale mapping edges") {
+			t.Errorf("healthy corpus: unexpected stale note %q", n)
+		}
+	}
+	t.Logf("healthy corpus: %d documents marked fresh, 0 stale", fresh)
+
+	// --- stale case: re-normalize one document inside a rolled-back tx ---
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil {
+			t.Fatalf("rollback failed — dev DB may be left with dropped controls: %v", err)
+		}
+	}()
+
+	var docID int64
+	var docKey string
+	err = tx.QueryRow(ctx, `
+SELECT d.id, d.doc_key
+FROM silver.document d
+JOIN silver.control sc ON sc.document_id = d.id
+JOIN silver.control_mapping cm ON cm.from_control_id = sc.id
+WHERE d.mapedges_at IS NOT NULL
+GROUP BY d.id, d.doc_key
+ORDER BY count(cm.id)
+LIMIT 1`).Scan(&docID, &docKey)
+	if err != nil {
+		t.Skipf("no document with outbound edges to simulate against: %v", err)
+	}
+
+	// The shipped query — not a hand-written copy — so the CTE is under test.
+	silverQ := dbsilver.New(tx)
+	edgesBefore, err := silverQ.CountMappingsForDocument(ctx, docID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if edgesBefore == 0 {
+		t.Skip("selected document has no outbound edges — nothing to lose")
+	}
+	if _, err := silverQ.DeleteControlsForDocument(ctx, docID); err != nil {
+		t.Fatal(err)
+	}
+
+	edgesAfter, err := silverQ.CountMappingsForDocument(ctx, docID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if edgesAfter != 0 {
+		t.Errorf("edges after cascade: got %d, want 0", edgesAfter)
+	}
+
+	rows, err := tx.Query(ctx, staleMapEdgesQuery, maxGapLimit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got, total int64
+	var reason string
+	for rows.Next() {
+		var g StaleMapEdgesGap
+		if err := rows.Scan(&g.FrameworkCode, &g.VersionLabel, &g.DocRole, &g.Qualifier,
+			&g.Controls, &g.OutboundEdges, &g.Reason, &total); err != nil {
+			rows.Close()
+			t.Fatal(err)
+		}
+		if !strings.HasPrefix(docKey, g.FrameworkCode+"|"+g.VersionLabel+"|") {
+			t.Errorf("unexpected stale row for %s/%s (only %s was re-normalized)",
+				g.FrameworkCode, g.VersionLabel, docKey)
+		}
+		reason = g.Reason
+		got++
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+
+	if got != 1 || total != 1 {
+		t.Errorf("stale rows: got %d (total %d), want 1", got, total)
+	}
+	if !strings.Contains(reason, "re-normalized") {
+		t.Errorf("stale reason should name the re-normalize cause, got %q", reason)
+	}
+	if note := staleMapEdgesNote(total); !strings.Contains(note, "-stage mapedges") {
+		t.Errorf("stale note should name the remediation command, got %q", note)
+	}
+	t.Logf("simulated re-normalize of %s: %d edges cascade-deleted → marker NULL, reason %q",
+		docKey, edgesBefore, reason)
 }
 
 // --- Test helpers ---

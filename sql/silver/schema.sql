@@ -13,6 +13,16 @@ CREATE SCHEMA IF NOT EXISTS silver;
 -- base linkage is explicit. serve_gate is denormalized from bronze.source_file
 -- and enforced by the read path: title is public-safe by construction
 -- (paraphrased for licensed frameworks); markdown/body are gated.
+--
+-- mapedges_at is the outbound-mapping-edge staleness marker, the silver twin of
+-- ingest.manifest_file.indexed_at: NULL means this document's outbound
+-- control_mapping edges are unbuilt or were destroyed. The document is the exact
+-- grain of the damage — normalize rebuilds a document by deleting its
+-- silver.control rows, and control_mapping.from_control_id is ON DELETE CASCADE,
+-- so every edge leaving that document dies with them. DeleteControlsForDocument
+-- NULLs this column in the same statement (staleness cannot be forgotten); a
+-- successful corpus-wide mapedges stage sets it. Queryable state, not a log line:
+-- quality_gaps category=stale_mapedges reports every NULL.
 CREATE TABLE silver.document (
     id                 BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     doc_key            TEXT NOT NULL,
@@ -24,6 +34,7 @@ CREATE TABLE silver.document (
     source_file_sha256 TEXT NOT NULL,
     serve_gate         TEXT NOT NULL DEFAULT 'auth-only',
     markdown           TEXT,
+    mapedges_at        TIMESTAMPTZ,
     created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_silver_document_key UNIQUE (doc_key),

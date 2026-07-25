@@ -178,16 +178,29 @@ language guidance, 39 curated mapping edges (4,501 total), level-qualified 11930
 re-embedded chunks, Vietnamese BM25 stopwords, golden v6. Prod still serves the release corpus;
 next deploy needs a corpus re-sync plus `release.sh`.
 
-### Open design question
+### Settled — mapedges staleness marker (2026-07-25)
 
-**Mapedges staleness is invisible.** Normalize cascade-deletes a framework's outbound mapping
+**Mapedges staleness was invisible.** Normalize cascade-deletes a framework's outbound mapping
 edges (`ON DELETE CASCADE`) and `mapedges` is not in the default stage list, so a scoped
-re-normalize silently drops them (this bit the TCVN round: 17 curated edges vanished, caught
-only in review). `quality_gaps` now reports drift for **curated** rows (39 of 4,501 edges);
-derived edges — e.g. nistcsf's 2,868 — have no detection. Recommendation (both reviewers concur):
-do **not** add mapedges to the default stages (it turns a scoped normalize into a whole-corpus
-rebuild); instead mirror the index stage's proven pattern — a `mapedges_at` marker NULLed by
-normalize, set by mapedges, surfaced by `quality_gaps`.
+re-normalize silently dropped them (this bit the TCVN round: 17 curated edges vanished, caught
+only in review). Curated-row drift covered 39 of 4,501 edges; derived edges — e.g. nistcsf's
+2,868 — had no detection.
+
+**Landed** (mirrors the index stage's `indexed_at`, per both reviewers; mapedges stays **out** of
+the default stage list):
+
+- **`silver.document.mapedges_at`** — per-document marker, the exact grain the cascade destroys.
+- **NULLed by normalize** inside `DeleteControlsForDocument`'s data-modifying CTE (same statement
+  as the delete — cannot be forgotten), plus a **WARN** carrying `edges_deleted` /
+  `edges_reemitted_by_parser` / `needs_mapedges`.
+- **Stamped corpus-wide** by `normalize.MarkMapEdgesFresh` only after the whole mapedges stage
+  succeeds; the stage now also logs per-source emission counts.
+- **Surfaced** as `quality_gaps category=stale_mapedges`, distinguishing a never-run corpus from a
+  re-normalize regression.
+
+Validated on the dev corpus: re-normalizing tcvn14423 dropped 4,501 → 4,479 edges (operator
+39 → 17), the WARN fired with `edges_deleted=22`, `stale_mapedges` named the document; `-stage
+mapedges` restored 4,501 / 39 with 0 stale documents.
 
 ### v0.2.x — phase-2 corpus completion (follow-ups)
 

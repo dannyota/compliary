@@ -9,7 +9,7 @@ import (
 
 // QualityGapsInput is the quality_gaps tool's argument schema.
 type QualityGapsInput struct {
-	Category string `json:"category,omitempty" jsonschema:"one gap category: unresolved_mappings, curated_mappings, deferred_docs, manifest, body_quality, eval_floors; omit (or 'all') for every category"`
+	Category string `json:"category,omitempty" jsonschema:"one gap category: unresolved_mappings, curated_mappings, stale_mapedges, deferred_docs, manifest, body_quality, eval_floors; omit (or 'all') for every category"`
 	Limit    int    `json:"limit,omitempty" jsonschema:"max rows per category (default 20, max 100)"`
 }
 
@@ -19,6 +19,7 @@ type QualityGapsOutput struct {
 	Categories         []string               `json:"categories"`
 	UnresolvedMappings []UnresolvedMappingGap `json:"unresolved_mappings,omitempty"`
 	CuratedMappingGaps []CuratedMappingGap    `json:"curated_mapping_gaps,omitempty"`
+	StaleMapEdges      []StaleMapEdgesGap     `json:"stale_mapedges,omitempty"`
 	DeferredDocs       []DeferredDocGap       `json:"deferred_docs,omitempty"`
 	ManifestGaps       []ManifestGap          `json:"manifest_gaps,omitempty"`
 	BodyQualityCaveats []BodyQualityCaveat    `json:"body_quality_caveats,omitempty"`
@@ -47,6 +48,20 @@ type CuratedMappingGap struct {
 	ToCitationNorm    string `json:"to_citation_norm"`
 	MappingSource     string `json:"mapping_source_code"`
 	Reason            string `json:"reason"`
+}
+
+// StaleMapEdgesGap is a silver.document whose outbound mapping edges are not
+// known to be current — silver.document.mapedges_at is NULL, either because the
+// mapedges stage has never run over it or because a re-normalize cascade-deleted
+// its edges since the last run.
+type StaleMapEdgesGap struct {
+	FrameworkCode string `json:"framework_code"`
+	VersionLabel  string `json:"version_label"`
+	DocRole       string `json:"doc_role"`
+	Qualifier     string `json:"qualifier,omitempty"`
+	Controls      int64  `json:"controls"`
+	OutboundEdges int64  `json:"outbound_edges"`
+	Reason        string `json:"reason"`
 }
 
 // DeferredDocGap is a document deferred from parsing.
@@ -83,6 +98,7 @@ const (
 	gapCategoryAll         = "all"
 	gapCategoryUnresolved  = "unresolved_mappings"
 	gapCategoryCurated     = "curated_mappings"
+	gapCategoryStaleEdges  = "stale_mapedges"
 	gapCategoryDeferred    = "deferred_docs"
 	gapCategoryManifest    = "manifest"
 	gapCategoryBodyQuality = "body_quality"
@@ -133,6 +149,17 @@ func (dc *dbCorpus) QualityGaps(ctx context.Context, in QualityGapsInput) (Quali
 		}
 	}
 
+	if gapIncludes(categories, gapCategoryStaleEdges) {
+		gaps, total, err := dc.staleMapEdges(ctx, limit)
+		if err != nil {
+			return QualityGapsOutput{}, err
+		}
+		out.StaleMapEdges = gaps
+		if total > 0 {
+			out.Notes = append(out.Notes, staleMapEdgesNote(total))
+		}
+	}
+
 	if gapIncludes(categories, gapCategoryDeferred) {
 		out.DeferredDocs, err = dc.deferredDocs(ctx, limit)
 		if err != nil {
@@ -164,6 +191,7 @@ func gapCategories(category string) ([]string, error) {
 		return []string{
 			gapCategoryUnresolved,
 			gapCategoryCurated,
+			gapCategoryStaleEdges,
 			gapCategoryDeferred,
 			gapCategoryManifest,
 			gapCategoryBodyQuality,
@@ -173,14 +201,15 @@ func gapCategories(category string) ([]string, error) {
 	switch category {
 	case gapCategoryUnresolved,
 		gapCategoryCurated,
+		gapCategoryStaleEdges,
 		gapCategoryDeferred,
 		gapCategoryManifest,
 		gapCategoryBodyQuality,
 		gapCategoryEvalFloors:
 		return []string{category}, nil
 	default:
-		return nil, fmt.Errorf("unknown quality gap category %q; valid: %s, %s, %s, %s, %s, %s, or all",
-			category, gapCategoryUnresolved, gapCategoryCurated, gapCategoryDeferred, gapCategoryManifest, gapCategoryBodyQuality, gapCategoryEvalFloors)
+		return nil, fmt.Errorf("unknown quality gap category %q; valid: %s, %s, %s, %s, %s, %s, %s, or all",
+			category, gapCategoryUnresolved, gapCategoryCurated, gapCategoryStaleEdges, gapCategoryDeferred, gapCategoryManifest, gapCategoryBodyQuality, gapCategoryEvalFloors)
 	}
 }
 
@@ -323,6 +352,80 @@ func (dc *dbCorpus) curatedMappingGaps(ctx context.Context, limit int) ([]Curate
 			&total,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan curated mapping gap: %w", err)
+		}
+		out = append(out, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	return out, total, nil
+}
+
+// staleMapEdgesQuery lists silver.document rows whose mapedges marker is NULL —
+// the documents whose outbound mapping edges are not known to be current.
+//
+// This is the derived-edge counterpart of curatedMappingDriftQuery: that one
+// detects drift only for edges seeded in config.curated_mapping (39 of 4,501),
+// by diffing seed against corpus. Derived edges (iso-structural, nist-olir,
+// cis-v8.1-mappings) have no seed table to diff against, so the only way to know
+// they are stale is the marker the normalize cascade clears.
+//
+// Two reasons, distinguished by whether any document is fresh: a corpus where
+// nothing is marked has simply never run the stage (a legitimate state for a
+// fresh self-deploy), whereas a NULL sitting next to fresh siblings is a
+// regression — that document was re-normalized after the last mapedges run.
+// outbound_edges is the count that survived (parser-carried edges are re-emitted
+// by normalize itself), so the operator can see the residual exposure.
+const staleMapEdgesQuery = `
+SELECT
+    d.framework_code,
+    d.version_label,
+    d.doc_role,
+    d.qualifier,
+    (SELECT count(*) FROM silver.control sc WHERE sc.document_id = d.id) AS controls,
+    (SELECT count(*) FROM silver.control_mapping cm
+       JOIN silver.control sc ON sc.id = cm.from_control_id
+      WHERE sc.document_id = d.id) AS outbound_edges,
+    CASE WHEN EXISTS (SELECT 1 FROM silver.document f WHERE f.mapedges_at IS NOT NULL)
+        THEN 'document re-normalized since the last mapedges run — its outbound mapping edges were cascade-deleted'
+        ELSE 'mapedges stage has never run over this corpus — no derived or curated edges are guaranteed'
+    END AS reason,
+    count(*) OVER () AS total
+FROM silver.document d
+WHERE d.mapedges_at IS NULL
+ORDER BY d.framework_code, d.version_label, d.doc_role, d.qualifier
+LIMIT $1`
+
+// staleMapEdgesNote is the operator-facing remediation line attached to the
+// notes list whenever a stale mapedges marker is detected.
+func staleMapEdgesNote(total int64) string {
+	return fmt.Sprintf("stale mapping edges: %d document(s) have silver.document.mapedges_at NULL — their outbound cross-framework edges are unbuilt or were cascade-deleted by a re-normalize. Run `go run ./cmd/pipeline -stage mapedges` (it is not in the default stage list).", total)
+}
+
+// staleMapEdges returns the stale-marker rows (capped by limit) and the
+// pre-LIMIT total.
+func (dc *dbCorpus) staleMapEdges(ctx context.Context, limit int) ([]StaleMapEdgesGap, int64, error) {
+	rows, err := dc.pool.Query(ctx, staleMapEdgesQuery, limit)
+	if err != nil {
+		return nil, 0, fmt.Errorf("query stale mapedges: %w", err)
+	}
+	defer rows.Close()
+
+	var out []StaleMapEdgesGap
+	var total int64
+	for rows.Next() {
+		var row StaleMapEdgesGap
+		if err := rows.Scan(
+			&row.FrameworkCode,
+			&row.VersionLabel,
+			&row.DocRole,
+			&row.Qualifier,
+			&row.Controls,
+			&row.OutboundEdges,
+			&row.Reason,
+			&total,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan stale mapedges: %w", err)
 		}
 		out = append(out, row)
 	}

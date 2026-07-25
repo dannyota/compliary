@@ -10,9 +10,17 @@ import (
 
 type Querier interface {
 	CountControlsForDocument(ctx context.Context, documentID int64) (int64, error)
+	// Outbound mapping edges leaving this document — read before a rebuild so the
+	// normalize stage can WARN with the number of edges its cascade is about to
+	// destroy.
+	CountMappingsForDocument(ctx context.Context, documentID int64) (int64, error)
 	CountUnresolvedMappings(ctx context.Context) (int64, error)
 	// Re-normalize is delete-and-rebuild per document: deterministic parsers make
 	// the control tree reproducible, and ON DELETE CASCADE clears mappings/topics.
+	// The cascade destroys every mapping edge leaving this document, so the
+	// mapedges marker is NULLed in the same statement — a data-modifying CTE, not a
+	// second call, so a rebuilt control tree can never leave a stale-but-fresh
+	// marker behind. Mirrors MarkNormalized NULLing indexed_at in ingest.
 	DeleteControlsForDocument(ctx context.Context, documentID int64) (int64, error)
 	GetControlByCitationNorm(ctx context.Context, arg GetControlByCitationNormParams) (SilverControl, error)
 	GetDocumentByKey(ctx context.Context, docKey string) (SilverDocument, error)
@@ -28,6 +36,11 @@ type Querier interface {
 	ListEquivalentBodies(ctx context.Context, dollar_1 []int64) ([]ListEquivalentBodiesRow, error)
 	ListMappingsForControl(ctx context.Context, fromControlID int64) ([]SilverControlMapping, error)
 	ListVersionRelations(ctx context.Context) ([]SilverVersionRelation, error)
+	// Set the mapedges marker corpus-wide after a successful mapedges stage. The
+	// stage has no per-framework mode — every emitter reads whatever the corpus
+	// holds and upserts all derivable edges — so a completed run makes every
+	// document's outbound edges current, and corpus-wide is the honest grain.
+	MarkDocumentsMapEdged(ctx context.Context) (int64, error)
 	// Lazily fill to_control_id for edges whose target framework has landed. The
 	// join pins the target document's version when the edge is version-pinned;
 	// version-unspecified edges resolve against the target framework's current
