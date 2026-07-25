@@ -18,7 +18,7 @@ structured data, never prose.
 
 1. `guide` -- read the evidence contract.
 2. `corpus_status` -- see what is indexed, which versions are current.
-3. `search` with the framework filter for higher recall (~92% filtered vs ~85% unfiltered open-corpus). Use `detail=compact` for cheap discovery (citations, scores, version badges only); then read full text via `document include=["chunks"]`.
+3. `search` with the framework filter for higher recall (~93% filtered vs ~86% unfiltered open-corpus). Use `detail=compact` for cheap discovery (citations, scores, version badges only); then read full text via `document include=["chunks"]`.
 
 **Query language (per-framework):** search in each framework's publication language — **English** for the
 international frameworks, **Vietnamese** for the TCVN frameworks (`tcvn11930`, `tcvn14423`). Cross-language
@@ -180,25 +180,25 @@ embedder) never abstain on the floor — there is no cosine to compare.
 
 | Lane | Recall@8 | MRR@8 | Current | Abstain |
 |------|----------|-------|---------|---------|
-| Open-corpus (no pins) | 84.7% | 63.1% | 100% | 96.2% |
-| Framework-filtered | 92.4% | 79.6% | 100% | 95.1% |
+| Open-corpus (no pins) | 86.3% | 66.3% | 100% | 96.6% |
+| Framework-filtered | 93.2% | 81.3% | 100% | 95.6% |
 
-Golden set v5: 185 cases (175 v4 + 10 Vietnamese TCVN cases, all hitting rank 1–3).
-Re-baselined 2026-07-25 after the TCVN 11930/14423 corpora landed (13 documents,
-539 new chunks; details in RETRIEVAL.md baseline section).
+Golden set v6: 205 cases (185 v5 + 20 Vietnamese TCVN cases). All 30 TCVN cases hit
+rank 1–3 in both lanes. Re-baselined 2026-07-25 after the level-qualified TCVN 11930
+titles landed (details in RETRIEVAL.md baseline section).
 
-Floors (open-corpus lane, 185-case set): recall >= 0.66, MRR >= 0.44, current >= 0.98,
+Floors (open-corpus lane, 205-case set): recall >= 0.66, MRR >= 0.44, current >= 0.98,
 abstain >= 0.90. The raw-cosine floor (0.5) catches the clearly-distant OOS cases; the
 remaining compliance-adjacent OOS cases embed too close to InfoSec text to separate —
-95.2% open-lane abstention accuracy is the calibrated optimum at this corpus size
-(re-baselined 2026-07-21; invocation in RETRIEVAL.md).
+96.6% open-lane abstention accuracy is the calibrated optimum at this corpus size
+(re-baselined 2026-07-25; invocation in RETRIEVAL.md).
 
 **Truth about abstain floors:** the raw-cosine floor (0.5) separates only the clearly-distant
-out-of-scope queries — 2 of the 10 OOS golden cases abstain; the other 8 are compliance-adjacent
-(export controls, medical devices, environmental management) and embed too close to InfoSec text
-to separate at this corpus size. `no_evidence` fires on empty result sets regardless. This is
-honest: the floor catches what it can prove, and the remaining overlap is documented rather than
-papered over.
+out-of-scope queries — 8 of the 15 OOS golden cases abstain; the other 7 are compliance-adjacent
+(export controls, medical devices, environmental management, GDPR, SOX) and embed too close to
+InfoSec text to separate at this corpus size. `no_evidence` fires on empty result sets
+regardless. This is honest: the floor catches what it can prove, and the remaining overlap is
+documented rather than papered over.
 
 ## ISO-family structural equivalence edges
 

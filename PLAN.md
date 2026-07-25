@@ -152,8 +152,10 @@ to 0.2.x follow-ups.
   (diacritics preserved, syllable split). Vietnamese query-side stopwords landed 2026-07-25
   (19 function syllables; −14.1% query dims on the 10 TCVN cases, BM25-arm aggregates unchanged).
   Deferred tuning: per-batch IDF.
-- **Eval:** 10 Vietnamese golden cases (DB-verified targets; indicative BM25 10/10 recall@8 —
-  not a baseline).
+- **Eval:** 30 Vietnamese golden cases (DB-verified targets), part of the 205-case golden v6
+  baseline recorded 2026-07-25 — open 86.3/66.3/100/96.6, filtered 93.2/81.3/100/95.6, floors
+  unchanged (66/44/98/90). All 30 hit rank 1–3 in both lanes; the level-qualified 11930 titles
+  are what make `cấp độ N` queries resolve (see RETRIEVAL.md).
 - **Mappings:** neither document ships a clause-level crosswalk table, so edges are
   **operator-curated** (`config.curated_mapping` → `mapping_source='operator'`, seeded from
   `deploy/seed/curated_mapping.csv`; consumed by the mapedges stage): 39 edges, all resolved —

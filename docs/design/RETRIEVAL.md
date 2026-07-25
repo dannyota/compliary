@@ -62,22 +62,51 @@ doc_cap (12 documents total).
 
 ## Baselines
 
-### Golden v5 baseline (185 cases — 2026-07-25, current)
+### Golden v6 baseline (205 cases — 2026-07-25, current)
+
+205 cases = the 185-case v5 set + 20 Vietnamese TCVN cases, taking the TCVN block to 30.
+The 20 new cases: 8 per-level 11930 body queries ("cấp độ N …"), 5 Annex A physical-security
+level queries, 5 TCVN 14423 §4 (state-agency systems) vs §5 (national-security systems)
+disambiguation queries, 2 mapping-flavoured queries. All targets DB-verified before pinning;
+all queries author-phrased Vietnamese, not title echoes. The `tcvn14423-dmarc` query was
+rephrased away from its control title (id and target unchanged).
+
+| Lane | Recall@8 | MRR@8 | Current | Abstain | Floor |
+|------|----------|-------|---------|---------|-------|
+| Open-corpus (no pins) | 86.3% | 66.3% | 100% | 96.6% | recall ≥66%, MRR ≥44%, current ≥98%, abstain ≥90% |
+| Framework-filtered | 93.2% | 81.3% | 100% | 95.6% | — |
+
+Floors carried over from v4/v5 unchanged (all comfortably met); numbers and floors also live in
+[`MCP.md`](MCP.md) (single source: MCP.md wins on conflict). Same reproducible invocation as v4
+below; open-corpus lane adds `-use-pins=false`.
+
+**All 30 TCVN cases hit rank 1–3 in both lanes** (23 of 30 at rank 1 in the filtered lane).
+The set-size change means the v5 and v6 aggregates are not directly comparable; a control run
+of the 185-case v5 set against the same post-round corpus reproduced v5 exactly
+(84.7/63.2/100/96.2 open, 92.4/79.7/100/95.1 filtered), so the v5→v6 aggregate lift is the new
+Vietnamese cases scoring above the corpus average, not a retriever change.
+
+**Level-qualified titles are load-bearing.** 225 of the 290 tcvn11930 chunks carry a
+`cấp độ N` qualifier that exists only in the paraphrased title (only 5 bodies mention a level
+natively). Re-running the 13 level-graded cases with the level phrase stripped from the query
+drops MRR@8 from 96.2% to 59.0% (open) and from 100% to 61.5% (filtered) — recall@8 stays 100%
+in both, so the qualifier decides *which* level ranks first, not whether the family is found.
+Six of the 13 targets have a body byte-identical to a sibling level, and every one of those
+still lands at rank 1 in both lanes with the level phrase present.
+
+### Golden v5 baseline (185 cases — 2026-07-25, superseded)
 
 185 cases = the 175-case v4 set + 10 Vietnamese TCVN cases (5 tcvn11930, 5 tcvn14423; all
 DB-verified targets; all hit at rank 1–3 in both lanes). First baseline covering Vietnamese
-content (539 TCVN chunks, dense + BM25). Same reproducible invocation as v4 below; open-corpus
-lane adds `-use-pins=false`.
+content (539 TCVN chunks, dense + BM25).
 
 | Lane | Recall@8 | MRR@8 | Current | Abstain | Floor |
 |------|----------|-------|---------|---------|-------|
 | Open-corpus (no pins) | 84.7% | 63.1% | 100% | 96.2% | recall ≥66%, MRR ≥44%, current ≥98%, abstain ≥90% |
 | Framework-filtered | 92.4% | 79.6% | 100% | 95.1% | — |
 
-Floors carried over from v4 unchanged (all comfortably met); numbers and floors also live in
-[`MCP.md`](MCP.md) (single source: MCP.md wins on conflict). The pre-TCVN 175-case control run
-on the same corpus reproduced v4 exactly (83.8/62.5/100/96.0), confirming the English lanes
-were unaffected by the TCVN round.
+The pre-TCVN 175-case control run on the same corpus reproduced v4 exactly
+(83.8/62.5/100/96.0), confirming the English lanes were unaffected by the TCVN round.
 
 ### Golden v4 baseline (175 cases — 2026-07-21, superseded)
 
@@ -143,7 +172,7 @@ Superseded by golden v2. Kept for reference; not comparable (different set size/
 ## Known gaps
 
 - **Abstention separates only clearly-distant OOS** — the raw-cosine floor (0.5, in the
-  retriever) abstains 2 of 10 OOS golden cases; the other 8 are compliance-adjacent and embed
+  retriever) abstains 8 of 15 OOS golden cases; the other 7 are compliance-adjacent and embed
   too close to InfoSec text at this corpus size.
 - **Withdrawn controls need the flag** — the default `status='active'` filter excludes all 273
   withdrawn controls; the `include_withdrawn` search flag reaches them (implemented; the
@@ -157,3 +186,10 @@ Superseded by golden v2. Kept for reference; not comparable (different set size/
   genuinely short controls with little text anywhere.
 - **Bare-numeric citation ambiguity** — `5.1` matches 4+ schemes; resolved only by ranking
   when no framework filter is set.
+- **TCVN 14423 §4/§5 scope is not in the chunk text** — §4 (state-agency systems) and §5
+  (national-security systems) restate the same control families, and the section heading that
+  names the scope is not carried into the chunk (the ancestor chain is citation-only). The
+  §4/§5 twins separate today only where their bodies differ; where they are byte-identical the
+  ranking is a coin flip. All 5 golden §4/§5 cases land at rank 1–2, but a prior BM25 probe saw
+  `5.9.2.2` lose to its §4 twin `4.9.2.2`. A scope qualifier on 14423 titles (the fix applied to
+  11930 levels) would close it.
