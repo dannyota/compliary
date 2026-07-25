@@ -18,7 +18,7 @@ structured data, never prose.
 
 1. `guide` -- read the evidence contract.
 2. `corpus_status` -- see what is indexed, which versions are current.
-3. `search` with framework filter for ~91% (vs ~84% unfiltered) unfiltered open-corpus). Use `detail=compact` for cheap discovery (citations, scores, version badges only); then read full text via `document include=["chunks"]`.
+3. `search` with the framework filter for higher recall (~92% filtered vs ~85% unfiltered open-corpus). Use `detail=compact` for cheap discovery (citations, scores, version badges only); then read full text via `document include=["chunks"]`.
 
 **Query language (per-framework):** search in each framework's publication language — **English** for the
 international frameworks, **Vietnamese** for the TCVN frameworks (`tcvn11930`, `tcvn14423`). Cross-language
