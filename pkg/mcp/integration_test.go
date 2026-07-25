@@ -284,6 +284,16 @@ func TestIntegration_CuratedMappingDrift(t *testing.T) {
 	ctx := context.Background()
 	corpus := DBCorpus(pool)
 
+	// A seeded-but-never-mapedged DB is a legitimate intermediate state for a
+	// self-deployer; drift is the correct answer there, so skip rather than fail.
+	var edges int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM silver.control_mapping`).Scan(&edges); err != nil {
+		t.Fatal(err)
+	}
+	if edges == 0 {
+		t.Skip("no mapping edges: run the mapedges stage before this test")
+	}
+
 	// --- healthy corpus: no drift, no drift note ---
 	out, err := corpus.QualityGaps(ctx, QualityGapsInput{Category: "curated_mappings"})
 	if err != nil {

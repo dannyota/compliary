@@ -230,6 +230,21 @@ func TestControlTitleSeed(t *testing.T) {
 			t.Errorf("control_title: framework %q has %d title rows, want %d", fw, perFramework[fw], want)
 		}
 	}
+
+	// tcvn11930 titles must stay pairwise distinct: the standard repeats the
+	// same requirement across security levels, so the level/group qualifier
+	// ("… — cấp độ 3, kỹ thuật mạng") is what lets a level-specific query
+	// resolve. A re-collision would silently undo that.
+	titleAt := map[string]string{}
+	for _, r := range rows {
+		if r[0] != "tcvn11930" {
+			continue
+		}
+		if prev, dup := titleAt[r[3]]; dup {
+			t.Errorf("control_title tcvn11930: %s and %s share title %q — level qualifier missing", prev, r[2], r[3])
+		}
+		titleAt[r[3]] = r[2]
+	}
 }
 
 // TestControlTitleCorpusCoverage validates that every curated title targets

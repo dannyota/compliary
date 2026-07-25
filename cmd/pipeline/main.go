@@ -52,7 +52,7 @@ import (
 
 func main() {
 	cfgPath := flag.String("config", "config/config.yaml", "path to config file")
-	stage := flag.String("stage", "", "run a single stage: manifest, extract, normalize, index, lexindex (default: run manifest+extract+normalize)")
+	stage := flag.String("stage", "", "run a single stage: manifest, extract, normalize, mapedges, index, lexindex (default: run manifest+extract+normalize)")
 	flag.Parse()
 
 	log := clog.New(os.Getenv("COMPLIARY_LOG_LEVEL"))

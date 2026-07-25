@@ -61,17 +61,20 @@ crawling. Stages: **Manifest** (scan `data/`, hash, classify via `config.file_ru
 `ingest`) → **Extract** (per file: OSCAL JSON / XLSX / PDF via go-fitz) → **Normalize** (per
 framework version: control tree, citations, amendments, version + embedded mapping relations) →
 **MapEdges** (cross-framework edges: ISO structural derivation, the NIST OLIR crosswalk, the CIS
-mapping workbooks) → **Index** (chunks + embeddings; 27001 Annex A chunks enriched with their
+mapping workbooks, and operator-curated rows from `config.curated_mapping`) → **Index** (chunks + embeddings; 27001 Annex A chunks enriched with their
 27002 equivalents' guidance; bulk embed on Kaggle T4 like banhmi) → **LexIndex** (BM25 sparse
 vectors).
 
 **All pipeline stages landed and live.** Manifest (30 files, 27 matched / 3 ignored), Extract
 (OSCAL JSON + XLSX + PDF via go-fitz purego), Normalize (8 framework parsers + the ISO amendment
-parser; 12 docs / 3404 controls incl. ISO 27001 Amd 1:2024 as `amends`-typed rows), MapEdges
-(4462 edges, 93.4% resolved: publisher-catalog 3068 + nist-olir 643 + cis-v8.1-mappings 565 +
-iso-structural 186), Index (3404 chunks + Qwen3 dense embeddings — bulk via Kaggle T4, canonical
-model string `embed.CanonicalModel`; PCI bodies column-truncated, 0/351 noisy), LexIndex (3404
-BM25 sparse vectors). Retrieval design in [`design/RETRIEVAL.md`](design/RETRIEVAL.md).
+parser; 14 docs / 3943 controls incl. ISO 27001 Amd 1:2024 as `amends`-typed rows and the two
+Vietnamese TCVN corpora), MapEdges (4501 edges, 94.8% resolved: publisher-catalog 3068 +
+nist-olir 643 + cis-v8.1-mappings 565 + iso-structural 186 + operator 39), Index (3943 chunks +
+Qwen3 dense embeddings — bulk local ONNX by default, Kaggle T4 on explicit opt-in, canonical
+model string `embed.CanonicalModel`; PCI bodies column-truncated, 0/351 noisy), LexIndex (3943
+BM25 sparse vectors). **Re-running Normalize for a framework cascade-deletes its outbound mapping
+edges** (FK `ON DELETE CASCADE`), and MapEdges is not in the default stage list — re-run
+`-stage mapedges` after any normalize. Retrieval design in [`design/RETRIEVAL.md`](design/RETRIEVAL.md).
 Still deferred: CAIQ (assessment questions are not controls, by design) and the ISO 22301
 amendment (base document not acquired).
 
