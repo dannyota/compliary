@@ -328,3 +328,15 @@ lives in [`PLAN.md`](../PLAN.md); this file only grows.
   that overlaps with the bottom quartile of in-scope. Next candidate: a query-scope binary
   classifier (linguistic signal, not retrieval-result signal) — deferred as diminishing returns
   at 95.4% accuracy.
+
+- **2026-07-30** — **v0.2.2 code release: durable PostgreSQL OAuth; AWS rollout pending.**
+  Replaced production's process-local OAuth grants with an `auth` PostgreSQL schema for stable
+  identities, client registrations, one-time authorization codes, token families, and hashed
+  access/refresh tokens. Added sliding 30-day inactivity renewal, cross-instance atomic code
+  exchange/refresh rotation, replay-family revocation, current-policy checks on login/use/refresh,
+  and a future verified-email authorization seam (default remains allow all authenticated users).
+  CIMD metadata is persisted and refreshed after 24 hours. CI now migrates a real pgvector
+  PostgreSQL service and runs persistence/concurrency tests under the race detector. AWS release
+  safety gained a secret-free build context, in-image `/migrate`, checked one-off ECS migration
+  before rollout, active-revision cloning, circuit-breaker/manual rollback, signed/pushed-tag
+  guards, and post-verification `latest` promotion.

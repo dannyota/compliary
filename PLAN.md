@@ -1,7 +1,6 @@
 # compliary plan
 
-Living roadmap and progress tracker. Conventions and the canonical agent guide in
-[`CLAUDE.md`](CLAUDE.md). Last updated: 2026-07-24.
+Living roadmap and progress tracker. Last updated: 2026-07-30.
 
 ## Vision
 
@@ -117,7 +116,7 @@ All milestones shipped and live (details: [`docs/HISTORY.md`](docs/HISTORY.md)):
 - **M4** (done, live): `compliary.danny.vn` — OAuth `/mcp`, co-located on banhmi's ECS host,
   CloudFront ingress; topology in [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
-### v0.1.x — patch releases (current)
+### v0.1.x — patch releases (complete)
 
 Improvements to the shipped v0.1.0 without new frameworks: parser fixes, retrieval-quality tuning,
 eval-floor raises, doc/metadata corrections, dependency bumps. Corpus additions never land in a
@@ -131,9 +130,8 @@ lineage; HNSW drop; honest User-Agent), **0.1.15** (landing GEO/SEO: JSON-LD, ro
 sitemap), **0.1.16** (diff review: atomic refresh rotation; release guards; Dependabot) — see
 [`docs/HISTORY.md`](docs/HISTORY.md).
 
-Open operator to-dos (admin credentials required — commands in
-[`docs/OPERATIONS.md`](docs/OPERATIONS.md)): ECR scan-on-push, SNS alert topic + healthz alarm.
-Prod RDS still needs the round-7 corpus sync: `mapedges` re-run + the HNSW-drop migration.
+The v0.1.x operator follow-ups were completed before v0.2.1: ECR scan-on-push,
+the health alarm, and the production corpus/migration backlog are live.
 
 ### v0.2.0 — TCVN 11930:2017 + TCVN 14423:2025
 
@@ -180,6 +178,21 @@ marker. Prod corpus re-synced by dump/restore (17 frameworks / 3,943 controls / 
 dense+sparse / 4,501 edges incl. 39 operator / 2,125 curated titles / 0 stale documents — the
 marker carries across a restore, so no post-migration mapedges run was needed); live version,
 `/healthz` 200 and unauthenticated `/mcp` 401 all verified.
+
+### v0.2.2 — durable OAuth sessions (release candidate)
+
+**Ready 2026-07-30; AWS rollout pending.** OAuth identities, clients, authorization codes,
+token families, and opaque access/refresh token hashes now live in PostgreSQL instead of process
+memory. Sessions use a sliding 30-day inactivity window, survive restarts and multiple instances,
+reapply authorization on login/use/refresh, and retain refresh-replay family revocation. The
+default policy permits every successful password login; verified normalized email fields and an
+`Authorizer` seam are reserved for a later email policy.
+
+The AWS release path now builds `/migrate` into the server image, runs it as a checked no-port ECS
+task before service rollout, clones the service's exact active task definition, enables
+circuit-breaker rollback, and promotes `latest` only after public smoke checks. Container build
+contexts exclude local credentials and licensed corpus data. CI applies all migrations to
+PostgreSQL and runs the OAuth persistence/concurrency suite (including the race detector).
 
 ### Settled — mapedges staleness marker (2026-07-25)
 
