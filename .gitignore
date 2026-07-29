@@ -5,6 +5,8 @@
 /vendor/
 *.test
 *.out
+*.pyc
+__pycache__/
 coverage.*
 .env
 *.env

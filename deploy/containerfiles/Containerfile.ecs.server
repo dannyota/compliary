@@ -1,11 +1,13 @@
 # compliary MCP server image (ARM64 Graviton) — slim, CGO-free, no embedder.
 #
-# This image runs ONLY the MCP evidence server (cmd/server). Query embedding is
-# delegated to a standalone OpenAI-compatible embedder service over HTTP
-# (COMPLIARY_EMBED_ENDPOINT), set in the ECS task definition — in the maintainer
-# deployment that is the co-located banhmi embedder on 127.0.0.1:8089 (same EC2
-# host, host networking). So this image packages NO ONNX model, NO ONNX Runtime,
-# and NO tokenizer: small image, sub-second restarts.
+# This image runs the MCP evidence server (cmd/server) and also carries the
+# short-lived cmd/migrate binary used by release.sh before an ECS rollout.
+# Query embedding is delegated to a standalone OpenAI-compatible embedder
+# service over HTTP (COMPLIARY_EMBED_ENDPOINT), set in the ECS task definition
+# — in the maintainer deployment that is the co-located banhmi embedder on
+# 127.0.0.1:8089 (same EC2 host, host networking). So this image packages NO
+# ONNX model, NO ONNX Runtime, and NO tokenizer: small image, sub-second
+# restarts.
 #
 # CGO is OFF: unlike banhmi's server, compliary's cmd/server has no go-fitz/MuPDF
 # dependency (PDF extraction lives in cmd/pipeline, which is built and run locally
@@ -32,6 +34,7 @@ ARG GO_IMAGE=docker.io/golang:1.26.5-bookworm
 ARG RUNTIME_IMAGE=gcr.io/distroless/cc-debian12:nonroot
 # VERSION lands in corpus_status via -X main.version (default keeps local builds honest).
 ARG VERSION=dev
+ARG REVISION=unknown
 
 # ── Go builder (CGO OFF — no go-fitz, no ONNX) ───────────────────────────────
 # Runs on the BUILD platform and cross-compiles via GOARCH=arm64, so an amd64
@@ -42,14 +45,22 @@ ENV CGO_ENABLED=0 GOFLAGS=-trimpath GOOS=linux GOARCH=arm64
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
-COPY . .
+COPY cmd ./cmd
+COPY pkg ./pkg
+COPY deploy/migrations ./deploy/migrations
 RUN go build -ldflags="-s -w -X main.version=${VERSION}" -o /out/server ./cmd/server
 RUN go build -ldflags="-s -w" -o /out/healthcheck ./cmd/healthcheck
+RUN go build -ldflags="-s -w" -o /out/migrate ./cmd/migrate
 
 # ── Runtime: distroless/cc (glibc loader for the PIE binary), non-root ────────
 FROM ${RUNTIME_IMAGE}
+ARG VERSION
+ARG REVISION
+LABEL org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${REVISION}"
 COPY --from=build /out/server      /server
 COPY --from=build /out/healthcheck /healthcheck
+COPY --from=build /out/migrate     /migrate
 
 EXPOSE 8084
 USER nonroot:nonroot

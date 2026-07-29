@@ -8,11 +8,21 @@ Infra mirrors banhmi's AWS shape: CloudFront (TLS termination) -> ECS -> RDS.
 The maintainer instance runs as **one extra ECS service on banhmi's existing EC2
 host**, not a separate stack. Full runbook: [`deploy/aws/setup-checklist.md`](../deploy/aws/setup-checklist.md).
 
-**Releases are one command** once the stack exists:
+**Releases are one command** once the stack and scoped deploy role exist:
 [`deploy/aws/release.sh <x.y.z>`](../deploy/aws/release.sh) — builds the arm64
-image (cross-compiled, any host), pushes version+latest to ECR, registers a
-digest-pinned task-definition revision, rolls the service, and verifies the
-live version chip, `/healthz`, and the 401 on unauthenticated `/mcp`.
+image, pushes a commit-scoped candidate and verifies its registry digest,
+applies pending migrations in a checked one-off ECS task, rolls that
+digest-pinned server revision with circuit-breaker rollback, verifies the live
+version/health/auth checks, then moves `latest` to the verified image. Run
+`deploy/aws/release.sh --preflight <x.y.z>` first for the signed-tag, source,
+test, AWS-access, best-effort migration-permission, and local-image checks
+without changing AWS resources.
+
+The automated smoke test validates OAuth discovery but deliberately never
+reads the operator password. For the first persistent-auth release, complete
+one real connector login after rollout, use an MCP tool, restart/roll the task,
+then confirm that the same connector token still works. Existing in-memory
+sessions cannot be imported, so this cutover requires one final login.
 
 ```
                  CloudFront (TLS, X-Origin-Verify)
@@ -28,7 +38,9 @@ live version chip, `/healthz`, and the 401 on unauthenticated `/mcp`.
                        RDS Postgres (shared instance; DB `compliary`)
 ```
 
-- **Only `cmd/server` is deployed** (slim, CGO-free, no ONNX):
+- **Only `cmd/server` is long-running** (slim, CGO-free, no ONNX); the same
+  image also carries `cmd/migrate` for the release script's short-lived
+  migration task:
   [`deploy/containerfiles/Containerfile.ecs.server`](../deploy/containerfiles/Containerfile.ecs.server).
 - **Query embedding is delegated** to banhmi's embedder over loopback
   (`COMPLIARY_EMBED_ENDPOINT=http://127.0.0.1:8089`). That embedder binds
@@ -110,6 +122,20 @@ htpasswd -nbBC 10 "" 'your-password' | cut -d: -f2
 export COMPLIARY_OAUTH_OPERATOR_SECRET='$2y$10$...'
 ```
 
+OAuth client registrations, identities, authorization codes, and token families live in the
+PostgreSQL `auth` schema. For the maintainer AWS instance, `release.sh` applies and checks
+migrations inside the private network before it touches the server service. For local or other
+self-hosted deployments, apply migrations before starting a database-backed OAuth server:
+
+```bash
+make migrate
+```
+
+The current password login maps to the stable local `operator` identity and all successful logins
+are authorized. Email filtering is not active; the schema only reserves normalized, verified
+email attributes for a later trusted-login policy. Access and refresh tokens expire after 30 days
+of inactivity; each authorized access-token use or refresh resets that 30-day window.
+
 ## TLS
 
 TLS terminates at CloudFront. The ECS task listens on plain HTTP. `COMPLIARY_TRUST_PROXY=true`
@@ -153,3 +179,5 @@ curl -H "Authorization: Bearer $COMPLIARY_MCP_TOKEN" \
 ```
 
 Both OAuth tokens and the static bearer token are accepted when both env vars are set.
+The static token is an operator escape hatch with no user identity, so it is intentionally outside
+any future email-based authorization policy.

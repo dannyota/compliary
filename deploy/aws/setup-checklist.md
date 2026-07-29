@@ -127,6 +127,52 @@ aws iam put-role-policy \
   }'
 ```
 
+### Deploy caller — allow the checked migration task
+
+The release host cannot connect directly to RDS; its security group admits the
+ECS host instead. `release.sh` therefore runs `/migrate` as a no-port ECS task
+before updating the server service. Add these actions to the **short-lived,
+deploy-only role/profile** used for releases (replace `YOUR_ACCOUNT_ID`):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "ecs:RunTask",
+      "Resource": "arn:aws:ecs:ap-southeast-1:YOUR_ACCOUNT_ID:task-definition/compliary-mcp-migrate:*",
+      "Condition": {
+        "ArnEquals": {
+          "ecs:cluster": "arn:aws:ecs:ap-southeast-1:YOUR_ACCOUNT_ID:cluster/banhmi"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["ecs:DescribeTasks", "ecs:StopTask"],
+      "Resource": "arn:aws:ecs:ap-southeast-1:YOUR_ACCOUNT_ID:task/banhmi/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskExecutionRole",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "ecs-tasks.amazonaws.com"
+        }
+      }
+    }
+  ]
+}
+```
+
+The caller also needs the existing ECR push/describe, ECS
+describe/register/update, and `sts:GetCallerIdentity` permissions. Use an AWS
+profile or explicitly exported short-lived credentials. The release script
+never sources `.env`, and local secret/data directories are excluded from the
+container build context.
+
 ## 4. Security group — open port 8084 from CloudFront
 
 ```bash
@@ -145,8 +191,10 @@ even from a CloudFront IP, a request lacking our `X-Origin-Verify` header is 403
 
 ## 5. ECR — build and push (ARM64)
 
-> Steps 5-6 are automated by `deploy/aws/release.sh <x.y.z>` once the repo,
-> service, and secrets exist; the commands below are the first-time/manual path.
+> Steps 5-6 plus the pre-rollout database migration are automated by
+> `deploy/aws/release.sh <x.y.z>` once the repo, service, secrets, and deploy
+> role exist. Run `deploy/aws/release.sh --preflight <x.y.z>` first. The
+> commands below are the first-time/manual path.
 
 ```bash
 aws ecr create-repository --repository-name compliary-mcp --region ap-southeast-1
@@ -222,6 +270,11 @@ curl -s https://compliary.danny.vn/.well-known/oauth-protected-resource | head
 Then add `https://compliary.danny.vn/mcp` as a custom connector in claude.ai /
 chatgpt.com and complete the OAuth login (see `docs/OPERATIONS.md`).
 
+For the first PostgreSQL-auth rollout, call one MCP tool, force a new ECS
+deployment, and call it again without logging in. This is the restart-
+persistence check that the password-free automated release smoke cannot
+perform. The cutover from the old in-memory store requires one final login.
+
 ## Cost delta
 
 Negligible over banhmi: one CloudFront distribution (~$1-2/mo), two SSM params +
@@ -229,7 +282,18 @@ one secret (~$0.40/mo), a little ECR storage. No new EC2, EIP, or RDS instance.
 
 ## Rollback
 
-`aws ecs update-service --cluster banhmi --service compliary-mcp --desired-count 0`
-stops compliary without touching banhmi. Then optionally delete the service,
-CloudFront distribution (disable → delete), SG rule, secrets, and ECR repo.
-banhmi is unaffected throughout.
+`release.sh` captures the active task definition and restores it automatically
+if the rollout or public smoke checks fail. For a manual release rollback, use
+the previously recorded revision (revision 23 is the `0.2.1-20260725` baseline):
+
+```bash
+aws ecs update-service --cluster banhmi --service compliary-mcp \
+  --task-definition compliary-mcp:PREVIOUS_REVISION \
+  --region ap-southeast-1
+aws ecs wait services-stable --cluster banhmi --services compliary-mcp \
+  --region ap-southeast-1
+```
+
+Migrations are expand-only and are not rolled back when the old application
+revision is restored. Setting desired count to zero is an emergency shutdown,
+not a release rollback.

@@ -1,5 +1,6 @@
-# CI gates — the same checks CLAUDE.md requires locally, on every push/PR.
-# Zero secrets by design (public repo): build/vet/test only, no AWS, no deploy.
+# CI gates for every push/PR: formatting, task-definition rendering, build,
+# vet, migrations, PostgreSQL integration/race tests, and vulnerability scan.
+# Zero external secrets by design (public repo): no AWS and no deploy.
 # The data/ submodule is private and update=none, so golden tests self-skip;
 # the synthetic suite runs fully.
 name: ci
@@ -16,6 +17,20 @@ permissions:
 jobs:
   gates:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: compliary
+          POSTGRES_USER: compliary
+          POSTGRES_PASSWORD: compliary
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U compliary -d compliary"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -28,14 +43,34 @@ jobs:
           out="$(gofmt -l .)"
           if [ -n "$out" ]; then echo "unformatted files:"; echo "$out"; exit 1; fi
 
+      - name: release task-definition tests
+        run: python3 -m unittest discover -s deploy/aws -p 'test_*.py'
+
       - name: build
         run: go build ./...
 
       - name: vet
         run: go vet ./...
 
+      - name: migrate test database
+        env:
+          COMPLIARY_DATABASE_HOST: localhost
+          COMPLIARY_DATABASE_PORT: 5432
+          COMPLIARY_DATABASE_USER: compliary
+          COMPLIARY_DATABASE_NAME: compliary
+          COMPLIARY_DATABASE_PASSWORD: compliary
+          COMPLIARY_DATABASE_SSLMODE: disable
+        run: go run ./cmd/migrate
+
       - name: test
+        env:
+          COMPLIARY_OAUTH_TEST_DSN: postgres://compliary:compliary@localhost:5432/compliary?sslmode=disable
         run: go test ./...
+
+      - name: race-sensitive auth tests
+        env:
+          COMPLIARY_OAUTH_TEST_DSN: postgres://compliary:compliary@localhost:5432/compliary?sslmode=disable
+        run: go test -race ./pkg/oauth ./cmd/server
 
   govulncheck:
     runs-on: ubuntu-latest
