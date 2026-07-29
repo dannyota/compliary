@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
@@ -13,6 +14,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/oauthex"
 	"golang.org/x/crypto/bcrypt"
@@ -71,7 +73,7 @@ func (s *Server) registerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := s.store.registerClient(meta)
+	resp, err := s.store.registerClient(r.Context(), meta)
 	if err != nil {
 		if errors.Is(err, errClientCapReached) {
 			writeOAuthError(w, http.StatusServiceUnavailable, "temporarily_unavailable", "too many registered clients")
@@ -103,35 +105,50 @@ func (s *Server) authorizeHandler(w http.ResponseWriter, r *http.Request) {
 // resolveClient looks up a client by ID from the store. If clientID is an HTTPS
 // URL (CIMD per MCP spec), it fetches the client metadata document from that URL,
 // validates it, and auto-registers the client as a public client (no secret).
-func (s *Server) resolveClient(clientID string) *client {
+func (s *Server) resolveClient(ctx context.Context, clientID string) (*client, error) {
 	// Check store first.
-	if c := s.store.lookupClient(clientID); c != nil {
-		return c
+	c, err := s.store.lookupClient(ctx, clientID)
+	if err != nil {
+		return nil, err
+	}
+	if c != nil && clientMetadataFresh(c, clientID, time.Now()) {
+		return c, nil
 	}
 
 	// CIMD: if client_id is an HTTPS URL, fetch the metadata document.
 	if !strings.HasPrefix(clientID, "https://") {
-		return nil
+		return nil, nil
 	}
 
 	// Rate-limit outbound CIMD fetches to prevent request amplification.
 	if !s.cimdLimiter.Allow() {
 		s.log.Warn("CIMD fetch rate-limited", slog.String("client_id", clientID))
-		return nil
+		return nil, nil
 	}
 
 	meta, err := fetchClientMetadata(clientID)
 	if err != nil {
 		s.log.Warn("CIMD fetch failed", slog.String("client_id", clientID), slog.String("error", err.Error()))
-		return nil
+		return nil, nil
 	}
 
 	// Register as a public client (no secret).
-	if err := s.store.registerCIMDClient(clientID, meta); err != nil {
+	if err := s.store.registerCIMDClient(ctx, clientID, meta); err != nil {
 		s.log.Warn("CIMD client registration failed", slog.String("client_id", clientID), slog.String("error", err.Error()))
-		return nil
+		if errors.Is(err, errClientCapReached) {
+			return nil, nil
+		}
+		return nil, err
 	}
-	return s.store.lookupClient(clientID)
+	return s.store.lookupClient(ctx, clientID)
+}
+
+func clientMetadataFresh(c *client, clientID string, now time.Time) bool {
+	if !c.Public || !strings.HasPrefix(clientID, "https://") {
+		return true
+	}
+	return c.MetadataRefreshedAt != nil &&
+		now.Before(c.MetadataRefreshedAt.Add(cimdMetadataTTL))
 }
 
 // fetchClientMetadata is in safefetch.go (SSRF-guarded).
@@ -163,7 +180,11 @@ func (s *Server) authorizeGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c := s.resolveClient(clientID)
+	c, err := s.resolveClient(r.Context(), clientID)
+	if err != nil {
+		http.Error(w, "server_error: client lookup failed", http.StatusInternalServerError)
+		return
+	}
 	if c == nil {
 		http.Error(w, "invalid_request: unknown client_id", http.StatusBadRequest)
 		return
@@ -229,8 +250,23 @@ func (s *Server) authorizePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The current password login represents one stable local identity. The
+	// authorizer is deliberately allow-all today; future OIDC login can supply
+	// a verified email without changing token persistence.
+	principal := Principal{Provider: "local", Subject: "operator"}
+	if err := s.authorizer.Authorize(r.Context(), principal); err != nil {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, errorPageHTML)
+		return
+	}
+
 	// Verify client.
-	c := s.resolveClient(clientID)
+	c, err := s.resolveClient(r.Context(), clientID)
+	if err != nil {
+		http.Error(w, "server_error: client lookup failed", http.StatusInternalServerError)
+		return
+	}
 	if c == nil {
 		http.Error(w, "invalid_request: unknown client_id", http.StatusBadRequest)
 		return
@@ -248,7 +284,13 @@ func (s *Server) authorizePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	code := s.store.createCode(clientID, redirectURI, codeChallenge, challengeMethod, scope)
+	code, err := s.store.createCode(
+		r.Context(), clientID, redirectURI, codeChallenge, challengeMethod, scope, principal,
+	)
+	if err != nil {
+		http.Error(w, "server_error: authorization could not be saved", http.StatusInternalServerError)
+		return
+	}
 
 	u, err := url.Parse(redirectURI)
 	if err != nil {
@@ -319,29 +361,36 @@ func (s *Server) tokenHandler(w http.ResponseWriter, r *http.Request) {
 
 // authenticateClient validates client credentials at the token endpoint.
 // Supports both client_secret_post (DCR clients) and "none" (public/CIMD clients).
-func (s *Server) authenticateClient(r *http.Request) (*client, string) {
+func (s *Server) authenticateClient(r *http.Request) (*client, string, error) {
 	clientID := r.PostFormValue("client_id")
 	clientSecret := r.PostFormValue("client_secret")
 
-	c := s.store.lookupClient(clientID)
+	c, err := s.store.lookupClient(r.Context(), clientID)
+	if err != nil {
+		return nil, "", err
+	}
 	if c == nil {
-		return nil, "unknown client_id"
+		return nil, "unknown client_id", nil
 	}
 
 	// Public client (CIMD): no secret required.
 	if c.Public {
-		return c, ""
+		return c, "", nil
 	}
 
 	// Confidential client (DCR): verify secret.
-	if subtle.ConstantTimeCompare([]byte(c.Secret), []byte(clientSecret)) != 1 {
-		return nil, "bad client_secret"
+	if subtle.ConstantTimeCompare(c.SecretHash, hashToken(clientSecret)) != 1 {
+		return nil, "bad client_secret", nil
 	}
-	return c, ""
+	return c, "", nil
 }
 
 func (s *Server) handleAuthCodeGrant(w http.ResponseWriter, r *http.Request) {
-	c, errMsg := s.authenticateClient(r)
+	c, errMsg, err := s.authenticateClient(r)
+	if err != nil {
+		writeOAuthError(w, http.StatusInternalServerError, "server_error", "client lookup failed")
+		return
+	}
 	if c == nil {
 		writeOAuthError(w, http.StatusUnauthorized, "invalid_client", errMsg)
 		return
@@ -350,25 +399,6 @@ func (s *Server) handleAuthCodeGrant(w http.ResponseWriter, r *http.Request) {
 	code := r.PostFormValue("code")
 	redirectURI := r.PostFormValue("redirect_uri")
 	codeVerifier := r.PostFormValue("code_verifier")
-
-	// Consume auth code.
-	ac, ok := s.store.consumeCode(code)
-	if !ok {
-		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "invalid or expired authorization code")
-		return
-	}
-
-	// Verify code belongs to this client.
-	if ac.ClientID != c.ID {
-		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "code was not issued to this client")
-		return
-	}
-
-	// Verify redirect_uri matches.
-	if ac.RedirectURI != redirectURI {
-		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "redirect_uri mismatch")
-		return
-	}
 
 	// PKCE verification: RFC 7636 requires code_verifier to be 43-128 characters.
 	if codeVerifier == "" {
@@ -379,18 +409,29 @@ func (s *Server) handleAuthCodeGrant(w http.ResponseWriter, r *http.Request) {
 		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "code_verifier must be 43-128 characters")
 		return
 	}
-	if !verifyPKCE(codeVerifier, ac.CodeChallenge) {
-		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "PKCE verification failed")
+	// Consume the code and create its first token pair atomically. The
+	// PostgreSQL store locks the code row, so two server instances cannot both
+	// exchange it and a crash cannot land between consumption and token minting.
+	scope, at, rt, expiresIn, ok, err := s.store.exchangeCode(
+		r.Context(), code, c.ID, redirectURI, codeVerifier,
+	)
+	if err != nil {
+		writeOAuthError(w, http.StatusInternalServerError, "server_error", "authorization code exchange failed")
 		return
 	}
-
-	// New token family — first pair from an authorization code.
-	at, rt, expiresIn := s.store.createTokenPair(c.ID, ac.Scope, "")
-	writeTokenResponse(w, at, rt, expiresIn, ac.Scope)
+	if !ok {
+		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "invalid or expired authorization code")
+		return
+	}
+	writeTokenResponse(w, at, rt, expiresIn, scope)
 }
 
 func (s *Server) handleRefreshGrant(w http.ResponseWriter, r *http.Request) {
-	c, errMsg := s.authenticateClient(r)
+	c, errMsg, err := s.authenticateClient(r)
+	if err != nil {
+		writeOAuthError(w, http.StatusInternalServerError, "server_error", "client lookup failed")
+		return
+	}
 	if c == nil {
 		writeOAuthError(w, http.StatusUnauthorized, "invalid_client", errMsg)
 		return
@@ -401,7 +442,13 @@ func (s *Server) handleRefreshGrant(w http.ResponseWriter, r *http.Request) {
 	// Atomic consume + mint: the family inherits across rotations, replay of
 	// any ancestor revokes the whole family, and no lock gap exists for a
 	// replay to race a legitimate rotation.
-	scope, at, rt, expiresIn, ok := s.store.rotateRefresh(refreshToken, c.ID)
+	scope, at, rt, expiresIn, ok, err := s.store.rotateRefresh(
+		r.Context(), refreshToken, c.ID, s.authorizer,
+	)
+	if err != nil {
+		writeOAuthError(w, http.StatusInternalServerError, "server_error", "refresh failed")
+		return
+	}
 	if !ok {
 		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "invalid or expired refresh token")
 		return
@@ -481,4 +528,4 @@ button{margin-top:16px;padding:8px 24px}
 var errorPageHTML = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>compliary — Access Denied</title>
 <style>body{font-family:system-ui,sans-serif;max-width:400px;margin:80px auto;padding:0 16px}</style>
-</head><body><h1>Access Denied</h1><p>Invalid operator password.</p></body></html>`
+</head><body><h1>Access Denied</h1><p>The login could not be authorized.</p></body></html>`

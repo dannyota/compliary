@@ -9,6 +9,7 @@
 //	gold/        — Atlas-generated: gold schema tables
 //	ingest/      — Atlas-generated: ingest schema tables
 //	config/      — Atlas-generated: config schema tables
+//	auth/        — Atlas-generated: auth schema tables
 //
 // Each subdirectory contains goose .sql files and an atlas.sum checksum file.
 // cmd/migrate applies them in the order above and verifies atlas.sum for each
@@ -20,5 +21,5 @@ import "embed"
 // FS holds every embedded migration file. goose reads .sql files;
 // atlas.sum files are read by cmd/migrate for checksum verification.
 //
-//go:embed extensions/*.sql extensions/atlas.sum bronze/*.sql bronze/atlas.sum silver/*.sql silver/atlas.sum gold/*.sql gold/atlas.sum ingest/*.sql ingest/atlas.sum config/*.sql config/atlas.sum
+//go:embed extensions/*.sql extensions/atlas.sum bronze/*.sql bronze/atlas.sum silver/*.sql silver/atlas.sum gold/*.sql gold/atlas.sum ingest/*.sql ingest/atlas.sum config/*.sql config/atlas.sum auth/*.sql auth/atlas.sum
 var FS embed.FS

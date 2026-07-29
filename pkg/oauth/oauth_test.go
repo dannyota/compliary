@@ -48,7 +48,7 @@ func newTestServer(t *testing.T, issuer string) *Server {
 	if issuer == "" {
 		issuer = "http://localhost"
 	}
-	return New(issuer, testHash(t), nil)
+	return newMemoryServer(issuer, testHash(t), nil)
 }
 
 func newTestServerWithLog(t *testing.T, issuer string) *Server {
@@ -57,7 +57,16 @@ func newTestServerWithLog(t *testing.T, issuer string) *Server {
 		issuer = "http://localhost"
 	}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return New(issuer, testHash(t), log)
+	return newMemoryServer(issuer, testHash(t), log)
+}
+
+func testMemoryStore(t *testing.T, srv *Server) *store {
+	t.Helper()
+	st, ok := srv.store.(*store)
+	if !ok {
+		t.Fatal("test server is not using the in-memory OAuth store")
+	}
+	return st
 }
 
 func registerTestClient(t *testing.T, ts *httptest.Server) (clientID, clientSecret string) {
@@ -193,6 +202,12 @@ func TestJWKSEmpty(t *testing.T) {
 	}
 }
 
+func TestNewRequiresPostgres(t *testing.T) {
+	if _, err := New("http://localhost", testHash(t), nil, nil); err == nil {
+		t.Fatal("expected PostgreSQL-backed OAuth constructor to reject a nil pool")
+	}
+}
+
 func TestDynamicClientRegistration(t *testing.T) {
 	_, ts := testServer(t)
 	clientID, clientSecret := registerTestClient(t, ts)
@@ -319,6 +334,9 @@ func TestFullAuthFlow(t *testing.T) {
 	if tokenResp["scope"] != "mcp:read" {
 		t.Errorf("scope: %v", tokenResp["scope"])
 	}
+	if tokenResp["expires_in"] != float64(tokenIdleTTL/time.Second) {
+		t.Errorf("expires_in: got %v, want %v", tokenResp["expires_in"], tokenIdleTTL/time.Second)
+	}
 	if _, ok := tokenResp["refresh_token"].(string); !ok {
 		t.Error("no refresh_token")
 	}
@@ -397,14 +415,57 @@ func TestPKCEWrongVerifier(t *testing.T) {
 
 func TestTokenExpiry(t *testing.T) {
 	srv := newTestServer(t, "http://localhost")
+	st := testMemoryStore(t, srv)
 	// Directly create a token with very short TTL.
-	at, _, _ := srv.store.createTokenPairWithTTL("test-client", "mcp:read", 1*time.Millisecond)
+	at, _, _ := st.createTokenPairWithTTL("test-client", "mcp:read", 1*time.Millisecond)
 	time.Sleep(5 * time.Millisecond)
 
 	verifier := srv.TokenVerifier()
 	_, err := verifier(context.Background(), at, nil)
 	if err == nil {
 		t.Error("expected error for expired token")
+	}
+}
+
+func TestTokenUseRenewsSession(t *testing.T) {
+	srv := newTestServer(t, "http://localhost")
+	st := testMemoryStore(t, srv)
+	at, rt, _ := st.createTokenPairWithTTL("test-client", "mcp:read", time.Hour)
+
+	staleActivity := time.Now().Add(-time.Hour)
+	st.mu.Lock()
+	st.clients["test-client"] = &client{
+		ID:           "test-client",
+		CreatedAt:    staleActivity,
+		LastActivity: staleActivity,
+	}
+	// Give the refresh token the same short deadline so the test proves that
+	// successful access-token use renews the whole usable session.
+	st.refresh[rt].ExpiresAt = time.Now().Add(time.Hour)
+	st.mu.Unlock()
+
+	beforeUse := time.Now()
+	info, err := srv.TokenVerifier()(context.Background(), at, nil)
+	if err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+	afterUse := time.Now()
+
+	minExpiry := beforeUse.Add(tokenIdleTTL)
+	maxExpiry := afterUse.Add(tokenIdleTTL)
+	if info.Expiration.Before(minExpiry) || info.Expiration.After(maxExpiry) {
+		t.Errorf("access expiry %v not renewed into [%v, %v]", info.Expiration, minExpiry, maxExpiry)
+	}
+
+	st.mu.Lock()
+	refreshExpiry := st.refresh[rt].ExpiresAt
+	lastActivity := st.clients["test-client"].LastActivity
+	st.mu.Unlock()
+	if refreshExpiry.Before(minExpiry) || refreshExpiry.After(maxExpiry) {
+		t.Errorf("refresh expiry %v not renewed into [%v, %v]", refreshExpiry, minExpiry, maxExpiry)
+	}
+	if lastActivity.Before(beforeUse) || lastActivity.After(afterUse) {
+		t.Errorf("client activity %v not updated during [%v, %v]", lastActivity, beforeUse, afterUse)
 	}
 }
 
@@ -620,6 +681,88 @@ func TestUnauthorizedWithoutToken(t *testing.T) {
 	})
 }
 
+func TestTokenVerifierReappliesAuthorizer(t *testing.T) {
+	wantPrincipal := Principal{
+		Provider:      "oidc.example",
+		Subject:       "user-123",
+		Email:         "user@example.com",
+		EmailVerified: true,
+	}
+	var seen Principal
+	srv := newMemoryServer(
+		"http://localhost",
+		testHash(t),
+		nil,
+		WithAuthorizer(AuthorizerFunc(func(_ context.Context, principal Principal) error {
+			seen = principal
+			return fmt.Errorf("denied by test policy")
+		})),
+	)
+	t.Cleanup(srv.StopEvictor)
+	st := testMemoryStore(t, srv)
+	at, _, _, err := st.createTokenPair(
+		context.Background(), "test-client", "mcp:read", "", wantPrincipal,
+	)
+	if err != nil {
+		t.Fatalf("create token pair: %v", err)
+	}
+	st.mu.Lock()
+	expiryBeforeDenial := st.tokens[at].ExpiresAt
+	st.mu.Unlock()
+
+	if _, err := srv.TokenVerifier()(context.Background(), at, nil); err == nil {
+		t.Fatal("expected current authorization policy to reject the token")
+	}
+	if seen != wantPrincipal {
+		t.Errorf("authorizer saw principal %+v, want %+v", seen, wantPrincipal)
+	}
+	st.mu.Lock()
+	expiryAfterDenial := st.tokens[at].ExpiresAt
+	st.mu.Unlock()
+	if !expiryAfterDenial.Equal(expiryBeforeDenial) {
+		t.Errorf("denied token was renewed from %v to %v", expiryBeforeDenial, expiryAfterDenial)
+	}
+}
+
+func TestRefreshReappliesAuthorizer(t *testing.T) {
+	srv := newTestServer(t, "http://localhost")
+	st := testMemoryStore(t, srv)
+	principal := Principal{
+		Provider:      "oidc.example",
+		Subject:       "user-123",
+		Email:         "blocked@example.com",
+		EmailVerified: true,
+	}
+	at, rt, _, err := st.createTokenPair(
+		context.Background(), "test-client", "mcp:read", "", principal,
+	)
+	if err != nil {
+		t.Fatalf("create token pair: %v", err)
+	}
+
+	deny := AuthorizerFunc(func(_ context.Context, got Principal) error {
+		if got != principal {
+			t.Errorf("authorizer saw principal %+v, want %+v", got, principal)
+		}
+		return fmt.Errorf("denied by test policy")
+	})
+	if _, _, _, _, ok, err := st.rotateRefresh(
+		context.Background(), rt, "test-client", deny,
+	); err != nil || ok {
+		t.Fatalf("denied refresh: ok=%v err=%v", ok, err)
+	}
+
+	// Policy denial must not consume the refresh token or mutate the family.
+	if _, ok, err := st.lookupToken(context.Background(), at); err != nil || !ok {
+		t.Fatalf("access token changed after denied refresh: ok=%v err=%v", ok, err)
+	}
+	if _, _, _, _, ok, err := st.rotateRefresh(
+		context.Background(), rt, "test-client", AllowAllAuthorizer{},
+	); err != nil || !ok {
+		t.Fatalf("refresh token was consumed by policy denial: ok=%v err=%v", ok, err)
+	}
+}
+
 func TestCodeReuse(t *testing.T) {
 	_, ts := testServer(t)
 	clientID, clientSecret := registerTestClient(t, ts)
@@ -660,10 +803,12 @@ func TestPublicClientAuth(t *testing.T) {
 	ts.Config.Handler = srv.Handler()
 
 	// Register a public client manually.
-	srv.store.registerCIMDClient("https://example.com/client-meta", &oauthex.ClientRegistrationMetadata{
+	if err := srv.store.registerCIMDClient(context.Background(), "https://example.com/client-meta", &oauthex.ClientRegistrationMetadata{
 		RedirectURIs: []string{"http://localhost/callback"},
 		ClientName:   "Test CIMD Client",
-	})
+	}); err != nil {
+		t.Fatalf("register CIMD client: %v", err)
+	}
 
 	_, challenge := pkce()
 
@@ -728,14 +873,17 @@ func TestLocalhostPortAgnosticRedirect(t *testing.T) {
 	ts.Config.Handler = srv.Handler()
 
 	// Register client with just "http://localhost/callback" (no port).
-	srv.store.registerCIMDClient("test-localhost-client", &oauthex.ClientRegistrationMetadata{
+	if err := srv.store.registerCIMDClient(context.Background(), "test-localhost-client", &oauthex.ClientRegistrationMetadata{
 		RedirectURIs: []string{"http://localhost/callback"},
 		ClientName:   "Localhost Test",
-	})
+	}); err != nil {
+		t.Fatalf("register CIMD client: %v", err)
+	}
 	// Force client to be in store directly for this test.
-	srv.store.mu.Lock()
-	srv.store.clients["test-localhost-client"].Public = true
-	srv.store.mu.Unlock()
+	st := testMemoryStore(t, srv)
+	st.mu.Lock()
+	st.clients["test-localhost-client"].Public = true
+	st.mu.Unlock()
 
 	// Authorize with a port-specified localhost redirect (Claude Code pattern).
 	authURL := fmt.Sprintf("%s/oauth/authorize?response_type=code&client_id=test-localhost-client&redirect_uri=%s&code_challenge=%s&code_challenge_method=S256",
@@ -758,7 +906,14 @@ func TestLocalhostPortAgnosticRedirect(t *testing.T) {
 func TestRequireBearerTokenIntegration(t *testing.T) {
 	// Verify the TokenVerifier works with the SDK's RequireBearerToken middleware.
 	srv := newTestServer(t, "http://localhost")
-	at, _, _ := srv.store.createTokenPair("test-client", "mcp:read", "")
+	st := testMemoryStore(t, srv)
+	at, _, _, err := st.createTokenPair(
+		context.Background(), "test-client", "mcp:read", "",
+		Principal{Provider: "local", Subject: "operator"},
+	)
+	if err != nil {
+		t.Fatalf("create token pair: %v", err)
+	}
 
 	verifier := srv.TokenVerifier()
 	mw := auth.RequireBearerToken(verifier, &auth.RequireBearerTokenOptions{
@@ -844,41 +999,58 @@ func TestClientCapRejection(t *testing.T) {
 
 func TestIdleClientEviction(t *testing.T) {
 	srv := newTestServer(t, "http://localhost")
+	st := testMemoryStore(t, srv)
 
-	// Manually register two clients: one active, one idle.
-	srv.store.mu.Lock()
+	// Manually register active, idle, granted, and statically authorized clients.
+	st.mu.Lock()
 	stale := time.Now().Add(-25 * time.Hour)
-	srv.store.clients["idle"] = &client{
+	st.clients["idle"] = &client{
 		ID:           "idle",
 		RedirectURIs: []string{"http://localhost/cb"},
 		CreatedAt:    stale,
 		LastActivity: stale,
 	}
-	srv.store.clients["active"] = &client{
+	st.clients["active"] = &client{
 		ID:           "active",
 		RedirectURIs: []string{"http://localhost/cb"},
 		CreatedAt:    stale,
 		LastActivity: time.Now(),
 	}
-	srv.store.clients["authorized"] = &client{
+	st.clients["authorized"] = &client{
 		ID:           "authorized",
 		RedirectURIs: []string{"http://localhost/cb"},
 		CreatedAt:    stale,
 		LastActivity: stale,
 		Authorized:   true,
 	}
-	srv.store.mu.Unlock()
+	st.clients["granted"] = &client{
+		ID:           "granted",
+		RedirectURIs: []string{"http://localhost/cb"},
+		CreatedAt:    stale,
+		LastActivity: stale,
+	}
+	st.tokens["live-token"] = &tokenEntry{
+		Token:     "live-token",
+		ClientID:  "granted",
+		ExpiresAt: time.Now().Add(time.Hour),
+	}
+	st.mu.Unlock()
 
-	srv.store.evict()
+	if err := st.evict(context.Background()); err != nil {
+		t.Fatalf("evict: %v", err)
+	}
 
-	if srv.store.lookupClient("idle") != nil {
+	if c, err := st.lookupClient(context.Background(), "idle"); err != nil || c != nil {
 		t.Error("idle client should have been evicted")
 	}
-	if srv.store.lookupClient("active") == nil {
+	if c, err := st.lookupClient(context.Background(), "active"); err != nil || c == nil {
 		t.Error("active client should survive eviction")
 	}
-	if srv.store.lookupClient("authorized") == nil {
+	if c, err := st.lookupClient(context.Background(), "authorized"); err != nil || c == nil {
 		t.Error("authorized client must never be evicted")
+	}
+	if c, err := st.lookupClient(context.Background(), "granted"); err != nil || c == nil {
+		t.Error("client with a live grant must survive eviction")
 	}
 }
 
@@ -953,9 +1125,64 @@ func TestCIMDFetchRateLimit(t *testing.T) {
 
 	// Next resolveClient for an HTTPS client_id should be rate-limited and
 	// return nil without making a fetch.
-	c := srv.resolveClient("https://attacker.example.com/meta")
+	c, err := srv.resolveClient(context.Background(), "https://attacker.example.com/meta")
+	if err != nil {
+		t.Fatalf("resolve client: %v", err)
+	}
 	if c != nil {
 		t.Error("expected nil from rate-limited CIMD resolve")
+	}
+}
+
+func TestCIMDMetadataFreshness(t *testing.T) {
+	now := time.Now()
+	fresh := now.Add(-time.Hour)
+	stale := now.Add(-cimdMetadataTTL - time.Minute)
+
+	tests := []struct {
+		name     string
+		clientID string
+		client   *client
+		want     bool
+	}{
+		{
+			name:     "fresh_public_metadata",
+			clientID: "https://client.example/metadata.json",
+			client:   &client{Public: true, MetadataRefreshedAt: &fresh},
+			want:     true,
+		},
+		{
+			name:     "stale_public_metadata",
+			clientID: "https://client.example/metadata.json",
+			client:   &client{Public: true, MetadataRefreshedAt: &stale},
+			want:     false,
+		},
+		{
+			name:     "missing_public_freshness",
+			clientID: "https://client.example/metadata.json",
+			client:   &client{Public: true},
+			want:     false,
+		},
+		{
+			name:     "confidential_dcr_client",
+			clientID: "generated-client-id",
+			client:   &client{Public: false},
+			want:     true,
+		},
+		{
+			name:     "test_public_client_without_cimd_url",
+			clientID: "test-public-client",
+			client:   &client{Public: true},
+			want:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := clientMetadataFresh(tt.client, tt.clientID, now); got != tt.want {
+				t.Errorf("clientMetadataFresh() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -1196,7 +1423,13 @@ func authorizeAndGetCodeForClient(t *testing.T, ts *httptest.Server, clientID, c
 // replayed token mints a pair that survives revocation.
 func TestRotateRefreshConcurrentReplay(t *testing.T) {
 	st := newStore()
-	_, rt1, _ := st.createTokenPair("c1", "mcp:read", "")
+	_, rt1, _, err := st.createTokenPair(
+		context.Background(), "c1", "mcp:read", "",
+		Principal{Provider: "local", Subject: "operator"},
+	)
+	if err != nil {
+		t.Fatalf("create token pair: %v", err)
+	}
 
 	const n = 16
 	type result struct {
@@ -1209,7 +1442,9 @@ func TestRotateRefreshConcurrentReplay(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, at, rt, _, ok := st.rotateRefresh(rt1, "c1")
+			_, at, rt, _, ok, _ := st.rotateRefresh(
+				context.Background(), rt1, "c1", AllowAllAuthorizer{},
+			)
 			results <- result{at, rt, ok}
 		}()
 	}
@@ -1227,10 +1462,12 @@ func TestRotateRefreshConcurrentReplay(t *testing.T) {
 	}
 	// n-1 replays ran, so the family must be revoked: any minted pair is dead.
 	for _, w := range wins {
-		if _, ok := st.lookupToken(w.at); ok {
+		if _, ok, _ := st.lookupToken(context.Background(), w.at); ok {
 			t.Error("access token minted by the winning rotation must be revoked after replay detection")
 		}
-		if _, _, _, _, ok := st.rotateRefresh(w.rt, "c1"); ok {
+		if _, _, _, _, ok, _ := st.rotateRefresh(
+			context.Background(), w.rt, "c1", AllowAllAuthorizer{},
+		); ok {
 			t.Error("refresh token minted by the winning rotation must be revoked after replay detection")
 		}
 	}

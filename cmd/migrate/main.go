@@ -15,6 +15,7 @@
 //	gold/         — gold schema tables    — goose version table: public.goose_db_version_gold
 //	ingest/       — ingest schema tables  — goose version table: public.goose_db_version_ingest
 //	config/       — config schema tables  — goose version table: public.goose_db_version_config
+//	auth/         — auth schema tables    — goose version table: public.goose_db_version_auth
 package main
 
 import (
@@ -41,7 +42,7 @@ import (
 
 // dirOrder defines the order migration directories are applied.
 // extensions must come first (creates the vector extension that gold depends
-// on). Then bronze → silver → gold → ingest → config.
+// on). Then bronze → silver → gold → ingest → config → auth.
 var dirOrder = []struct {
 	dir        string // subdirectory under deploy/migrations/
 	gooseTable string // goose version table name in public schema
@@ -52,6 +53,7 @@ var dirOrder = []struct {
 	{"gold", "goose_db_version_gold"},
 	{"ingest", "goose_db_version_ingest"},
 	{"config", "goose_db_version_config"},
+	{"auth", "goose_db_version_auth"},
 }
 
 func main() {

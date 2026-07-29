@@ -7,6 +7,23 @@ single-column surrogate PKs, natural keys as composite `UNIQUE`, named constrain
 Schemas: **`ingest`** (file manifest + pipeline state) → **`bronze`** (raw files + license
 provenance) → **`silver`** (frameworks/versions/documents/controls + relations + mappings) →
 **`gold`** (chunks + vectors), plus **`config`** (the framework registry + vocabularies).
+The separate **`auth`** schema holds operational OAuth state; it is not a medallion layer and is
+never managed by `cmd/seed`.
+
+## `auth` — persistent identities and OAuth grants
+
+All authorization codes, client secrets, access tokens, and refresh tokens are persisted only as
+SHA-256 hashes. Stable identity is `(provider, subject)`; normalized email is nullable profile data
+reserved for a later verified-email policy and is not an identity key.
+
+| Table | Role |
+|-------|------|
+| `identity` | Stable authenticated principal, with nullable `email_normalized` and a non-null `email_verified` flag (default false). |
+| `oauth_client` | DCR/CIMD client metadata, hashed confidential-client secret, redirect URIs, activity timestamps, and CIMD metadata-refresh time. |
+| `authorization_code` | Single-use PKCE grant bound to an identity and client; 10-minute expiry. |
+| `token_family` | Identity/client/session binding and family-wide expiry/revocation boundary. |
+| `access_token` | Hashed opaque access credential with sliding expiry and last-use time. |
+| `refresh_token` | Hashed rotating refresh credential; consumed rows are retained for replay detection. A partial unique index allows one live refresh token per family. |
 
 ## `config` — the framework registry (seeded, operator-overridable)
 

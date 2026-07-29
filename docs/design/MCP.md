@@ -62,7 +62,8 @@ Three modes, selected by env vars (checked in order):
    RFC 7591 dynamic client registration, authorization-code + PKCE (S256), Client ID Metadata
    Documents (CIMD). Connects as a custom connector in **claude.ai** and **chatgpt.com**. Full
    projection for authenticated callers. If `COMPLIARY_MCP_TOKEN` is also set, static bearer
-   tokens are accepted as a fallback (CLI/script backward compat).
+   tokens are accepted as an operator-controlled fallback (CLI/script backward compat). This
+   fallback has no user identity and intentionally bypasses any future email policy.
 
 2. **Bearer-only**: only `COMPLIARY_MCP_TOKEN` set. Existing behavior -- full projection for
    valid bearer, 401 otherwise.
@@ -82,13 +83,32 @@ Three modes, selected by env vars (checked in order):
 | `/oauth/token` | POST | Token exchange (auth code + PKCE, refresh) |
 | `/oauth/jwks` | GET | Empty JWKS (opaque tokens, no signing keys) |
 
-**Token design:** opaque tokens with in-memory store. Single-user, single-process -- no JWT
-overhead, no key management. Access tokens 1h, refresh tokens 7d, auth codes 10min.
+**Token design:** opaque tokens backed by PostgreSQL's dedicated `auth` schema, so client
+registrations and sessions survive process restarts and work across multiple server instances.
+Authorization codes, client secrets, access tokens, and refresh tokens are stored only as SHA-256
+hashes. Access and refresh tokens use a sliding 30-day inactivity timeout: each successful
+access-token verification renews the access token, token family, and live refresh token for
+another 30 days. Auth codes expire after 10min.
+
+**Identity and authorization:** grants bind to a stable `(provider, subject)` identity, never to
+an email address. The current operator-password login produces the local `operator` identity.
+The default authorizer permits every successfully authenticated identity. `email_normalized` is
+nullable and `email_verified` is a non-null flag that defaults to false; both are reserved for a
+later policy backed by a trusted login provider. No email filter is active yet. Authorization is
+checked when login succeeds and again whenever an access token is used or refreshed, so a later
+policy can apply to existing sessions without letting denied sessions slide their expiry.
+
+**Database transactions:** authorization-code consumption and initial token creation are atomic.
+Refresh rotation locks the token family; replaying a consumed refresh hash revokes the family
+across every server instance. A partial unique index permits only one live refresh token per
+family.
 
 **Client registration:** both DCR and CIMD supported. Claude.ai and ChatGPT prefer CIMD
 (`client_id_metadata_document_supported: true`). DCR clients get a secret (confidential); CIMD
 clients are public (no secret). Token endpoint supports `token_endpoint_auth_method: "none"` for
-public clients and `"client_secret_post"` for DCR clients.
+public clients and `"client_secret_post"` for DCR clients. Persisted CIMD redirect metadata is
+re-fetched after 24 hours before a new authorization; metadata-refresh failure is fail-closed, so
+a live grant cannot pin stale redirect URIs forever.
 
 **PKCE:** required, S256 only.
 
@@ -105,8 +125,8 @@ rebinding), redirects are refused, and the response body is capped at 64 KiB.
 
 ### Rate limiting and safety
 
-Body cap (1 MiB), cross-origin protection, panic recovery. Stateless: no session state -- all tools
-are read-only queries.
+Body cap (1 MiB), cross-origin protection, panic recovery. All tools are read-only queries; OAuth
+session state is persisted in PostgreSQL.
 
 **Two-tier rate limiting:**
 - **Global** per-IP limiter on all routes (`COMPLIARY_MCP_RATE_RPS` default 50,
@@ -128,8 +148,9 @@ spoofed value to get a fresh rate-limit bucket per request and bypass the brute-
 Follow-ups from the security review, all implemented:
 
 - **DCR registration cap (done):** registered clients are capped (50) with 24h idle eviction
-  (last token/code activity; statically-authorized clients exempt); registration past the cap
-  returns 503. CIMD metadata fetches are additionally rate-limited (1/s, burst 5).
+  (last token/code activity; clients with live grants and statically-authorized clients exempt);
+  registration past the cap returns 503. CIMD metadata fetches are additionally rate-limited
+  (1/s, burst 5).
 - **Refresh-reuse family revocation (done):** each token pair belongs to a family (created on
   authorization code exchange, inherited on refresh rotation). Replaying an already-consumed
   refresh token revokes every live access and refresh token in that family and returns

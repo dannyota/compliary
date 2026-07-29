@@ -5,7 +5,8 @@
 // Auth modes (checked in order):
 //
 //  1. OAuth (preferred): COMPLIARY_PUBLIC_URL + COMPLIARY_OAUTH_OPERATOR_SECRET
-//     both set → OAuth 2.0 authorization server with JWT tokens; full projection.
+//     both set → OAuth 2.0 authorization server with PostgreSQL-backed opaque
+//     tokens; full projection.
 //     If COMPLIARY_MCP_TOKEN is also set, static bearer tokens are accepted as
 //     a backward-compatible fallback.
 //  2. Bearer-only: only COMPLIARY_MCP_TOKEN set → static bearer auth; full
@@ -130,7 +131,10 @@ func run(cfgPath, addrOverride string, log *slog.Logger) error {
 			operatorHash = hashed
 			log.Info("COMPLIARY_OAUTH_OPERATOR_SECRET auto-hashed (plain password detected)")
 		}
-		oauthSrv = oauth.New(publicURL, operatorHash, log)
+		oauthSrv, err = oauth.New(publicURL, operatorHash, pool, log)
+		if err != nil {
+			return fmt.Errorf("build OAuth server: %w", err)
+		}
 		if token != "" {
 			log.Info("OAuth + bearer fallback enabled — both OAuth and static token accepted")
 		} else {

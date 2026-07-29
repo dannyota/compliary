@@ -1,12 +1,12 @@
 // Package oauth implements an OAuth 2.0 authorization server for compliary's
-// single-user MCP endpoint. It uses opaque tokens with in-memory storage —
-// no JWT signing, no JWKS keys, no external token introspection.
+// MCP endpoint.
 package oauth
 
 import (
+	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"sync"
 	"time"
 
@@ -14,8 +14,11 @@ import (
 )
 
 const (
-	accessTokenTTL  = 1 * time.Hour
-	refreshTokenTTL = 7 * 24 * time.Hour
+	// tokenIdleTTL is a sliding inactivity timeout. Successful access-token
+	// verification renews both that access token and its live refresh token.
+	tokenIdleTTL    = 30 * 24 * time.Hour
+	accessTokenTTL  = tokenIdleTTL
+	refreshTokenTTL = tokenIdleTTL
 	authCodeTTL     = 10 * time.Minute
 
 	// maxClients caps the number of registered clients (DCR + CIMD combined).
@@ -26,6 +29,10 @@ const (
 	// activity before eviction. Statically configured clients (authorized)
 	// are never evicted.
 	clientIdleTTL = 24 * time.Hour
+
+	// cimdMetadataTTL bounds how long redirect metadata fetched from a public
+	// client_id URL is trusted before a new authorization must refresh it.
+	cimdMetadataTTL = 24 * time.Hour
 )
 
 type store struct {
@@ -35,43 +42,6 @@ type store struct {
 	tokens   map[string]*tokenEntry   // access_token -> tokenEntry
 	refresh  map[string]*refreshEntry // refresh_token -> refreshEntry
 	consumed map[string]string        // consumed refresh_token -> familyID (for replay detection)
-}
-
-type client struct {
-	ID           string
-	Secret       string
-	RedirectURIs []string
-	Name         string
-	Public       bool // true for CIMD clients (no secret)
-	CreatedAt    time.Time
-	LastActivity time.Time // updated on code/token creation; zero = never used
-	Authorized   bool      // statically configured — exempt from eviction
-}
-
-type authCode struct {
-	Code            string
-	ClientID        string
-	RedirectURI     string
-	CodeChallenge   string
-	ChallengeMethod string
-	Scope           string
-	ExpiresAt       time.Time
-}
-
-type tokenEntry struct {
-	Token     string
-	ClientID  string
-	Scope     string
-	ExpiresAt time.Time
-	FamilyID  string // token family for refresh-reuse revocation
-}
-
-type refreshEntry struct {
-	Token     string
-	ClientID  string
-	Scope     string
-	ExpiresAt time.Time
-	FamilyID  string // inherited from the originating auth code exchange
 }
 
 func newStore() *store {
@@ -92,10 +62,7 @@ func randomHex(n int) string {
 	return hex.EncodeToString(b)
 }
 
-// errClientCapReached is returned when the client registration cap is hit.
-var errClientCapReached = fmt.Errorf("client registration cap reached")
-
-func (s *store) registerClient(meta oauthex.ClientRegistrationMetadata) (*oauthex.ClientRegistrationResponse, error) {
+func (s *store) registerClient(_ context.Context, meta oauthex.ClientRegistrationMetadata) (*oauthex.ClientRegistrationResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -109,7 +76,7 @@ func (s *store) registerClient(meta oauthex.ClientRegistrationMetadata) (*oauthe
 
 	c := &client{
 		ID:           id,
-		Secret:       secret,
+		SecretHash:   hashToken(secret),
 		RedirectURIs: meta.RedirectURIs,
 		Name:         meta.ClientName,
 		CreatedAt:    now,
@@ -124,15 +91,22 @@ func (s *store) registerClient(meta oauthex.ClientRegistrationMetadata) (*oauthe
 	}, nil
 }
 
-func (s *store) lookupClient(clientID string) *client {
+func (s *store) lookupClient(_ context.Context, clientID string) (*client, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.clients[clientID]
+	c := s.clients[clientID]
+	if c == nil {
+		return nil, nil
+	}
+	result := *c
+	result.SecretHash = append([]byte(nil), c.SecretHash...)
+	result.RedirectURIs = append([]string(nil), c.RedirectURIs...)
+	return &result, nil
 }
 
 // registerCIMDClient registers a public client from a Client ID Metadata Document.
 // The clientID is the HTTPS URL of the metadata document itself.
-func (s *store) registerCIMDClient(clientID string, meta *oauthex.ClientRegistrationMetadata) error {
+func (s *store) registerCIMDClient(_ context.Context, clientID string, meta *oauthex.ClientRegistrationMetadata) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -141,17 +115,19 @@ func (s *store) registerCIMDClient(clientID string, meta *oauthex.ClientRegistra
 		return errClientCapReached
 	}
 
+	now := time.Now()
 	s.clients[clientID] = &client{
-		ID:           clientID,
-		RedirectURIs: meta.RedirectURIs,
-		Name:         meta.ClientName,
-		Public:       true,
-		CreatedAt:    time.Now(),
+		ID:                  clientID,
+		RedirectURIs:        meta.RedirectURIs,
+		Name:                meta.ClientName,
+		Public:              true,
+		CreatedAt:           now,
+		MetadataRefreshedAt: &now,
 	}
 	return nil
 }
 
-func (s *store) createCode(clientID, redirectURI, codeChallenge, challengeMethod, scope string) string {
+func (s *store) createCode(_ context.Context, clientID, redirectURI, codeChallenge, challengeMethod, scope string, principal Principal) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -165,33 +141,64 @@ func (s *store) createCode(clientID, redirectURI, codeChallenge, challengeMethod
 		ChallengeMethod: challengeMethod,
 		Scope:           scope,
 		ExpiresAt:       now.Add(authCodeTTL),
+		Principal:       principal,
 	}
 	// Track activity for idle-client eviction.
 	if c := s.clients[clientID]; c != nil {
 		c.LastActivity = now
 	}
-	return code
+	return code, nil
 }
 
-func (s *store) consumeCode(code string) (*authCode, bool) {
+func (s *store) consumeCode(_ context.Context, code string) (*authCode, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	ac, ok := s.codes[code]
 	if !ok {
-		return nil, false
+		return nil, false, nil
 	}
 	delete(s.codes, code)
 	if time.Now().After(ac.ExpiresAt) {
-		return nil, false
+		return nil, false, nil
 	}
-	return ac, true
+	result := *ac
+	return &result, true, nil
 }
 
-func (s *store) createTokenPair(clientID, scope, familyID string) (accessToken, refreshToken string, expiresIn int) {
+func (s *store) exchangeCode(_ context.Context, code, clientID, redirectURI, codeVerifier string) (scope, accessToken, refreshToken string, expiresIn int, ok bool, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	ac, found := s.codes[code]
+	if !found {
+		return "", "", "", 0, false, nil
+	}
+	// An authorization code is single-use even when the exchange request is
+	// invalid, matching the former consume-then-validate behavior.
+	delete(s.codes, code)
+	if time.Now().After(ac.ExpiresAt) ||
+		ac.ClientID != clientID ||
+		ac.RedirectURI != redirectURI ||
+		!verifyPKCE(codeVerifier, ac.CodeChallenge) {
+		return "", "", "", 0, false, nil
+	}
+
+	at, rt, ttl := s.createTokenPairLocked(clientID, ac.Scope, "", ac.Principal, accessTokenTTL)
+	return ac.Scope, at, rt, ttl, true, nil
+}
+
+func (s *store) createTokenPair(_ context.Context, clientID, scope, familyID string, principal Principal) (accessToken, refreshToken string, expiresIn int, err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	accessToken, refreshToken, expiresIn = s.createTokenPairLocked(
+		clientID, scope, familyID, principal, accessTokenTTL,
+	)
+	return accessToken, refreshToken, expiresIn, nil
+}
+
+func (s *store) createTokenPairLocked(clientID, scope, familyID string, principal Principal, atTTL time.Duration) (accessToken, refreshToken string, expiresIn int) {
 	if familyID == "" {
 		familyID = randomHex(16)
 	}
@@ -204,8 +211,9 @@ func (s *store) createTokenPair(clientID, scope, familyID string) (accessToken, 
 		Token:     at,
 		ClientID:  clientID,
 		Scope:     scope,
-		ExpiresAt: now.Add(accessTokenTTL),
+		ExpiresAt: now.Add(atTTL),
 		FamilyID:  familyID,
+		Principal: principal,
 	}
 	s.refresh[rt] = &refreshEntry{
 		Token:     rt,
@@ -213,12 +221,13 @@ func (s *store) createTokenPair(clientID, scope, familyID string) (accessToken, 
 		Scope:     scope,
 		ExpiresAt: now.Add(refreshTokenTTL),
 		FamilyID:  familyID,
+		Principal: principal,
 	}
 	// Track activity for idle-client eviction.
 	if c := s.clients[clientID]; c != nil {
 		c.LastActivity = now
 	}
-	return at, rt, int(accessTokenTTL.Seconds())
+	return at, rt, int(atTTL.Seconds())
 }
 
 // createTokenPairWithTTL is like createTokenPair but with a custom access token TTL.
@@ -252,19 +261,62 @@ func (s *store) createTokenPairWithTTL(clientID, scope string, atTTL time.Durati
 	return at, rt, int(atTTL.Seconds())
 }
 
-func (s *store) lookupToken(accessToken string) (*tokenEntry, bool) {
+func (s *store) lookupToken(_ context.Context, accessToken string) (*tokenEntry, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	te, ok := s.tokens[accessToken]
 	if !ok {
-		return nil, false
+		return nil, false, nil
 	}
-	if time.Now().After(te.ExpiresAt) {
+	now := time.Now()
+	if now.After(te.ExpiresAt) {
 		delete(s.tokens, accessToken)
-		return nil, false
+		return nil, false, nil
 	}
-	return te, true
+
+	result := *te
+	return &result, true, nil
+}
+
+func (s *store) renewToken(_ context.Context, accessToken string) (*tokenEntry, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	te, ok := s.tokens[accessToken]
+	if !ok {
+		return nil, false, nil
+	}
+	now := time.Now()
+	if now.After(te.ExpiresAt) {
+		delete(s.tokens, accessToken)
+		return nil, false, nil
+	}
+
+	// Keep active sessions alive for tokenIdleTTL. OAuth clients only know the
+	// expires_in value returned when the pair was issued, so renew the live
+	// refresh token too; otherwise a client refreshing on its original schedule
+	// would present a refresh token that expired despite regular access-token use.
+	expiresAt := now.Add(tokenIdleTTL)
+	te.ExpiresAt = expiresAt
+	for token, re := range s.refresh {
+		if re.FamilyID != te.FamilyID {
+			continue
+		}
+		if now.After(re.ExpiresAt) {
+			delete(s.refresh, token)
+			continue
+		}
+		re.ExpiresAt = expiresAt
+	}
+	if c := s.clients[te.ClientID]; c != nil {
+		c.LastActivity = now
+	}
+
+	// Return a snapshot so concurrent token uses cannot race with the caller
+	// reading the renewed expiry.
+	result := *te
+	return &result, true, nil
 }
 
 // rotateRefresh atomically consumes a refresh token and mints its successor
@@ -274,7 +326,7 @@ func (s *store) lookupToken(accessToken string) (*tokenEntry, bool) {
 // mint a live pair afterwards. If the token was already consumed (replay),
 // the whole family is revoked per OAuth 2.1 §6.1 and ok is false. The client
 // check happens before consumption so a wrong client cannot burn the token.
-func (s *store) rotateRefresh(refreshToken, clientID string) (scope, accessToken, newRefresh string, expiresIn int, ok bool) {
+func (s *store) rotateRefresh(ctx context.Context, refreshToken, clientID string, authorizer Authorizer) (scope, accessToken, newRefresh string, expiresIn int, ok bool, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -284,14 +336,23 @@ func (s *store) rotateRefresh(refreshToken, clientID string) (scope, accessToken
 		if familyID, consumed := s.consumed[refreshToken]; consumed {
 			s.revokeFamilyLocked(familyID)
 		}
-		return "", "", "", 0, false
+		return "", "", "", 0, false, nil
 	}
 	if re.ClientID != clientID {
-		return "", "", "", 0, false
+		return "", "", "", 0, false, nil
+	}
+	if time.Now().After(re.ExpiresAt) {
+		delete(s.refresh, refreshToken)
+		return "", "", "", 0, false, nil
+	}
+	if authorizer != nil {
+		if err := authorizer.Authorize(ctx, re.Principal); err != nil {
+			return "", "", "", 0, false, nil
+		}
 	}
 	delete(s.refresh, refreshToken)
 	if time.Now().After(re.ExpiresAt) {
-		return "", "", "", 0, false
+		return "", "", "", 0, false, nil
 	}
 	// Record the consumed token so replays trigger family revocation.
 	s.consumed[refreshToken] = re.FamilyID
@@ -305,6 +366,7 @@ func (s *store) rotateRefresh(refreshToken, clientID string) (scope, accessToken
 		Scope:     re.Scope,
 		ExpiresAt: now.Add(accessTokenTTL),
 		FamilyID:  re.FamilyID,
+		Principal: re.Principal,
 	}
 	s.refresh[rt] = &refreshEntry{
 		Token:     rt,
@@ -312,11 +374,12 @@ func (s *store) rotateRefresh(refreshToken, clientID string) (scope, accessToken
 		Scope:     re.Scope,
 		ExpiresAt: now.Add(refreshTokenTTL),
 		FamilyID:  re.FamilyID,
+		Principal: re.Principal,
 	}
 	if c := s.clients[clientID]; c != nil {
 		c.LastActivity = now
 	}
-	return re.Scope, at, rt, int(accessTokenTTL.Seconds()), true
+	return re.Scope, at, rt, int(accessTokenTTL.Seconds()), true, nil
 }
 
 // revokeFamilyLocked revokes all access tokens, refresh tokens, and consumed-
@@ -340,26 +403,7 @@ func (s *store) revokeFamilyLocked(familyID string) {
 }
 
 // startEvictor runs a periodic cleanup of expired entries. Returns a stop function.
-func (s *store) startEvictor(interval time.Duration) func() {
-	ticker := time.NewTicker(interval)
-	done := make(chan struct{})
-
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				s.evict()
-			case <-done:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
-
-	return func() { close(done) }
-}
-
-func (s *store) evict() {
+func (s *store) evict(_ context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -390,11 +434,25 @@ func (s *store) evict() {
 			delete(s.consumed, k)
 		}
 	}
-	// Evict idle clients — clients with no token/code activity for clientIdleTTL.
-	// Authorized (statically configured) clients are never evicted.
+	// A registered client with a live grant must remain available for refresh.
+	// This also means the 24h registration cap cleanup still applies to unused
+	// registrations without cutting off a valid 30-day session.
+	clientsWithLiveGrants := make(map[string]bool)
+	for _, v := range s.codes {
+		clientsWithLiveGrants[v.ClientID] = true
+	}
+	for _, v := range s.tokens {
+		clientsWithLiveGrants[v.ClientID] = true
+	}
+	for _, v := range s.refresh {
+		clientsWithLiveGrants[v.ClientID] = true
+	}
+
+	// Evict idle clients with no live grants. Authorized (statically configured)
+	// clients are never evicted.
 	cutoff := now.Add(-clientIdleTTL)
 	for k, c := range s.clients {
-		if c.Authorized {
+		if c.Authorized || clientsWithLiveGrants[k] {
 			continue
 		}
 		activity := c.LastActivity
@@ -405,4 +463,10 @@ func (s *store) evict() {
 			delete(s.clients, k)
 		}
 	}
+	return nil
+}
+
+func hashToken(token string) []byte {
+	sum := sha256.Sum256([]byte(token))
+	return sum[:]
 }

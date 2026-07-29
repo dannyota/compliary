@@ -10,8 +10,8 @@ coverage gaps — and serves that evidence over **MCP**.
 **compliary does not answer questions.** A user-owned agent connects over MCP, retrieves evidence,
 and decides the answer itself. No built-in answer LLM, ever.
 
-Conventions live in [`CLAUDE.md`](../CLAUDE.md); roadmap in [`PLAN.md`](../PLAN.md). This doc is the
-system overview; the data model is in [`design/SCHEMA.md`](design/SCHEMA.md).
+The roadmap lives in [`PLAN.md`](../PLAN.md). This doc is the system overview; the data model is in
+[`design/SCHEMA.md`](design/SCHEMA.md).
 
 ## Design principles (ported from banhmi, adapted)
 
@@ -42,7 +42,7 @@ click-through as the operator), `byo` (ISO, AICPA, CSA, ISACA, SWIFT — manual 
 actually in hand: **OSCAL JSON** (SP 800-53), **XLSX workbooks** (CSF, CIS, CCM/CAIQ), **born-digital
 PDF** (everything else). All text-parseable; no scans (rejected at acquisition).
 
-## Data architecture (Medallion, five schemas)
+## Data architecture (five data schemas + auth)
 
 Full model in [`design/SCHEMA.md`](design/SCHEMA.md).
 
@@ -53,6 +53,7 @@ Full model in [`design/SCHEMA.md`](design/SCHEMA.md).
 | Silver | `silver` | Normalized: framework → version → document → **control** tree (citation-keyed), version supersession relations, **cross-framework control mappings** with per-edge provenance. |
 | Gold | `gold` | Chunks (one control → one chunk, contextual prefix) + dense embeddings + BM25 sparse vectors. |
 | Config | `config` | The **framework registry** + citation schemes + mapping-source vocab, seeded from `deploy/seed/*.csv`, `origin='seed'`/`'user'` overrides (banhmi's re-seed pattern). |
+| Auth | `auth` | Operational OAuth state: identities, clients, authorization codes, token families, and hashed access/refresh credentials. Separate from the evidence medallion and seed process. |
 
 ## Pipeline
 
@@ -116,7 +117,9 @@ edges (as relations, not text), license/provenance, and explicit gaps. Framework
 stdio for local clients, Streamable HTTP for the deployed instance; evidence logic in shared
 packages, not surfaces. **Maintainer instance (`compliary.danny.vn/mcp`) requires auth** —
 licensed text is never served publicly. Auth is OAuth 2.0 (MCP auth spec: PKCE + DCR + CIMD) with
-an optional static-bearer fallback; unauthenticated requests get 401 — see
+PostgreSQL-persisted opaque token families and an optional static-bearer fallback;
+unauthenticated requests get 401. The current password login is allow-all after authentication;
+stable provider/subject identities leave room for a later verified-email policy — see
 [`design/MCP.md`](design/MCP.md) and [`OPERATIONS.md`](OPERATIONS.md).
 
 ## Repository layout
@@ -134,14 +137,14 @@ compliary/
 ├── pkg/
 │   ├── base/              # config, db, log
 │   ├── fetch/             # per-publisher fetchers
-│   ├── operator/          # operator identity (.env)
+│   ├── operator/          # pipeline operator identity (.env)
 │   ├── manifest/          # data/ scanner + file_rule matcher
 │   ├── extract/           # OSCAL JSON + XLSX + PDF (go-fitz purego) extractors
 │   ├── normalize/         # all v0.1.0 parsers → silver (800-53/CSF/CIS/CCM/PCI/TSC/ISO/COBIT)
 │   ├── rag/               # embed, hybrid retrieve
 │   ├── mcp/               # MCP tools over the shared query core
 │   └── store/             # generated sqlc (do not hand-edit)
-├── sql/                   # sqlc schema.sql + queries.sql per schema
+├── sql/                   # desired PostgreSQL schemas (including persistent auth)
 ├── deploy/                # migrations, seed CSVs, Containerfiles
 └── docs/                  # this doc + design/
 ```

@@ -3,42 +3,99 @@ package oauth
 import (
 	"context"
 	"crypto/subtle"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/oauthex"
 	"golang.org/x/time/rate"
 )
 
-// Server is an OAuth 2.0 authorization server for compliary's single-user
-// MCP endpoint. It issues opaque tokens stored in memory and verifies the
-// operator's identity via a bcrypt-hashed password.
+// Server is an OAuth 2.0 authorization server for compliary's MCP endpoint. It
+// issues opaque tokens and verifies the local operator identity via a
+// bcrypt-hashed password.
 type Server struct {
 	issuer       string
 	operatorHash []byte
-	store        *store
+	store        oauthStore
+	authorizer   Authorizer
 	log          *slog.Logger
 	stopEvictor  func()
 	cimdLimiter  *rate.Limiter // rate-limits outbound CIMD metadata fetches
 }
 
-// New creates a Server. issuer is the public URL of the compliary instance
-// (e.g. "https://compliary.danny.vn"). operatorHash is the bcrypt hash of
-// the operator's password (from COMPLIARY_OAUTH_OPERATOR_SECRET).
-func New(issuer string, operatorHash []byte, log *slog.Logger) *Server {
+// Option configures a Server.
+type Option func(*Server)
+
+// WithAuthorizer replaces the default allow-all authorization policy.
+func WithAuthorizer(authorizer Authorizer) Option {
+	return func(s *Server) {
+		if authorizer != nil {
+			s.authorizer = authorizer
+		}
+	}
+}
+
+// New creates a PostgreSQL-backed OAuth server. PostgreSQL is required so
+// production grants survive restarts and remain consistent across instances.
+func New(issuer string, operatorHash []byte, pool *pgxpool.Pool, log *slog.Logger, opts ...Option) (*Server, error) {
+	if pool == nil {
+		return nil, errors.New("oauth postgres pool is required")
+	}
+	store := newPostgresStore(pool)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := store.checkSchema(ctx); err != nil {
+		return nil, err
+	}
+	return newServer(issuer, operatorHash, store, log, opts...), nil
+}
+
+func newMemoryServer(issuer string, operatorHash []byte, log *slog.Logger, opts ...Option) *Server {
+	return newServer(issuer, operatorHash, newStore(), log, opts...)
+}
+
+func newServer(issuer string, operatorHash []byte, store oauthStore, log *slog.Logger, opts ...Option) *Server {
 	s := &Server{
 		issuer:       issuer,
 		operatorHash: operatorHash,
-		store:        newStore(),
+		store:        store,
+		authorizer:   AllowAllAuthorizer{},
 		log:          log,
 		cimdLimiter:  rate.NewLimiter(1, 5), // 1/s sustained, burst 5
 	}
-	s.stopEvictor = s.store.startEvictor(5 * time.Minute)
+	for _, opt := range opts {
+		opt(s)
+	}
+	s.stopEvictor = s.startEvictor(5 * time.Minute)
 	return s
+}
+
+func (s *Server) startEvictor(interval time.Duration) func() {
+	ticker := time.NewTicker(interval)
+	done := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				err := s.store.evict(ctx)
+				cancel()
+				if err != nil && s.log != nil {
+					s.log.Error("OAuth cleanup failed", slog.String("error", err.Error()))
+				}
+			case <-done:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+	return func() { close(done) }
 }
 
 // StopEvictor stops the background expired-entry cleanup goroutine.
@@ -81,13 +138,33 @@ func (s *Server) Handler() http.Handler {
 	return mux
 }
 
-// TokenVerifier returns an [auth.TokenVerifier] that validates opaque access
-// tokens from this server's in-memory store.
+// TokenVerifier validates opaque access tokens, reapplies the current
+// authorization policy, and renews valid sessions for the 30-day inactivity
+// window.
 func (s *Server) TokenVerifier() auth.TokenVerifier {
-	return func(_ context.Context, token string, _ *http.Request) (*auth.TokenInfo, error) {
-		te, ok := s.store.lookupToken(token)
+	return func(ctx context.Context, token string, _ *http.Request) (*auth.TokenInfo, error) {
+		te, ok, err := s.store.lookupToken(ctx, token)
+		if err != nil {
+			if s.log != nil {
+				s.log.Error("OAuth token lookup failed", slog.String("error", err.Error()))
+			}
+			return nil, fmt.Errorf("%w: token verification unavailable", auth.ErrInvalidToken)
+		}
 		if !ok {
 			return nil, fmt.Errorf("%w: unknown or expired token", auth.ErrInvalidToken)
+		}
+		if err := s.authorizer.Authorize(ctx, te.Principal); err != nil {
+			return nil, fmt.Errorf("%w: principal is not authorized", auth.ErrInvalidToken)
+		}
+		te, ok, err = s.store.renewToken(ctx, token)
+		if err != nil {
+			if s.log != nil {
+				s.log.Error("OAuth token renewal failed", slog.String("error", err.Error()))
+			}
+			return nil, fmt.Errorf("%w: token verification unavailable", auth.ErrInvalidToken)
+		}
+		if !ok {
+			return nil, fmt.Errorf("%w: unknown, expired, or revoked token", auth.ErrInvalidToken)
 		}
 		return &auth.TokenInfo{
 			Scopes:     splitScope(te.Scope),
@@ -112,7 +189,7 @@ func (s *Server) BearerFallback(staticToken string) auth.TokenVerifier {
 		if subtle.ConstantTimeCompare([]byte(token), []byte(staticToken)) == 1 {
 			return &auth.TokenInfo{
 				Scopes:     []string{"mcp:read"},
-				Expiration: time.Now().Add(1 * time.Hour),
+				Expiration: time.Now().Add(tokenIdleTTL),
 			}, nil
 		}
 
