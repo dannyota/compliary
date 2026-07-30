@@ -179,20 +179,25 @@ dense+sparse / 4,501 edges incl. 39 operator / 2,125 curated titles / 0 stale do
 marker carries across a restore, so no post-migration mapedges run was needed); live version,
 `/healthz` 200 and unauthenticated `/mcp` 401 all verified.
 
-### v0.2.2 — durable OAuth sessions (release candidate)
+### v0.2.2 — durable OAuth sessions
 
-**Ready 2026-07-30; AWS rollout pending.** OAuth identities, clients, authorization codes,
-token families, and opaque access/refresh token hashes now live in PostgreSQL instead of process
-memory. Sessions use a sliding 30-day inactivity window, survive restarts and multiple instances,
-reapply authorization on login/use/refresh, and retain refresh-replay family revocation. The
-default policy permits every successful password login; verified normalized email fields and an
-`Authorizer` seam are reserved for a later email policy.
+**Released 2026-07-30** (`0.2.2-20260730` live, task-def rev 24; image
+`sha256:af4946964527a12adbf99c7c6282d581835d269b97189cb11556b30a2bd7d894`). OAuth identities,
+clients, authorization codes, token families, and opaque access/refresh token hashes now live in
+PostgreSQL instead of process memory. Sessions use a sliding 30-day inactivity window, survive
+restarts and multiple instances, reapply authorization on login/use/refresh, and retain
+refresh-replay family revocation. The default policy permits every successful password login;
+verified normalized email fields and an `Authorizer` seam are reserved for a later email policy.
 
 The AWS release path now builds `/migrate` into the server image, runs it as a checked no-port ECS
 task before service rollout, clones the service's exact active task definition, enables
 circuit-breaker rollback, and promotes `latest` only after public smoke checks. Container build
 contexts exclude local credentials and licensed corpus data. CI applies all migrations to
 PostgreSQL and runs the OAuth persistence/concurrency suite (including the race detector).
+Production migration revision 1 exited successfully; `/healthz`, version, OAuth discovery, and
+unauthenticated `/mcp` checks passed. A fresh Codex process then reused the configured OAuth
+connection and called `corpus_status` successfully (14 documents, 13 framework versions, 3,943
+controls/chunks).
 
 ### Settled — mapedges staleness marker (2026-07-25)
 

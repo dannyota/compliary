@@ -329,7 +329,7 @@ lives in [`PLAN.md`](../PLAN.md); this file only grows.
   classifier (linguistic signal, not retrieval-result signal) — deferred as diminishing returns
   at 95.4% accuracy.
 
-- **2026-07-30** — **v0.2.2 code release: durable PostgreSQL OAuth; AWS rollout pending.**
+- **2026-07-30** — **v0.2.2 released: durable PostgreSQL OAuth.**
   Replaced production's process-local OAuth grants with an `auth` PostgreSQL schema for stable
   identities, client registrations, one-time authorization codes, token families, and hashed
   access/refresh tokens. Added sliding 30-day inactivity renewal, cross-instance atomic code
@@ -339,4 +339,9 @@ lives in [`PLAN.md`](../PLAN.md); this file only grows.
   PostgreSQL service and runs persistence/concurrency tests under the race detector. AWS release
   safety gained a secret-free build context, in-image `/migrate`, checked one-off ECS migration
   before rollout, active-revision cloning, circuit-breaker/manual rollback, signed/pushed-tag
-  guards, and post-verification `latest` promotion.
+  guards, and post-verification `latest` promotion. Signed tag `v0.2.2` (`8e006cc`) passed CI and
+  preflight; migration task revision 1 exited 0, and digest
+  `sha256:af4946964527a12adbf99c7c6282d581835d269b97189cb11556b30a2bd7d894` rolled to
+  `compliary-mcp:24` as `0.2.2-20260730`. ECS stabilized healthy, public health/version/discovery
+  smokes passed, unauthenticated `/mcp` remained 401, and an authenticated Codex
+  `corpus_status` call returned the live 14-document / 13-framework-version corpus.
