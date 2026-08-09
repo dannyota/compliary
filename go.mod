@@ -10,8 +10,8 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/microsoft/onnxruntime/go v1.28.2
 	github.com/modelcontextprotocol/go-sdk v1.6.1
-	github.com/pgvector/pgvector-go v0.4.0
-	github.com/pgvector/pgvector-go/pgx v0.4.0
+	github.com/pgvector/pgvector-go v0.4.1
+	github.com/pgvector/pgvector-go/pgx v0.4.1
 	github.com/pressly/goose/v3 v3.27.2
 	github.com/xuri/excelize/v2 v2.11.0
 	golang.org/x/crypto v0.53.0
