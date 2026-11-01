@@ -2,6 +2,11 @@
 
 # compliary
 
+**Development and maintenance have stopped. This repository is retained as an archive.**
+
+Hosted endpoints are unsupported. Deployment and corpus details below are historical.
+The roadmap and unfinished work are retained for reference, with no further development planned.
+
 **Evidence-only corpus + MCP server for InfoSec control frameworks.**
 
 Exact control citations, version lineage, cross-framework mappings, provenance, and explicit
@@ -9,7 +14,7 @@ gaps -- served to your agent over MCP. compliance + library.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-Streamable_HTTP-6E40C9)](https://modelcontextprotocol.io)
-[![Status](https://img.shields.io/badge/status-v0.2.2-green.svg)](PLAN.md)
+[![Status](https://img.shields.io/badge/status-archived-lightgrey.svg)](PLAN.md)
 [![CI](https://github.com/dannyota/compliary/actions/workflows/ci.yml/badge.svg)](https://github.com/dannyota/compliary/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/badge/Go-1.26+-00ADD8.svg)](https://go.dev)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL_17-pgvector-336791.svg)](https://www.postgresql.org)
@@ -26,7 +31,7 @@ retrieves citations and mappings, and decides the answer itself.
 Built for compliance and GRC engineers wiring AI agents to citable framework evidence --
 ISO 27001, SOC 2, PCI DSS, NIST CSF, NIST 800-53, CIS Controls, and more.
 
-Sibling of [banhmi](https://banhmi.danny.vn) (binding law per jurisdiction).
+Sibling of [banhmi](https://github.com/dannyota/banhmi) (binding law per jurisdiction).
 Design: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Roadmap: [PLAN.md](PLAN.md). Deploy: [docs/OPERATIONS.md](docs/OPERATIONS.md).
 
 ## How it works
@@ -85,9 +90,9 @@ Adversarially-verified eval on the 205-case golden set (v6):
 | Open-corpus | 86.3% | 66.3% | 100% | 96.6% |
 | Framework-filtered | 93.2% | 81.3% | 100% | 95.6% |
 
-Accepted floors gate every corpus change. The `quality_gaps` tool serves these numbers live.
+These are historical evaluation results. Accepted floors gated corpus changes.
 
-## Quickstart (self-deploy)
+## Archived quickstart (self-deploy)
 
 Prerequisites: Go 1.26+, Podman or Docker.
 
@@ -132,9 +137,9 @@ Most framework documents are copyrighted; compliary never redistributes them.
 - **Each operator builds their own corpus** locally, under licenses they accepted.
 - **Official publisher sources only** -- never pirated, leaked, or third-party re-hosted copies.
   Every document carries license provenance (source URL, license kind, retrieval date).
-- **Licensed text is served privately only.** The maintainer's instance at `compliary.danny.vn`
-  has an `/mcp` endpoint **authenticated for the maintainer alone** (OAuth 2.0); unauthenticated
-  requests receive 401. Anyone else self-deploys.
+- **Licensed text must be served privately only.** The former maintainer instance at
+  `compliary.danny.vn` used an `/mcp` endpoint **authenticated for the maintainer alone**
+  (OAuth 2.0). This hosted endpoint is unsupported.
 - **Version lineage is first-class** -- supersession relations (`27001:2013 -> :2022`,
   `CSF 1.1 -> 2.0`) are tracked; superseded text is never presented as current.
 
