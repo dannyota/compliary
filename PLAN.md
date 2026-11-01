@@ -1,6 +1,8 @@
 # compliary plan
 
-Living roadmap and progress tracker. Last updated: 2026-07-30.
+Status: Archived. Development and maintenance have stopped. Hosted endpoints are unsupported.
+The roadmap, deployment descriptions, and unfinished work below are historical references.
+No further development is planned. See [archive status](README.md).
 
 ## Vision
 

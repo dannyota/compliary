@@ -1,5 +1,9 @@
 # Documentation index
 
+Development and maintenance have stopped. These documents are retained as an archive. Hosted
+endpoints are unsupported. Deployment descriptions and unfinished plans are historical; see
+[archive status](../README.md).
+
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — system overview: principles, pipeline, MCP surface,
   repo layout, stack.
 - [`design/SCHEMA.md`](design/SCHEMA.md) — data model: registry, manifest, bronze/silver/gold,
